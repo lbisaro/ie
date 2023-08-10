@@ -1,0 +1,22 @@
+python -m venv venv
+pip install django
+django-admin startproject ie .
+configurar la base de datos en settings
+
+python .\manage.py createsuperuser
+
+
+
+EN PRODUCCION
+ref: https://render.com/docs/deploy-django
+    settings.py
+        import os
+        SECRET_KEY = 'your secret key'
+        DEBUG = local.DEBUG
+        ALLOWED_HOSTS = ['localhost']
+
+GITHUB
+git init
+git add .
+git commit -m "Start"
+
