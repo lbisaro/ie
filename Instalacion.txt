@@ -3,6 +3,10 @@ pip install django
 django-admin startproject ie .
 configurar la base de datos en settings
 
+sudo apt-get install python3-dev
+
+https://hevodata.com/learn/mysql-to-mariadb/
+
 python .\manage.py createsuperuser
 
 
