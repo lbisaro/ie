@@ -28,7 +28,7 @@ SECRET_KEY = 'this-is-mysk-nth(c9e2d3q!!!_%9j2d+m7+$z&@&u*i!c%nxv1j_26!a^ej0s'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = local.DEBUG
 
-ALLOWED_HOSTS = ['localhost']
+ALLOWED_HOSTS = []
 
 
 # Application definition
