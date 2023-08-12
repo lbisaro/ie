@@ -5,6 +5,8 @@ configurar la base de datos en settings
 
 sudo apt-get install python3-dev
 
+Remove MySQL
+sudo apt-get remove --purge mysql*
 https://hevodata.com/learn/mysql-to-mariadb/
 
 python .\manage.py createsuperuser
