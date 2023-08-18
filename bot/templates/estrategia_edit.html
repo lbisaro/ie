@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}{{title}}{% endblock %}
+{% block nav_title %}{{title}}{% endblock %}
+
+{% load static %}
+{% block content %}
+<script>
+    a = 8;
+</script>
+<div class="container">
+    {% if activo == 0 %}
+    <div class="row">
+        <h3 class="text-danger text-center">Estrategia inactiva</h3>
+    </div>
+    {% endif %}
+    <div class="row">
+        <div class="col-12 form-group">
+            <label class="form-label" for="nombre">Nombre de la estrategia</label>                                    
+            <input type="text" id="nombre" class="form-control" value="{{nombre}}">
+    
+        </div>
+    </div>
+    <div class="row">
+        <div class="form-group col pt-3">
+            {% if qtyBots > 0 %}
+                <label class="form-label" for="clase">Clase a ejecutar</label>
+                <input type="text" id="clase" readonly class="form-control" value="{{clase}}"> 
+            {% else %}
+                <label class="form-label" for="clase">Clase a ejecutar</label>   
+                <select id="clase" class="form-control" onchange="loadParametros()">
+                {% if not estrategia_id %}                                 
+                    <option value="0">Seleccionar</option>
+                {% endif %}
+                {% for c in clases %}
+                    <option value="{{c}}" {% if clase == c %} SELECTED {% endif %}>{{c}}</option>
+                {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+    </div>
+    <div class="row p-3">
+        <div class="col">
+            <h4 class="text-center">Parametros</h4>
+            <table id="parametros" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Descripcion</th>
+                        <th class="w-25">Valor por default</th>
+                    </tr>
+                </thead>
+                <tbody>
+                
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="form-group row pt-2 ">
+        <span class="btn btn-success btn-block" onclick="grabar()">Grabar</span>
+    </div>
+</div>
+<input type="hidden" id="estrategia_id" value="{{estrategia_id}}" >
+
+
+{% endblock %}
+
+{% block script %}
+ 
+
+<script>
+
+    function loadParametros()
+    {
+        $('#parametros tbody').html('');
+        if ($('#clase').val() != '0')
+        {
+            url = '/bot/estrategia/load_parametros/'+$('#clase').val()+'/';
+            data = null;
+            get_ajax(url,data).done( function (rsp) {
+                if (rsp.ok > 0)
+                {
+                    for (const clave in rsp.parametros) {
+                        if (rsp.parametros.hasOwnProperty(clave)) {
+                            const prm = rsp.parametros[clave];
+                            addParametro(prm['c'], prm['d'], prm['v'], prm['t']);
+                        }
+                    }
+                }
+            }); 
+        }
+    } 
+
+    function addParametro(parametro,descripcion,value,type)
+    {
+        var qty = $('#parametros tbody tr').length
+        html = '<tr>';
+        html += '<td>'+descripcion+'<input type="hidden" class="parametro"  value="'+parametro+'"></td>';
+        if (type == 'perc')
+        {
+            html += '<td><div class="input-group ">'+
+                    '<span class="input-group-text" >%</span>'+
+                    '<input class="form-control value" value="'+value+'">'+
+                    '</div></td>';
+         }
+        else
+        {
+            html += '<td><input class="form-control value " value="'+value+'"></td>';
+        }
+        html += '</tr>';
+        var qty = $('#parametros tbody').append(html);
+    }
+
+    function grabar() {
+        if ($('#estrategia_id').val() > 0 )
+        {
+            url = '{% url "estrategia_edit" estrategia_id %}';
+        }
+        else
+            url = '{% url "estrategia_create" %}';
+        
+        data = {
+                nombre: $('#nombre').val().trim(),
+                clase: $('#clase').val().trim()
+            }
+
+        err = '';
+        if (!data.nombre)
+           err += 'Se debe especificar el nombre de la estrategia<br>';
+        if (!data.clase)
+           err += 'Se debe especificar la clase a utilizar<br>';
+        
+        data.parametros = getParametros();
+        if (!data.parametros)
+           err += 'Se debe especificar al menos un parametro, y todos sus datos deben completarse<br>';
+        
+        if (err)
+            html_alert('Errores detectados',err,'text-danger');
+        else
+        {
+            get_ajax(url,data).done( function (rsp) {
+                if (rsp.error)
+                    html_alert('Errores detectados',rsp.error,'text-danger')
+                if (rsp.ok)
+                {
+                    location.href = rsp.ok;
+                }
+            });    
+        }
+    }
+
+    $(document).ready(function () {
+        //{% for k,prm in parametros.items %}
+        addParametro('{{prm.c}}', '{{prm.d}}', '{{prm.v}}', '{{prm.t}}');
+        //{% endfor %} 
+        setTimeout(function () { $('#nombre').focus(); },500);
+    })
+
+    function getParametros()
+    {
+        var parametros = '['; 
+        var err=0;
+        var ok=0
+        $('#parametros tbody tr').each( function () {
+            parametro = $(this).find('.parametro').val();
+            value = $(this).find('.value').val();
+            if (parametro.length>0 && value.length>0)
+            {
+                parametros += "{'"+parametro.trim()+"':'"+value.trim()+"'}, ";
+                ok++;
+                $(this).removeClass('table-danger');
+            }
+            else if (parametro || value)
+            {
+                $(this).addClass('table-danger');
+                err++;
+            }
+        });
+        parametros += ']';
+        if (err>0 || ok==0)
+            return false;
+        return parametros;
+
+    }
+</script>
+
+{% endblock %}

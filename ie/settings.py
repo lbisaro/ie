@@ -28,7 +28,8 @@ SECRET_KEY = local.DJANGO_SK
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = local.DEBUG
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
 
 
 # Application definition
@@ -115,10 +116,11 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'es'
 
 TIME_ZONE = 'America/Argentina/Buenos_Aires'
-
-USE_I18N = True
-
 USE_TZ = True
+
+USE_L10N = False
+USE_THOUSAND_SEPARATOR = False
+DECIMAL_SEPARATOR = '.'
 
 
 # Static files (CSS, JavaScript, Images)

@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}{{title}}{% endblock %}
+{% block nav_title %}{{nav_title}}{% endblock %}
+
+{% load static %}
+{% block content %}
+<script>
+    a = 8;
+</script>
+<div class="container">
+    {% if activo == 0 %}
+    <div class="row">
+        <h3 class="text-danger text-center">Bot inactivo</h3>
+    </div>
+    {% endif %}
+    <div class="row">
+        <div class="form-group col">
+            <label class="form-label" for="estrategia_id">Estrategia</label>   
+            <select id="estrategia_id" class="form-control" onchange="loadParametros()">
+            {% if not bot_id %}                                 
+                <option value="0">Seleccionar</option>
+            {% endif %}
+            {% for e in estrategias %}
+                <option value="{{e.id}}" {% if estrategia_id == e.estrategia_id %} SELECTED {% endif %}>{{e.nombre}}</option>
+            {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="row pt-2">
+        <div class="form-group col">
+            <label class="form-label" for="interval_id">Intervalo</label>   
+            <select id="interval_id" class="form-control" >
+            {% if not bot_id %}                                 
+                <option value="0">Seleccionar</option>
+            {% endif %}
+            {% for i in intervals %}
+                <option value="{{i.interval_id}}" {% if interval_id == i.interval_id %} SELECTED {% endif %}>{{i.name}}</option>
+            {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col">
+            <label class="form-label" for="quote_qty">Capital USD</label>
+            <input type="text" class="form-control" id="quote_qty" value="{{quote_qty}}">
+        </div>
+    </div>
+    <div class="row pt-2 text-center">
+        <h4>Parametros</h4>
+    </div>
+    <div class="row">
+        <div class="col">
+                
+            <table id="parametros" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Parametro</th>
+                        <th class="w-25">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for k,prm in parametros.items %}
+                    <tr>
+                        <td>{{prm.d}}<input type="hidden" class="parametro" value="{{prm.c}}" ></td>
+                        {% if prm.t == 'perc' %}
+                            <td>
+                                <div class="input-group ">
+                                <span class="input-group-text" >%</span>
+                                <input class="form-control value" value="{{prm.v}}">
+                                </div>
+                            </td>
+                        {% else %}
+                            <td><input class="form-control value " value="{{prm.v}}"></td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+    <div class="form-group row pt-2 ">
+        <span class="btn btn-success" onclick="grabar()">Grabar</span>
+    </div>
+</div>
+<input type="hidden" id="bot_id" value="{{bot_id}}" >
+
+{% endblock %}
+
+{% block script %}
+<script>
+
+    function loadParametros()
+    {
+        $('#parametros tbody').html('');
+        if ($('#estrategia_id').val() > 0)
+        {
+            url = '{% url "get_parametros_estrategia" 0 %}'.replace('0',$('#estrategia_id').val())
+            data = null;
+            get_ajax(url,data).done( function (rsp) {
+                if (rsp.ok > 0)
+                {
+                    for (const prms of rsp.parametros) {
+                        console.log(prms)
+                        for (const clave in prms) {
+                            if (prms.hasOwnProperty(clave)) {
+                                const prm = prms[clave];
+                                addParametro(prm['c'], prm['d'], prm['v'], prm['t']);
+                            }
+                        }
+                    }
+                }
+            }); 
+
+        }
+    } 
+
+    function grabar() {
+        if ($('#bot_id').val() > 0 )
+        {
+            url = '{% url "bot_edit" bot_id %}';
+        }
+        else
+            url = '{% url "bot_create" %}';
+
+        console.log($('#interval_id').val())
+
+        data = {
+                estrategia_id: $('#estrategia_id').val(),
+                interval_id: $('#interval_id').val(),
+                quote_qty: $('#quote_qty').val().trim()
+            }
+
+        err = '';
+        if (data.estrategia_id < 1)
+           err += 'Se debe seleccionar una estrategia<br>';
+        if (data.interval_id < 1)
+           err += 'Se debe seleccionar un intervalo<br>';
+        if (data.quote_qty <= 0)
+           err += 'Se debe especificar el capital mayor a 0<br>';
+                
+        data.parametros = getParametros();
+        if (!data.parametros)
+           err += 'Se debel completar los valores de los parametros<br>';
+        
+        if (err)
+            html_alert('Errores detectados',err,'text-danger');
+        else
+        {
+            get_ajax(url,data).done( function (rsp) {
+                if (rsp.error)
+                    html_alert('Errores detectados',rsp.error,'text-danger')
+                if (rsp.ok)
+                {
+                    location.href = rsp.ok;
+                }
+            });    
+
+        }
+        
+    }
+
+    function addParametro(parametro,descripcion,value)
+    {
+        var qty = $('#parametros tbody tr').length
+        html = '<tr>';
+        html += '<td>'+parametro+'<input type="hidden" class="parametro"  value="'+parametro+'"></td>';
+        html += '<td>'+descripcion+'</td>';
+        html += '<td><input class="form-control value" value="'+value+'"></td>';
+        html += '</tr>';
+        var qty = $('#parametros tbody').append(html);
+
+    }
+
+    function getParametros()
+    {
+        var parametros = '['; 
+        var err=0;
+        var ok=0
+        $('#parametros tbody tr').each( function () {
+            parametro = $(this).find('.parametro').val();
+            value = $(this).find('.value').val();
+            if (parametro.length>0 && value.length>0)
+            {
+                parametros += "{'"+parametro.trim()+"':'"+value.trim()+"'}, ";
+                ok++;
+                $(this).removeClass('table-danger');
+            }
+            else if (parametro || value)
+            {
+                $(this).addClass('table-danger');
+                err++;
+            }
+        });
+        parametros += ']';
+        if (err>0 || ok==0)
+            return false;
+        return parametros;
+
+    }
+</script>
+
+{% endblock %}

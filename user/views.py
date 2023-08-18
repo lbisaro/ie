@@ -1,16 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError
 from django.utils import timezone
 from django.http import JsonResponse
-from django.conf import settings
 import hashlib, datetime, random
-
-
-
 from user.forms import RegistrationForm
 from user.models import UserProfile
 from django.core.mail import send_mail
@@ -25,14 +19,14 @@ def signup(request):
     
     if request.method == 'GET':
         form = RegistrationForm()
-        return render(request, 'signup.html', {
-            'form':form.as_p
-        })
+        return render(request, 'signup.html')
     else:
 
         form = RegistrationForm(request.POST)
         if form.is_valid():
             form.save()
+            
+
             username = form.cleaned_data['username']
             email = form.cleaned_data['email']
             salt = hashlib.sha1(str(random.random()).encode('utf-8')).hexdigest()[:5]            
@@ -64,9 +58,17 @@ def signup(request):
             jsonRsp['ok'] = 'Registro correcto'
 
         else: 
-            jsonRsp['error'] = str(form.errors)
-        
-            
+            #jsonRsp['error'] = dict(form.errors.items())
+            msgError = ''
+            for field in form:
+                if field.errors:
+                    msgError += "<div><b>"+field.label+"</b> "
+                    for err in field.errors:
+                        msgError += "<span>"+err+"</span> "
+                    msgError += "</div>"
+            msgError = msgError.replace("First name", "Nombre")
+            msgError = msgError.replace("Last name", "Apellido")
+            jsonRsp['error'] = msgError
         return JsonResponse(jsonRsp)
     
 

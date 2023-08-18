@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Bot {{title}}{% endblock %}
+{% block nav_title %}Bot{% endblock %}
+
+{% load static %}
+
+{% block action_bar %}
+
+<a class="btn btn-primary  btn-sm" href="{% url 'bot_edit' bot_id %}">Editar Bot</a>
+{% if activo > 0 %}
+    <a class="btn btn-danger  btn-sm" href="{% url 'bot_toogle_activo' bot_id %}">Desactivar</a>
+{% else %}
+    <a class="btn btn-success  btn-sm" href="{% url 'bot_toogle_activo' bot_id %}">Activar</a>
+{% endif %}
+{% if can_delete %}
+    <button class="btn btn-danger  btn-sm" onclick="eliminar()">Eliminar</a>
+{% endif %}
+
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if activo == 0 %}
+    <div class="row">
+        <h3 class="text-danger text-center">Bot inactivo</h3>
+    </div>
+    {% endif %}
+    <div class="row pb-3">
+        <div class="col-2">Nombre de la estrategia</div>                                    
+        <div class="col fw-bold">{{estrategia}}</div>                                    
+        <div class="col-2">Intervalo</div>                                    
+        <div class="col fw-bold">{{interval}}</div>                                    
+    </div>
+    <div class="row pb-3">
+        <div class="col-2">Capital USD</div>                                    
+        <div class="col fw-bold">{{quote_qty}}</div>                                    
+    </div>
+    <div class="row pb-3 text-secondary">
+        <div class="col">Creado {{creado}}</div>                                    
+    </div>
+    <div class="row pt-2 text-center">
+        <h4>Parametros</h4>
+    </div>
+    <div class="row">
+
+        <table id="parametros" class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>Parametro</th>
+                    <th class="text-center w-25">Valor</th>
+                </tr>
+            </thead>
+            
+            <tbody>
+                {% for k,prm in parametros.items %}
+                    <tr>
+                        <td>{{prm.d}}</td>
+                        <td class="text-center">{{prm.v}} {% if prm.t == 'perc' %} %{% endif %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>
+
+    </div>
+</div>
+<input type="hidden" id="bot_id" value="{bot_id}" >
+
+{% endblock %}
+
+{% block script %}
+<script>
+function eliminar()
+{
+    if (confirm('Confirma eliminar la estrategia {{nombre}}?'))
+    {
+        url = "{% url 'bot_delete' bot_id %}"
+        data = null
+        get_ajax(url,data).done( function (rsp) {
+            if (rsp.error)
+                html_alert('Errores detectados',rsp.error,'text-danger')
+            if (rsp.ok)
+            {
+                location.href = "{% url 'bots' %}";
+            }
+        });    
+
+        
+    }
+    
+}
+</script>
+
+{% endblock %}
