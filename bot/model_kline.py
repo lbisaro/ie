@@ -66,11 +66,11 @@ class Kline(models.Model):
         else:
             data = [{'symbol': symbol.symbol,
                     'datetime': kline.datetime, 
-                    'open': kline.open,
-                    'close': kline.close,
-                    'high': kline.high,
-                    'low': kline.low,
-                    'volume': kline.volume
+                    'open': float(kline.open),
+                    'close': float(kline.close),
+                    'high': float(kline.high),
+                    'low': float(kline.low),
+                    'volume': float(kline.volume)
                     } for kline in klines]
             df = pd.DataFrame(data)
             
