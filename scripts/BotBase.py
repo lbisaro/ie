@@ -11,6 +11,13 @@ class BotBase():
     SIDE_BUY = 0
     SIDE_SELL = 1
 
+    FLAG_SIGNAL = 0
+    FLAG_STOPLOSS = 1
+    FLAG_TAKEPROFIT = 2
+
+    quote_qty = 0
+    interval_id = ''
+
     ##@abstractmethod
     #def run(self):
     #    pass
@@ -26,24 +33,23 @@ class BotBase():
         prms = self.bot.parse_parametros()
         for p in prms:
             self.__setattr__(p['c'],p['v'])
-       
 
     def set(self, parametros):
-        for prm in parametros:
-            for v in prm:
-                self.__setattr__(v, prm[v])
+        for v in parametros:
+            self.__setattr__(parametros[v]['c'], parametros[v]['v'])
 
     def __setattr__(self, prm, val):
         type = 'str'
-        print(prm,val)
-        type = self.parametros[prm]['t']
-        print(type)
-        if type == 'perc' or type == 'float':
-            self.__dict__[prm] = float(val)
-        elif type == 'int':
-            self.__dict__[prm] = int(val)
+        if prm == 'quote_qty' or prm == 'interval_id':
+            self.__dict__[prm] = val
         else:
-            self.__dict__[prm] = str(val)
+            type = self.parametros[prm]['t']
+            if type == 'perc' or type == 'float':
+                self.__dict__[prm] = float(val)
+            elif type == 'int':
+                self.__dict__[prm] = int(val)
+            else:
+                self.__dict__[prm] = str(val)
     
     def get_symbols(self):
         # metodo que devuelve una lista con los symbols afectados al Bot Ej: ['BTCUSDT','TRXUSDT']

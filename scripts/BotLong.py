@@ -1,4 +1,8 @@
 from .BotBase import BotBase
+from bot.model_kline import *
+from django.db.models import Q
+import pandas as pd
+import datetime
 
 class BotLong(BotBase):
 
@@ -6,27 +10,27 @@ class BotLong(BotBase):
     quote_perc = 0.0
     stop_loss = 0.0
     take_profit = 0.0
-
+    
     parametros = {'symbol':  {  
                         'c' :'symbol',
-                        'd' :'Par',
+                        'd' :'Symbol',
                         'v' :'BTCUSDT',
-                        't' :'str'},
+                        't' :'symbol'},
                 'quote_perc': {
                         'c' :'quote_perc',
                         'd' :'Porcentaje de capital por operacion',
-                        'v' :'70.0',
+                        'v' :'70',
                         't' :'perc' },
                 
                 'stop_loss': {
                         'c' :'stop_loss',
                         'd' :'Stop Loss',
-                        'v' :'2.0',
+                        'v' :'2',
                         't' :'perc' },
                 'take_profit': {
                         'c' :'take_profit',
                         'd' :'Take Profit',
-                        'v' :'6.0',
+                        'v' :'6',
                         't' :'perc' },
                 }
 
@@ -53,6 +57,14 @@ class BotLong(BotBase):
     def run(self):
         print('El bot en RUN') 
         pass
+
+    def backtesting(self):
+        klines = Kline.get_df(self.symbol, self.interval_id, 200)
+        
+         
+        
+        print(klines)
+
 
     def get_symbols(self):
         return [self.symbol]

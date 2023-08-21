@@ -15,5 +15,58 @@ def backtesting(request):
                 )
 
     if request.method == 'GET':
-        return render(request, 'backtesting.html')
+        return render(request, 'backtesting.html',{
+            'estrategias': estrategias,
+        })
+
+@login_required
+def config(request,estrategia_id):
+    estrategia = get_object_or_404(Estrategia, pk=estrategia_id)
+    intervals = fn.get_intervals().to_dict('records')
+    symbols = Symbol.objects.filter(activo=1).order_by('symbol')
+        
+    if request.method == 'GET':
+        return render(request, 'backtesting_run.html',{
+            'estrategia': estrategia,
+            'intervals': intervals,
+            'symbols': symbols,
+            'parametros': estrategia.parse_parametros(),
+        })
+
+
+@login_required
+def run(request):
+    if request.method == 'POST':
+        jsonRsp = {}
+        estrategia = get_object_or_404(Estrategia, pk=request.POST['estrategia_id'])
+        estrategia.parametros=request.POST['parametros']
+        parametros = estrategia.parse_parametros()
+
+        runBot = eval(estrategia.clase)()
+        runBot.quote_qty = float(request.POST['quote_qty'])
+        runBot.interval_id = request.POST['interval_id']
+        runBot.set(parametros)
+
+        jsonRsp['ok'] = True
+
+        atributos = runBot.__dict__
+        jsonRsp['parametros'] = {}
+        for attr in atributos:
+            val = atributos[attr]
+            jsonRsp['parametros'][attr] = val
+
+        #try:
+        runBot.valid()
+
+        bt = runBot.backtesting()
+        jsonRsp['bt'] = {}
+
+        jsonRsp['ok'] = True
+        # except Exception as e:
+        #     jsonRsp['ok'] = False
+        #     jsonRsp['error'] = str(e)
+
+        return JsonResponse(jsonRsp)
+    
+
 

@@ -1,5 +1,7 @@
 __pycache__
 venv
 local__*
-**/migrations/*.py
+*/migrations/*.py
+*.log
+scripts/Bot*.py
 

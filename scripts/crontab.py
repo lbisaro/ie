@@ -1,9 +1,15 @@
+import win32console
+import win32gui
 import requests
 
-url = "http://localhost:8000/bot/api/bots/"
+ventana = win32console.GetConsoleWindow()
+win32gui.ShowWindow(ventana,0)
 
 
-# A GET request to the API
+#Cron de ejecucion en cada minuto
+
+#Actualizar velas de Symbols Activos
+url = "http://localhost:8000/bot/update_klines/all/"
 response = requests.get(url)
 
 # Print the response

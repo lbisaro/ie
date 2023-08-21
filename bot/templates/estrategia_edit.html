@@ -54,8 +54,10 @@
             </table>
         </div>
     </div>
-    <div class="form-group row pt-2 ">
-        <span class="btn btn-success btn-block" onclick="grabar()">Grabar</span>
+    <div class="form-group row pt-3 ">
+        <div class="col-12 d-grid gap-2">
+            <div class="btn btn-success " onclick="grabar()">Grabar</div>
+        </div>
     </div>
 </div>
 <input type="hidden" id="estrategia_id" value="{{estrategia_id}}" >
@@ -98,7 +100,7 @@
         {
             html += '<td><div class="input-group ">'+
                     '<span class="input-group-text" >%</span>'+
-                    '<input class="form-control value" value="'+value+'">'+
+                    '<input class="form-control value" value="'+parseFloat(value).toFixed(2)+'">'+
                     '</div></td>';
          }
         else

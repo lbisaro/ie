@@ -30,7 +30,7 @@ class Estrategia(models.Model):
     
     def clean(self):
         bot_class = eval(self.clase)()
-        bot_class.set(eval(self.parametros))
+        bot_class.set(self.parse_parametros())
         
         try:
             bot_class.valid()
@@ -93,7 +93,7 @@ class Bot(models.Model):
          
     def clean(self):
         bot_class = eval(self.estrategia.clase)()
-        bot_class.set(eval(self.parametros))
+        bot_class.set(self.parse_parametros())
         
         try:
             bot_class.valid()
@@ -124,12 +124,15 @@ class Order(models.Model):
     datetime = models.DateField(default=timezone.now)
     base_asset = models.CharField(max_length = 14, null=False, blank=False, db_index=True)
     quote_asset = models.CharField(max_length = 14, null=False, blank=False, db_index=True)
+    #BotBase: SIDE_BUY, SIDE_SELL
     side = models.IntegerField(default=0, null=False, blank=False, db_index=True)
     completed = models.IntegerField(default=0, null=False, blank=False, db_index=True)
     qty = models.DecimalField(max_digits=15,decimal_places=8,null=False, blank=False)
     price = models.DecimalField(max_digits=15,decimal_places=8, null=False, blank=False)
     orderid = models.CharField(max_length = 20, null=False, unique = True, blank=False, db_index=True)
     pos_order_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
+    #BotBase: FLAG_SIGNAL, FLAG_STOPLOSS, FLAG_TAKEPROFIT
+    flag = models.IntegerField(default=0, null=False, blank=False)
     
     def __str__(self):
         str = f"{self.base_asset}{self.quote_asset} "

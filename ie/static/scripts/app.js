@@ -8,7 +8,7 @@
  */
 var ajxRsp;
 function get_ajax(url,data) {
-    $loader.gSpinner({ loading: true, scale: .3 });
+    spinner_show();
     if (data)
     {
         data.csrfmiddlewaretoken = $('input[name=csrfmiddlewaretoken]').val();
@@ -29,8 +29,18 @@ function get_ajax(url,data) {
             console.log(xhr.status + ": " + xhr.responseText); 
         }
     }).done(function () {
-        $loader.gSpinner({ loading: false });
+        spinner_hide();
     });
+}
+
+function spinner_show()
+{
+    $('#ajax_spinner').show();
+}
+
+function spinner_hide()
+{
+    $('#ajax_spinner').hide();
 }
 
 function html_alert(title, text, cls) {

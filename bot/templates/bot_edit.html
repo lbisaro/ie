@@ -77,8 +77,10 @@
         </div>
 
     </div>
-    <div class="form-group row pt-2 ">
-        <span class="btn btn-success" onclick="grabar()">Grabar</span>
+    <div class="form-group row pt-3 ">
+        <div class="col-12 d-grid gap-2">
+            <div class="btn btn-success " onclick="grabar()">Grabar</div>
+        </div>
     </div>
 </div>
 <input type="hidden" id="bot_id" value="{{bot_id}}" >
@@ -99,7 +101,6 @@
                 if (rsp.ok > 0)
                 {
                     for (const prms of rsp.parametros) {
-                        console.log(prms)
                         for (const clave in prms) {
                             if (prms.hasOwnProperty(clave)) {
                                 const prm = prms[clave];
@@ -158,16 +159,36 @@
         
     }
 
-    function addParametro(parametro,descripcion,value)
+    function addParametro(parametro,descripcion,value,type)
     {
         var qty = $('#parametros tbody tr').length
         html = '<tr>';
-        html += '<td>'+parametro+'<input type="hidden" class="parametro"  value="'+parametro+'"></td>';
-        html += '<td>'+descripcion+'</td>';
-        html += '<td><input class="form-control value" value="'+value+'"></td>';
+        html += '<td>'+descripcion+'<input type="hidden" class="parametro"  value="'+parametro+'"></td>';
+        if (type == 'perc')
+        {
+            html += '<td><div class="input-group ">'+
+                    '<span class="input-group-text" >%</span>'+
+                    '<input class="form-control value" value="'+parseFloat(value).toFixed(2)+'">'+
+                    '</div></td>';
+        }
+        else if (type == 'symbol')
+        {
+            html += '<td><select class="form-control value" >';
+            html += '<option value="">Seleccionar</option>';
+            //{% for symbol in symbols %}
+                if (value == '{{symbol.symbol}}')
+                    html += '<option value="{{symbol.symbol}}" SELECTED >{{symbol.symbol}}</option>';
+                else
+                    html += '<option value="{{symbol.symbol}}" >{{symbol.symbol}}</option>';
+            //{% endfor %}
+            html += '</select></td>';
+        }
+        else
+        {
+            html += '<td><input class="form-control value " value="'+value+'"></td>';
+        }
         html += '</tr>';
         var qty = $('#parametros tbody').append(html);
-
     }
 
     function getParametros()

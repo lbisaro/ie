@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 
 from bot.models import *
+from bot.model_kline import *
 
 @login_required
 def bots(request):
@@ -50,10 +51,12 @@ def bot_create(request):
     jsonRsp = {}
     if request.method == 'GET':
         intervals = fn.get_intervals().to_dict('records')
+        symbols = Symbol.objects.filter(activo=1).order_by('symbol')
         return render(request, 'bot_edit.html',{
             'title': 'Crear Bot',
             'nav_title': 'Crear Bot',
             'intervals': intervals,
+            'symbols': symbols,
             'estrategias': Estrategia.objects.filter(activo__gt=0),
             'bot_id': 0,
             'estrategia_id': 0,
@@ -101,12 +104,15 @@ def bot_edit(request,bot_id):
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     if request.method == 'GET':
         intervals = fn.get_intervals().to_dict('records')
+        symbols = Symbol.objects.filter(activo=1).order_by('symbol')
         
         return render(request, 'bot_edit.html',{
             'title': 'Editar Bot '+str(bot),
             'nav_title': 'Editar Bot',
             'bot_id': bot.id,
             'intervals': intervals,
+            'interval_id': bot.interval_id,
+            'symbols': symbols,
             'interval_id': bot.interval_id,
             'quote_qty': round(bot.quote_qty,2),
             'estrategia_id': bot.estrategia.id,

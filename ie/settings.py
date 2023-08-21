@@ -118,6 +118,12 @@ LANGUAGE_CODE = 'es'
 TIME_ZONE = 'America/Argentina/Buenos_Aires'
 USE_TZ = True
 
+DATE_FORMAT = 'd-m-Y'
+DATE_INPUT_FORMATS = 'd-m-Y'
+
+DATETIME_FORMAT = 'd-m-Y H:i'
+DATETIME_INPUT_FORMATS = 'd-m-Y H:i'
+
 USE_L10N = False
 USE_THOUSAND_SEPARATOR = False
 DECIMAL_SEPARATOR = '.'

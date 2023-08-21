@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block title %}Configurar BackTesting{% endblock %}
+{% block nav_title %}Configurar BackTesting{% endblock %}
+
+{% load static %}
+{% block content %}
+<div class="container" id="config">
+    <div class="row">
+        <div class="col-3">
+            Nombre de la estrategia                                    
+        </div>
+        <div class="col-9 fw-bold">
+            {{estrategia.nombre}}
+    
+        </div>
+    </div>
+    <div class="row pt-2">
+        <div class="form-group col">
+            <label class="form-label" for="interval_id">Intervalo</label>   
+            <select id="interval_id" class="form-control" >
+            {% if not bot_id %}                                 
+                <option value="0">Seleccionar</option>
+            {% endif %}
+            {% for i in intervals %}
+                <option value="{{i.interval_id}}" >{{i.name}}</option>
+            {% endfor %}
+            </select>
+        </div>
+        <div class="form-group col">
+            <label class="form-label" for="quote_qty">Capital USD</label>
+            <input type="text" class="form-control" id="quote_qty" value="1000">
+        </div>
+    </div>
+    <div class="row pt-2">
+        <div class="form-group col">
+            <h6>Parametros de la estrategia</h6>
+        </div>
+    </div>
+    <div id="parametros" class="row" >
+
+    </div>
+    <div class="form-group row pt-3 ">
+        <div class="col-12 d-grid gap-2">
+            <div class="btn btn-success " id="btn_ejecutar" onclick="ejecutar()">Ejecutar</div>
+        </div>
+    </div>
+</div>
+<input type="hidden" id="estrategia_id" value="{{estrategia.id}}">
+
+<div class="container" id="run">
+
+</div>
+
+{% endblock %}
+
+{% block script %}
+ 
+
+<script>
+
+
+    function addParametro(parametro,descripcion,value,type)
+    {
+        html = '<div class="col-6">';
+        html += '<div class="pt-3 form-group prm">'
+        html += '<label class="form-label" for="'+parametro+'">'+descripcion+'</label>'
+        html += '<input type="hidden" class="parametro"  value="'+parametro+'">';
+        
+        if (type == 'perc')
+        {
+            html += '<div class="input-group">'+
+                    '<span class="input-group-text" >%</span>'+
+                    '<input class="form-control value" value="'+parseFloat(value).toFixed(2)+'">'+
+                    '</div>';
+        }
+        else if (type == 'symbol')
+        {
+            html += '<select class="form-control value" >';
+            html += '<option value="">Seleccionar</option>';
+            //{% for symbol in symbols %}
+                html += '<option value="{{symbol.symbol}}">{{symbol.symbol}}</option>';
+            //{% endfor %}
+            html += '</select>';
+        }
+        else
+        {
+            html += '<input class="form-control value " value="'+value+'">';
+        }
+        html += '</div></div>';
+        var qty = $('#parametros').append(html);
+    }
+
+    function ejecutar() {
+        url = '{% url "backtesting_run" %}';
+        
+        data = {
+                estrategia_id: $('#estrategia_id').val(),
+                interval_id: $('#interval_id').val(),
+                quote_qty: $('#quote_qty').val(),
+            }
+        err = ''
+        if (data.interval_id == '0')
+            err += 'Se deben especificar el intervalo<br>';
+        if (parseFloat(data.quote_qty*1) <= 0)
+            err += 'Se deben especificar Capital<br>';
+        
+        data.parametros = getParametros();
+        if (!data.parametros)
+           err += 'Se deben completar todos los parametros de la estrategia<br>';
+        
+        if (err)
+            html_alert('Errores detectados',err,'text-danger');
+        else
+        {
+            $('#btn_ejecutar').attr('disabled',true);
+            get_ajax(url,data).done( function (rsp) {
+                if (rsp.error)
+                {
+                    html_alert('Errores detectados',rsp.error,'text-danger')
+                    // $('#config').show();
+                    // $('#run').hide();
+                }
+                else if (rsp.ok)
+                {
+                    // $('#config').hide();
+                    // $('#run').show();
+                    console.log(rsp);
+                }
+            });    
+        }
+    }
+
+    $(document).ready(function () {
+        //{% for k,prm in parametros.items %}
+            addParametro('{{prm.c}}', '{{prm.d}}', '{{prm.v}}', '{{prm.t}}');
+        //{% endfor %} 
+    })
+
+    function getParametros()
+    {
+        var parametros = '['; 
+        var err=0;
+        var ok=0
+        $('#parametros .prm').each( function () {
+            parametro = $(this).find('.parametro').val();
+            value = $(this).find('.value').val();
+            if (parametro.length>0 && value.length>0)
+            {
+                parametros += "{'"+parametro.trim()+"':'"+value.trim()+"'}, ";
+                ok++;
+                $(this).removeClass('text-danger');
+            }
+            else if (parametro || value)
+            {
+                $(this).addClass('text-danger');
+                err++;
+            }
+        });
+        parametros += ']';
+        if (err>0 || ok==0)
+            return false;
+        return parametros;
+
+    }
+</script>
+
+{% endblock %}

@@ -28,8 +28,6 @@
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
     <link href="{% static 'styles/app.css' %}" rel="stylesheet" >
-    <script src="{% static 'scripts/gspinner.min.js' %}"></script>
-    <link href="{% static 'styles/gspinner.min.css' %}" rel="stylesheet" >
     <link href="{% static 'styles/no_print.css' %}" media="print" rel="stylesheet" type="text/css">
     
     {% block css %}
@@ -41,6 +39,9 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="/"><img src="{% static 'images/menu.png' %}" height="30"></a> 
             <span class="navbar-brand">{% block nav_title %}TraderBot{% endblock %}</span>
+            <div id="ajax_spinner" class="spinner-border text-light" role="status" style="display: none;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -50,9 +51,11 @@
                     {% if user.is_authenticated %}
 
                     <li class="nav-item">
-                        <a class="nav-link " href="{% url 'backtesting' %}">BackTesting</a>
+                        <a class="nav-link " href="{% url 'symbols' %}">Pares</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link " href="{% url 'backtesting' %}">BackTesting</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link " href="{% url 'bots' %}">Bots</a>
                     </li>
@@ -72,7 +75,6 @@
         </div>
     </nav>
     <div class="main pt-4 mt-5">
-        <div id="gspinner_loader"></div>
         <div class="container no_print">
             <div id="action_bar" class="d-grid justify-content-md-end">
                 <div class="btn-group" role="group" >
@@ -117,16 +119,6 @@
                 e.preventDefault();
             })
         })
-         
-        $("#gspinner_loader").css('position','fixed');
-        $("#gspinner_loader").css('top','50%');
-        $("#gspinner_loader").css('left','50%');
-        $("#gspinner_loader").css('z-index','-1');
-        
-        $loader = $("#gspinner_loader");
-        
-        
-        
     })
 </script>
 <script src="{% static 'scripts/app.js' %}"></script>

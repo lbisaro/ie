@@ -1,16 +1,18 @@
 {% extends 'base.html' %}
-{% block title %}Back Testing{% endblock %}
-{% block nav_title %}Back Testing{% endblock %}
+{% block title %}BackTesting{% endblock %}
+{% block nav_title %}BackTesting{% endblock %}
 
 {% load static %}
 
 {% block action_bar %}
-    <a class="btn btn-primary btn-sm" href="{% url 'backtesting' %}">Iniciar Test</a>
+
 {% endblock %}
 
 {% block css %}
 <style>
-    /* CSS */
+    table#estrategias tr {
+        cursor: pointer;
+    }
 
 </style>
 {% endblock %}
@@ -18,13 +20,42 @@
 {% block content %}
 <div class="container">
 
-    Lorem, ipsum dolor sit amet consectetur adipisicing elit. Illo amet cumque nam qui autem error? Amet culpa, eius nihil neque quam suscipit natus consectetur laudantium aperiam, corrupti velit impedit labore!
+    <div class="container">
+        <h4 class="text-center">Seleccionar una estrategia</h4>
+        <table id="estrategias" class="table table-hover ">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            
+            <tbody>
+                {% for e in estrategias %}
+                <tr onclick="seleccionar('{{e.id}}')" >
+                    <td>{{e.nombre}}</td>
+                    <td>
+                        {% if e.activo %} 
+                        <span class="text-succes">Activa</span>
+                        {% else %}
+                        <span class="text-danger">Inactiva</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>
+    </div>
 </div>
     
 {% endblock %}
 
 {% block script %}
 <script>
-    /* SCRIPTS */
+function seleccionar(id)
+{
+    window.location = '{% url "backtesting_config" 0 %}'.replace('0',id);
+}
 </script>
 {% endblock %}
