@@ -1,3 +1,37 @@
+$(document).ready(function() {
+    $('form').each(function () {
+        $(this).submit(function (e) {
+            e.preventDefault();
+        })
+    })
+    
+    
+    bootstrapFormat()
+
+})
+
+function bootstrapFormat()
+{
+        $('table.table-dg').addClass('table')
+        $('table.table-dg').addClass('table-hover')
+        $('table.table-dg thead th').addClass('fw-light')
+        $('table.table-dg thead th').css('background-color','#162124')
+        
+        $('table.table-trade-info').addClass('table-sm')
+        $('table.table-trade-info').addClass('table-borderless')
+        $('table.table-trade-info tbody tr.red').find('td').addClass('text-danger');
+        $('table.table-trade-info tbody tr.green').find('td').addClass('text-success');
+        $('table.table-trade-info').css('font-family','var(--bs-font-monospace)');
+        $('table.table-trade-info').css('font-size','0.8em');
+
+}
+
+function to_dec(x,n)
+{
+    x = parseFloat(x);
+    return x.toFixed(n);
+}
+
 /**
  * 
  * @param {*} url '{% url "url_name" %}'
@@ -29,6 +63,7 @@ function get_ajax(url,data) {
             console.log(xhr.status + ": " + xhr.responseText); 
         }
     }).done(function () {
+        bootstrapFormat();
         spinner_hide();
     });
 }

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.db.models import Count, Case, When, IntegerField
 from django.contrib.auth.decorators import login_required
-
+import json
 
 from bot.models import *
 from bot.model_kline import *
@@ -47,7 +47,10 @@ def run(request):
         runBot.interval_id = request.POST['interval_id']
         runBot.set(parametros)
 
-        jsonRsp['ok'] = True
+        from_date = request.POST['from_date']
+        to_date = request.POST['to_date']
+
+        
 
         atributos = runBot.__dict__
         jsonRsp['parametros'] = {}
@@ -58,10 +61,14 @@ def run(request):
         #try:
         runBot.valid()
 
-        bt = runBot.backtesting()
-        jsonRsp['bt'] = {}
+        bt = runBot.backtesting(from_date,to_date)
+        jsonRsp['bt'] = bt
 
-        jsonRsp['ok'] = True
+        if bt['error']:
+            jsonRsp['error'] = bt['error']
+            jsonRsp['ok'] = False
+        else:
+            jsonRsp['ok'] = True
         # except Exception as e:
         #     jsonRsp['ok'] = False
         #     jsonRsp['error'] = str(e)

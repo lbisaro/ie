@@ -1,5 +1,6 @@
 import my_logging as mylog
 import pandas as pd
+from datetime import datetime, date
 
 def get_intervals(i='ALL',c='ALL'):
     columns=['id','interval_id','name','binance','pandas_resample','minutes']
@@ -29,3 +30,4 @@ def get_intervals(i='ALL',c='ALL'):
                     mylog.criticalError('functions.py.get_intervals - El dato especificado es invalido')
             else:
                 mylog.criticalError('functions.py.get_intervals - El idinterval especificado es invalido')
+

@@ -115,7 +115,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es'
 
-TIME_ZONE = 'America/Argentina/Buenos_Aires'
+#TIME_ZONE = 'America/Argentina/Buenos_Aires'
+TIME_ZONE = 'UTC'
 USE_TZ = True
 
 DATE_FORMAT = 'd-m-Y'
