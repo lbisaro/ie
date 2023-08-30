@@ -392,6 +392,8 @@
 
         var tbody = $('#ordenes-tab-pane table tbody');
         tbody.html('')
+        qd_price = bt.qd_price;
+        qd_qty = bt.qd_qty;
         for (const order of bt.orders) {
             var cls = (order[2]==0?'green':'red');
             var tr = '<tr class="'+cls+'">';
@@ -401,9 +403,9 @@
             if (order[5] != 0)
                 side += ' '+bt.order_flag[order[5]]
             tr += '<td>'+side+'</td>';
-            tr += '<td>'+order[3]+'</td>';
-            tr += '<td>'+order[4]+'</td>';
-            tr += '<td>'+to_dec(order[3]*order[4],2)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[3],qd_qty)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[4],qd_price)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[3]*order[4],2)+'</td>';
             tr += '</tr>';
             tbody.append(tr);
         } 
@@ -414,14 +416,14 @@
             var cls = (order[7]>0?'green':'red');
             var tr = '<tr class="'+cls+'">';
             tr += '<td>'+order[0]+'</td>';
-            tr += '<td>'+order[1]+'</td>';
-            tr += '<td>'+order[2]+'</td>';
             tr += '<td>'+order[3]+'</td>';
-            tr += '<td>'+order[4]+'</td>';
+            tr += '<td class="text-end">'+order[6]+'</td>';
             tr += '<td>'+(order[5]>0?bt.order_flag[order[5]]:'')+'</td>';
-            tr += '<td>'+order[6]+'</td>';
-            tr += '<td>'+to_dec(order[7],2)+'</td>';
-            tr += '<td>'+to_dec(order[8],2)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[2],qd_qty)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[1],qd_price)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[4],qd_price)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[7],2)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[8],2)+'</td>';
             tr += '</tr>';
             tbody.append(tr);
         } 
@@ -431,7 +433,7 @@
 </script>
 
 <div class="row">
-    <h5>Resultados</h5>
+    <h5>Resultado Estrategia <span class="text-info">{{estrategia.nombre}}</span></h5>
     <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item" role="resumen">
           <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen-tab-pane" type="button" role="tab" aria-controls="resumen-tab-pane" aria-selected="true">Resumen</button>
@@ -461,11 +463,11 @@
                 <thead>
                     <tr>
                         <th>Fecha</th>
-                        <th>Symbol</th>
+                        <th>Par</th>
                         <th>Operacion</th>
-                        <th>Cantidad</th>
-                        <th>Precio</th>
-                        <th>USD</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-end">USD</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -477,15 +479,15 @@
             <table class="table-dg table-trade-info">
                 <thead>
                     <tr>
-                        <th>Compra Fecha</th>
-                        <th>Compra Precio</th>
-                        <th>Cantidad</th>
-                        <th>Venta Fecha</th>
-                        <th>Venta Precio</th>
-                        <th>Accion</th>
-                        <th>Duracion (Dias)</th>
-                        <th>Resultado USD</th>
-                        <th>Resultado %</th>
+                        <th>Compra</th>
+                        <th>Venta</th>
+                        <th class="text-end">Duracion (Dias)</th>
+                        <th>SL/TP</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">Compra</th>
+                        <th class="text-end">Venta</th>
+                        <th class="text-end">Resultado USD</th>
+                        <th class="text-end">Resultado %</th>
                     </tr>
                 </thead>
                 <tbody>
