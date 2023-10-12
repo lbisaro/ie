@@ -5,3 +5,4 @@ local__*
 *.log
 scripts/Bot*.py
 
+scripts/bots/*
