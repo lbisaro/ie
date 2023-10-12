@@ -135,8 +135,9 @@ class Exchange():
                     #Si no obtuvo el total de las velas esperadas es porque llego al final del lote
                     #Por lo tanto, se elimina el ultimo registro para no almacenar velas que estan en formacion
                     if qty_records < MINUTES_TO_GET: 
-                        df = df[:-1]    
-                    
+                        df = df[:-1]   
+                         
+                    updated = False
                     qty_records =  int(df['datetime'].count())
                     if qty_records > 0:
 
@@ -157,7 +158,9 @@ class Exchange():
                             updated = False
                         res[s.symbol] = {'qty':qty_records, 'updated': updated, 'datetime': df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')} 
                     else:
+                        updated = True
                         res[s.symbol] = {'qty':0, 'updated': True, 'datetime': df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')} 
+                    if updated:
                         s.activate()
                 except Exception as e:
                     print(str(e))
