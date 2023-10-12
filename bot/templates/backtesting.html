@@ -10,7 +10,7 @@
 
 {% block css %}
 <style>
-    table#estrategias tr {
+    table#clases tr {
         cursor: pointer;
     }
 
@@ -21,26 +21,20 @@
 <div class="container">
 
     <div class="container">
-        <h4 class="text-center">Seleccionar una estrategia</h4>
-        <table id="estrategias" class="table-dg">
+        <h4 class="text-center">Seleccionar una Bot Class</h4>
+        <table id="clases" class="table-dg">
             <thead>
                 <tr>
-                    <th>Nombre</th>
-                    <th>Estado</th>
+                    <th>Bot Class</th>
+                    <th>Descripcion</th>
                 </tr>
             </thead>
             
             <tbody>
-                {% for e in estrategias %}
-                <tr onclick="seleccionar('{{e.id}}')" >
-                    <td>{{e.nombre}}</td>
-                    <td>
-                        {% if e.activo %} 
-                        <span class="text-succes">Activa</span>
-                        {% else %}
-                        <span class="text-danger">Inactiva</span>
-                        {% endif %}
-                    </td>
+                {% for e in clases %}
+                <tr onclick="seleccionar('{{e.class}}')" >
+                    <td>{{e.class}}</td>
+                    <td>{{e.descripcion}}</td>
                 </tr>
                 {% endfor %}
             </tbody>

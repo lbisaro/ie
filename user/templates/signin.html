@@ -70,13 +70,6 @@
     </form>
     <script>
 
-        $(document).ready(function () {
-            $('form').each(function () {
-                $(this).submit(function (e) {
-                    e.preventDefault();
-                })
-            })
-        })
         function login() {
             login_msg('Aguarde...', 'text-secondary');
             $.ajax({

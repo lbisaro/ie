@@ -24,7 +24,7 @@
         <thead>
             <tr>
                 <th>Estrategia</th>
-                <th>Parametros</th>
+                <th>Intervalo</th>
                 <th>Capital USD</th>
                 <th>Estado</th>
             </tr>
@@ -33,12 +33,12 @@
         <tbody>
             {% for b in bots %}
             <tr onclick="ver('{{b.bot_id}}')" >
-                <td>{{b.estrategia}}</td>
-                <td>{{b.strPrm}}</td>
+                <td>{{b.estrategia}} {% if b.estrategia_activo == 0 %}<span class="text-danger">Inactiva</span>{% endif %}</td>
+                <td>{{b.intervalo}}</td>
                 <td>{{b.quote_qty}}</td>
                 <td>
                     {% if b.activo %} 
-                    <span class="text-succes">Activo</span>
+                    <span class="text-success">Activo</span>
                     {% else %}
                     <span class="text-danger">Inactivo</span>
                     {% endif %}

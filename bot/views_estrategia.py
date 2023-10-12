@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 
 from bot.models import *
-from scripts.BotLong import *
+from bot.model_kline import *
 
 @login_required
 def estrategias(request):
@@ -22,14 +22,16 @@ def estrategias(request):
 def estrategia(request, estrategia_id):
     estrategia = get_object_or_404(Estrategia, pk=estrategia_id)
     bots = Bot.objects.filter(estrategia_id=estrategia_id)
+    intervalo = fn.get_intervals(estrategia.interval_id,'name')
     qtyBots = len(bots)
-    if qtyBots == 0:
-        qtyBots = 'Ninguno'
-
+    
     return render(request, 'estrategia.html',{
         'estrategia_id': estrategia.id,
         'nombre': estrategia.nombre,
         'clase': estrategia.clase,
+        'max_drawdown': estrategia.max_drawdown,
+        'descripcion': estrategia.descripcion,
+        'intervalo': intervalo,
         'activo': estrategia.activo,
         'creado': estrategia.creado,
         'qtyBots': qtyBots,
@@ -41,10 +43,15 @@ def estrategia(request, estrategia_id):
 def estrategia_create(request):
     jsonRsp = {}
     if request.method == 'GET':
-        clases = Estrategia.get_clases()
+        botClass = BotClass()
+        clases = botClass.get_clases()
+        symbols = Symbol.objects.filter(activo=1).order_by('symbol')
+        intervals = fn.get_intervals().to_dict('records')
         return render(request, 'estrategia_edit.html',{
             'title': 'Crear estrategia',
             'clases': clases,
+            'symbols': symbols,
+            'intervals': intervals,
             'qtyBots': 0,
             'estrategia_id': 0,
         })
@@ -52,6 +59,9 @@ def estrategia_create(request):
         estrategia = Estrategia()
         estrategia.nombre=request.POST['nombre'] 
         estrategia.clase=request.POST['clase']
+        estrategia.descripcion=request.POST['descripcion']
+        estrategia.interval_id=request.POST['interval_id']
+        estrategia.max_drawdown=request.POST['max_drawdown']
         estrategia.parametros=request.POST['parametros']
         
         try:
@@ -74,10 +84,12 @@ def estrategia_create(request):
 @login_required
 def load_parametros(request,clase):
     jsonRsp = {}
-    
-    parametros = eval(clase).parametros
+    botClass = BotClass().get_instance(clase)
+    parametros = botClass.parametros
+    descripcion = botClass.descripcion
     jsonRsp['ok'] = len(parametros)
     jsonRsp['parametros'] = parametros
+    jsonRsp['descripcion'] = descripcion
     return JsonResponse(jsonRsp)
 
 
@@ -86,23 +98,34 @@ def estrategia_edit(request,estrategia_id):
     jsonRsp = {}
     estrategia = get_object_or_404(Estrategia, pk=estrategia_id)
     bots = Bot.objects.filter(estrategia_id=estrategia_id)
-    clases = Estrategia.get_clases()
+    botClass = BotClass()
+    clases = botClass.get_clases()
     qtyBots = len(bots)
+    symbols = Symbol.objects.filter(activo=1).order_by('symbol')
+    intervals = fn.get_intervals().to_dict('records')
     if request.method == 'GET':
         return render(request, 'estrategia_edit.html',{
             'title': 'Editar estrategia '+estrategia.nombre,
             'estrategia_id': estrategia.id,
             'nombre': estrategia.nombre,
             'clase': estrategia.clase,
+            'descripcion': estrategia.descripcion,
+            'max_drawdown': estrategia.max_drawdown,
+            'interval_id': estrategia.interval_id,
+            'intervals': intervals,
             'clases': clases,
             'activo': estrategia.activo,
             'qtyBots': qtyBots,
+            'symbols': symbols,
             'parametros': estrategia.parse_parametros(),
         })
     else:
 
         estrategia.nombre=request.POST['nombre'] 
         estrategia.clase=request.POST['clase']
+        estrategia.descripcion=request.POST['descripcion']
+        estrategia.interval_id=request.POST['interval_id']
+        estrategia.max_drawdown=request.POST['max_drawdown']
         estrategia.parametros=request.POST['parametros']
         
         try:

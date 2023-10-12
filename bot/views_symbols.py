@@ -67,7 +67,7 @@ def symbol_add(request):
         
 def symbol_get_info(request,symbol):
     jsonRsp = {}
-    exch = Exchange('info')
+    exch = Exchange('info',exchange='bnc',prms=None)
     symbol = symbol.upper()
     
     try:
@@ -94,7 +94,7 @@ def symbol_get_info(request,symbol):
 
 def update_klines(request,symbol):
     jsonRsp = {}
-    exch = Exchange('info')
+    exch = Exchange('info',exchange='bnc',prms=None)
     symbol = symbol.upper()
     try:
         res = exch.update_klines(symbol)

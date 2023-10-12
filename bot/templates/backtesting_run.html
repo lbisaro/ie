@@ -9,22 +9,19 @@
 
 {% block content %}
 
-<div class="container" id="config">
+<div class="container  pb-4" id="config">
     <div class="row">
         <div class="col-3">
-            Estrategia                                    
+            Bot Class                                    
         </div>
         <div class="col-9 fw-bold">
-            {{estrategia.nombre}}
+            {{botClass}}
         </div>
     </div>
     <div class="row pt-2">
         <div class="form-group col-3">
             <label class="form-label" for="interval_id">Intervalo</label>   
             <select id="interval_id" class="form-control" >
-            {% if not bot_id %}                                 
-                <option value="0">Seleccionar</option>
-            {% endif %}
             {% for i in intervals %}
                 <option value="{{i.interval_id}}" >{{i.name}}</option>
             {% endfor %}
@@ -32,7 +29,7 @@
         </div>
         <div class="form-group col-3">
             <label class="form-label" for="quote_qty">Capital USD</label>
-            <input type="text" class="form-control" id="quote_qty" value="1000">
+            <input type="text" class="form-control" id="quote_qty" readonly value="1000">
         </div>
         <div class="form-group col-3">
             <label class="form-label" for="from_date">Desde</label>   
@@ -40,18 +37,18 @@
         </div>
         <div class="form-group col-3">
             <label class="form-label" for="to_date">Hasta</label>   
-            <input type="text" class="form-control" id="to_date" value="2023-08-29">
+            <input type="text" class="form-control" id="to_date" value="2023-10-05">
         </div>
     </div>
 
-    <div class="fw-bold  pt-3">Parametros de la estrategia</div>
+    <div class="fw-bold  pt-3">Parametros del BackTesting</div>
     <div id="parametros" class="row" >
 
     </div>
     
 </div>
 <div class="container"></div>
-    <div class="form-group row pt-4 ">
+    <div class="form-group row ">
         <div class="col-12 d-grid gap-2">
             <div class="btn btn-success " id="btn_ejecutar" onclick="ejecutar()">Ejecutar</div>
             <div class="btn btn-secondary " id="btn_wait" style="display: none;" onclick="showConfig()">
@@ -66,7 +63,7 @@
 </div>
 <input type="hidden" id="estrategia_id" value="{{estrategia.id}}">
 
-<div class="container" id="run" style="display:none;">
+<div class="container  pb-4" id="run" style="display:none;">
     {% include 'klines_chart.html' %}
 </div>
 
@@ -112,6 +109,15 @@
             //{% endfor %}
             html += '</select>';
         }
+        else if (type == 't_int')
+        {
+            html += '<td><div class="input-group ">'+
+                    '<select class="form-control value" id="'+parametro+'_v">'+
+                    '<option value="c" '+(value=='c'?'SELECTED':'')+' >Compuesto</option>'+
+                    '<option value="s" '+(value=='s'?'SELECTED':'')+' >Simple</option>'+
+                    '</select>'+
+                    '</div></td>';
+        }
         else
         {
             html += '<input class="form-control value " id="'+parametro+'_v"  value="'+value+'">';
@@ -125,7 +131,7 @@
         url = '{% url "backtesting_run" %}';
         
         data = {
-                estrategia_id: $('#estrategia_id').val(),
+                botClassId: '{{botClass}}',
                 from_date: $('#from_date').val(),
                 to_date: $('#to_date').val(),
                 interval_id: $('#interval_id').val(),
@@ -139,7 +145,7 @@
         
         data.parametros = getParametros();
         if (!data.parametros)
-           err += 'Se deben completar todos los parametros de la estrategia<br>';
+           err += 'Se deben completar todos los parametros para el BackTesting<br>';
         
         if (err)
             html_alert('Errores detectados',err,'text-danger');

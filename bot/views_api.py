@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 
 import functions as fn
-from scripts.BotLong import BotLong
 
 from bot.models import *
 

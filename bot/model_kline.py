@@ -3,13 +3,13 @@ from django.db import models
 from django.db.models import Max
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.db.models import F, Min, Max, Avg, Sum
 from django.db.models.functions import TruncDay, TruncHour, TruncMinute
 from datetime import datetime, timedelta
 import pandas as pd
-import pytz
 import functions as fn
+import warnings
+import pytz
 
 
 class Symbol(models.Model):
@@ -87,17 +87,20 @@ class Kline(models.Model):
         else:
             from_datetime = from_date+' 00:00:00' if from_date is not None else '2010-01-01 00:00:00'
             to_datetime = to_date+' 23:59:59' if to_date is not None else (datetime.now() - timedelta(days = 1) ).strftime('%Y-%m-%d')+' 23:59:59'
-            
-        #Formateando la fecha por compatibilidad de TimeZone
-        #timezone.activate('UTC')
-        #timezone = pytz.timezone('UTC')
-        #from_datetime = timezone.localize(datetime.strptime(from_datetime,'%Y-%m-%d %H:%M:%S'))
-        #to_datetime = timezone.localize(datetime.strptime(to_datetime,'%Y-%m-%d %H:%M:%S'))
         
+        #Se agrega UTC
+        from_datetime = from_datetime + '+00:00'
+        to_datetime   = to_datetime   + '+00:00'
+
         
+        #warnings.filterwarnings("ignore") #Se evita el warning generado por el timezone de la base de datos y DJango
+
         if i_unit == 'm': #Minutos
-            klines = Kline.objects.filter(symbol_id=symbol.id, datetime__gte=from_datetime, datetime__lte=to_datetime).order_by('datetime')
-        
+            query =  "SELECT id, symbol_id, datetime, open, high, low, close, volume "
+            query += " FROM bot_kline "
+            query += " WHERE symbol_id = "+str(symbol.id)+" AND datetime >= '"+str(from_datetime)+"' AND datetime <= '"+str(to_datetime)+"' "
+            query += " ORDER BY datetime" 
+            klines = Kline.objects.raw(query)
         elif i_unit == 'h': #Horas
             query =  "SELECT id, symbol_id, "
             query += " min(datetime) AS datetime, "
@@ -109,7 +112,7 @@ class Kline(models.Model):
             query += " FROM bot_kline "
             query += " WHERE symbol_id = "+str(symbol.id)+" AND datetime >= '"+str(from_datetime)+"' AND datetime <= '"+str(to_datetime)+"' "
             query += " GROUP BY symbol_id, date(datetime), hour(datetime) "
-            query += " order by datetime" 
+            query += " ORDER BY datetime" 
             klines = Kline.objects.raw(query)
             
         elif i_unit == 'd': #Dias
@@ -123,9 +126,11 @@ class Kline(models.Model):
             query += " FROM bot_kline "
             query += " WHERE symbol_id = "+str(symbol.id)+" AND datetime >= '"+str(from_datetime)+"' AND datetime <= '"+str(to_datetime)+"' "
             query += " GROUP BY symbol_id, date(datetime) "
-            query += " order by datetime" 
+            query += " ORDER BY datetime" 
             klines = Kline.objects.raw(query)
-                    
+        
+        #warnings.filterwarnings("default")
+
         if not klines:
             return None
         else:

@@ -1,4 +1,4 @@
-from binance.client import Client
+from binance.client import Client as BinanceClient
 from local__config import *
 import math
 from datetime import datetime, timedelta
@@ -10,13 +10,38 @@ from bot.model_kline import *
 class Exchange():
 
     start_klines_str = '2022-08-01 00:00:00 UTC-3'
+    exchange = ''
 
-    def __init__(self,type):
-        if type == 'info':
-            self.client = Client()
-        elif type == 'apikey':
-            self.client = Client(LOC_BNC_AK,LOC_BNC_SK,LOC_BNC_TESNET)
+    def __init__(self,type,exchange,prms):
+        self.exchange = exchange
+        if exchange == 'bnc':
+            if type == 'info':
+                self.client = BinanceClient()
         
+            elif type == 'general_apikey':
+                self.client = BinanceClient(api_key=LOC_BNC_AK, api_secret=LOC_BNC_SK, testnet=LOC_BNC_TESNET)
+
+            elif type == 'user_apikey':
+                apk = prms['bnc_apk']
+                aps = prms['bnc_aps']
+            
+                if prms['bnc_env'] == 'test':
+                    self.client = BinanceClient(api_key=apk, api_secret=aps, testnet=True)
+                else:
+                    self.client = BinanceClient(api_key=apk, api_secret=aps)
+
+    def check_connection(self):
+        try:
+            self.client.get_account()
+            return True
+        except:
+            return False
+        
+    def get_exchange_time(self):
+        time_res = self.client.get_server_time()
+        time_res = datetime.utcfromtimestamp(time_res['serverTime'] / 1000) - timedelta(hours = 3)
+        return time_res
+
     def get_symbol_info(self,symbol):
         symbol = symbol.upper()
 
@@ -43,13 +68,19 @@ class Exchange():
         
         return symbol_info
 
-        
+    def get_all_prices(self):
+        all_prices = {}
+        exch_prices = self.client.get_all_tickers()
+        for item in exch_prices:
+            all_prices[item['symbol']] = float(item['price'])
+        return all_prices
+    
     def calcular_decimales(self,step_size):
         potencia = int(math.log10(step_size))
         decimales = ( 0 if potencia>0 else -potencia )
         return decimales
     
-    def precio_actual(self,symbol):
+    def get_symbol_price(self,symbol):
         result = self.client.get_avg_price(symbol=symbol)
         avg_price = float(result['price'])
         return avg_price
@@ -120,16 +151,39 @@ class Exchange():
                             symbol_id  = row['symbol_id'],
                         ) for row in df_records]
                         Kline.objects.bulk_create(data)
-                        res[s.symbol] = {'qty':qty_records, 'datetime': df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')} 
+                        if qty_records < MINUTES_TO_GET:
+                            updated = True 
+                        else:
+                            updated = False
+                        res[s.symbol] = {'qty':qty_records, 'updated': updated, 'datetime': df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')} 
                     else:
-                        res[s.symbol] = {'qty':0, 'datetime': df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')} 
+                        res[s.symbol] = {'qty':0, 'updated': True, 'datetime': df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')} 
                         s.activate()
                 except Exception as e:
                     print(str(e))
                     pass 
             else:
-                res[s.symbol] = {'qty':0, 'datetime': 'updated'}
+                res[s.symbol] = {'qty':0, 'updated': True, 'datetime': valid_last_minute}
                 s.activate()
                 
 
         return res
+    
+    def get_wallet(self):
+        wallet = {}
+        account = self.client.get_account()
+        for item in account['balances']:
+            wallet[item['asset']] = {'free':float(item['free']),
+                                     'locked':float(item['locked']),
+                                    }
+        return wallet
+
+    def order_market_buy(self, symbol, qty):
+        print(f'BUY {symbol} {qty}')
+        order = self.client.order_market_buy(symbol=symbol, quantity=qty)
+        return order
+
+    def order_market_sell(self, symbol, qty):
+        print(f'SELL {symbol} {qty}')
+        order = self.client.order_market_sell(symbol=symbol, quantity=qty)
+        return order

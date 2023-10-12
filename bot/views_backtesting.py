@@ -8,29 +8,34 @@ from bot.models import *
 from bot.model_kline import *
 
 
+
 @login_required
 def backtesting(request):
-    estrategias = Estrategia.objects.annotate(qtyBots=Count('bot'),
-                qtyBotsActivos=Count(Case(When(bot__activo__gt=0, then=1),output_field=IntegerField()))
-                )
-
+    botClass = BotClass()
+    classList = botClass.get_clases()
+    clases = []
+    for c in classList:
+        obj = botClass.get_instance(c)
+        cls = {'class':c,'descripcion':obj.descripcion, }
+        clases.append(cls)
     if request.method == 'GET':
         return render(request, 'backtesting.html',{
-            'estrategias': estrategias,
+            'clases': clases,
         })
 
 @login_required
-def config(request,estrategia_id):
-    estrategia = get_object_or_404(Estrategia, pk=estrategia_id)
+def config(request,botClassId):
+    botClass = BotClass()
+    obj = botClass.get_instance(botClassId)
     intervals = fn.get_intervals().to_dict('records')
     symbols = Symbol.objects.filter(activo=1).order_by('symbol')
         
     if request.method == 'GET':
         return render(request, 'backtesting_run.html',{
-            'estrategia': estrategia,
+            'botClass': botClassId,
             'intervals': intervals,
             'symbols': symbols,
-            'parametros': estrategia.parse_parametros(),
+            'parametros': obj.parametros,
         })
 
 
@@ -38,19 +43,20 @@ def config(request,estrategia_id):
 def run(request):
     if request.method == 'POST':
         jsonRsp = {}
-        estrategia = get_object_or_404(Estrategia, pk=request.POST['estrategia_id'])
-        estrategia.parametros=request.POST['parametros']
-        parametros = estrategia.parse_parametros()
-
-        runBot = eval(estrategia.clase)()
+        botClassId = request.POST['botClassId']
+        botClass = BotClass()
+        runBot = botClass.get_instance(botClassId)
+        
         runBot.quote_qty = float(request.POST['quote_qty'])
         runBot.interval_id = request.POST['interval_id']
-        runBot.set(parametros)
+
+        prmPost = eval(request.POST['parametros'])
+        for dict in prmPost:
+            for k,v in dict.items():
+                runBot.__setattr__(k, v)
 
         from_date = request.POST['from_date']
         to_date = request.POST['to_date']
-
-        
 
         atributos = runBot.__dict__
         jsonRsp['parametros'] = {}
@@ -69,9 +75,9 @@ def run(request):
             jsonRsp['ok'] = False
         else:
             jsonRsp['ok'] = True
-        # except Exception as e:
-        #     jsonRsp['ok'] = False
-        #     jsonRsp['error'] = str(e)
+        #except Exception as e:
+        #    jsonRsp['ok'] = False
+        #    jsonRsp['error'] = str(e)
 
         return JsonResponse(jsonRsp)
     

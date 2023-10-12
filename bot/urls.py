@@ -34,7 +34,7 @@ urlpatterns = [
     path('update_klines/<str:symbol>/',vs.update_klines,name='update_klines'),
 
     path('backtesting/',vbt.backtesting,name='backtesting'),
-    path('backtesting/config/<int:estrategia_id>/',vbt.config,name='backtesting_config'),
+    path('backtesting/config/<str:botClassId>/',vbt.config,name='backtesting_config'),
     path('backtesting/run/',vbt.run,name='backtesting_run'),
     
 ]

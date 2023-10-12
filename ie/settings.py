@@ -1,6 +1,8 @@
 import os
 import local__config as local
 
+
+
 """
 Django settings for ie project.
 
@@ -41,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'user',
     'bot',
 ]

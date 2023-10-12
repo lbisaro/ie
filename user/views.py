@@ -8,7 +8,9 @@ import hashlib, datetime, random
 from user.forms import RegistrationForm
 from user.models import UserProfile
 from django.core.mail import send_mail
+import json
 
+from scripts.Exchange import Exchange
 
 @login_required
 def home(request):
@@ -89,6 +91,45 @@ def signin(request):
             jsonRsp['login_error'] = 'El usuario o contraseña es invalido'
         return JsonResponse(jsonRsp)
 
+@login_required
+def profile(request):
+    jsonRsp = {}
+    profile = UserProfile.objects.get(user_id=request.user.id)
+    if request.method == 'GET':
+        return render(request, 'profile.html',{
+            'title': 'Perfil de usuario' ,
+            'ayn': f'{profile.user.first_name} {profile.user.last_name}' ,
+            'username': profile.user.username,
+            'mail': profile.user.email,
+            'config': profile.parse_config(),
+        })
+    else:
+        print('//---------------------------------------')
+        config = profile.parse_config()
+        if 'remove' in request.POST:
+            del config[request.POST['remove']]
+            profile.config = json.dumps(config)
+            profile.save()
+            jsonRsp['ok'] = True
+
+        elif request.POST['config'] == 'bnc': # Binance
+            prms = {'bnc_apk': request.POST['bnc_apk'],
+                    'bnc_aps': request.POST['bnc_aps'],
+                    'bnc_env': request.POST['bnc_env'],
+                    }
+            #try:
+            exc = Exchange(type='user_apikey',exchange='bnc',prms=prms)
+            if exc.check_connection():
+                config['bnc'] = prms
+                profile.config = json.dumps(config)
+                profile.save()
+                jsonRsp['ok'] = True
+            else:
+                jsonRsp['error'] = 'Verifique los datos provistos, No fue posible conectar con el exchange. '
+
+        
+
+    return JsonResponse(jsonRsp)
 
 @login_required
 def signout(request):

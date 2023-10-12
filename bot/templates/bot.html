@@ -20,49 +20,46 @@
 
 {% block content %}
 <div class="container">
+    <div class="row py-2">
+        <div class="col-2">Estrategia:</div>  
+    </div>
+    <div class="row py-2">                                  
+        <div class="col fw-bold">{{estrategia}} {% if estrategia_activo == 0%} <span class="text-danger">Inactiva</span>{% endif %}</div>                                    
+    </div>
+    
+    <div class="row">
+
+        <div class="d-flex flex-row flex-wrap rounded border border-1 pb-2 mb-1">
+            <pre class="py-2" style="font-family: inherit;">{{descripcion}}</pre>
+            <div class="w-50 py-2">Intervalo: <b>{{intervalo}}</b></div>
+
+            {% for k,prm in parametros.items %}
+                {% if prm.pub %}
+                    
+                
+                    <div class="w-50 py-2">{{prm.d}}: <b>{{prm.str}}</b></div>
+                    
+                {% endif %}
+            {% endfor %}
+
+            
+        </div>
+
+    </div>
     {% if activo == 0 %}
     <div class="row">
         <h3 class="text-danger text-center">Bot inactivo</h3>
     </div>
     {% endif %}
-    <div class="row pb-3">
-        <div class="col-2">Nombre de la estrategia</div>                                    
-        <div class="col fw-bold">{{estrategia}}</div>                                    
-        <div class="col-2">Intervalo</div>                                    
-        <div class="col fw-bold">{{interval}}</div>                                    
+    <div class="row pt-3">
+        <div class="col-4">Capital USD: <b>{{quote_qty}}</b></div>                                    
+        <div class="col-4">Stop Loss General: <b>{{stop_loss}} %</b></div>
+        <div class="col-4">Maximo DrowDawn: <b>{{max_drawdown}} %</b></div>                                   
     </div>
-    <div class="row pb-3">
-        <div class="col-2">Capital USD</div>                                    
-        <div class="col fw-bold">{{quote_qty}}</div>                                    
-    </div>
-    <div class="row pb-3 text-secondary">
+    <div class="row pt-3 text-secondary">
         <div class="col">Creado {{creado}}</div>                                    
     </div>
-    <div class="row pt-2 text-center">
-        <h4>Parametros</h4>
-    </div>
-    <div class="row">
 
-        <table id="parametros" class="table-dg">
-            <thead>
-                <tr>
-                    <th>Parametro</th>
-                    <th class="text-center w-25">Valor</th>
-                </tr>
-            </thead>
-            
-            <tbody>
-                {% for k,prm in parametros.items %}
-                    <tr>
-                        <td>{{prm.d}}</td>
-                        <td class="text-center">{{prm.v}} {% if prm.t == 'perc' %} %{% endif %}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-            
-        </table>
-
-    </div>
 </div>
 <input type="hidden" id="bot_id" value="{bot_id}" >
 

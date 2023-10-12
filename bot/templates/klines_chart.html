@@ -40,16 +40,6 @@
             volumeNegativeColor: am5.color(0x7ec6de),
 
         }));
-        // var chart = root.container.children.push(
-        //     am5xy.XYChart.new(root, {
-        //         panX: true,
-        //         panY: false,
-        //         wheelX: "panX",
-        //         wheelY: "zoomX",
-        //         layout: root.verticalLayout,
-        //         pinchZoomX: true,
-        //     })
-        // );
 
         // Create a main stock panel (chart)
         // -------------------------------------------------------------------------------
@@ -101,7 +91,8 @@
                 valueYField: "c",
                 valueXField: "dt",
                 calculateAggregates: true,
-                legendValueText: "o: [bold]{openValueY}[/] h: [bold]{highValueY}[/] l: [bold]{lowValueY}[/] c: [bold]{valueY}[/]",
+                //legendValueText: "o: [bold]{openValueY}[/] h: [bold]{highValueY}[/] l: [bold]{lowValueY}[/] c: [bold]{valueY}[/]",
+                legendValueText: "{valueY}[/]",
                 legendRangeValueText: ""
             })
         );
@@ -168,18 +159,20 @@
         // -------------------------------------------------------------------------------
         // https://www.amcharts.com/docs/v5/charts/stock-chart/#Setting_main_series
         stockChart.set("volumeSeries", volumeSeries);
-        valueLegend.data.setAll([valueSeries, volumeSeries]);
+        
 
 
         //Bullets
-        addBullet("buy",0x0ecb81,'r')
-        addBullet("sell_s",0xf6465d,'r')
-        addBullet("sell_sl",0xf6465d,'d')
-        addBullet("sell_tp",0xf6465d,'u')
-        addBullet("sigB",0xfeb272,'u')
-        addBullet("sigS",0xfeb272,'d')
+        buySerie        = addBullet("buy",     "Buy",  0x0ecb81,'r')
+        sell_s_Serie    = addBullet("sell_s",  "Sell",  0xf6465d,'r')
+        sell_sl_Serie   = addBullet("sell_sl", "Sell SL",  0xf6465d,'d')
+        sell_tp_Serie   = addBullet("sell_tp", "Sell TP",  0xf6465d,'u')
+        sigBSerie       = addBullet("sigB",    "Sig Buy",  0xfeb272,'u')
+        sigSSerie       = addBullet("sigS",    "Sig Serll",  0xfeb272,'d')
 
-        
+        stockChart.set("Buy", buySerie);
+        valueLegend.data.setAll([valueSeries, volumeSeries ]); //buySerie,sell_s_Serie,sell_sl_Serie,sell_tp_Serie,sigBSerie,sigSSerie,
+       
 
         
 
@@ -233,8 +226,6 @@
 
         addWalletPanel()
 
-
-
         /// Functions
 
         function triangle(color,dir) {
@@ -272,22 +263,22 @@
                 sprite: am5.Graphics.new(root, {
                     fill: am5.color(color),
                     stroke: am5.color(0x222222),
-                    //centerY: am5.percent(50),
-                    //centerX: am5.percent(50),
                     draw: toDraw
                 })
             });   
         }
 
-        function addBullet(key,color,dir)
+        function addBullet(key,name,color,dir)
         {
             var newSerie = mainPanel.series.push(am5xy.LineSeries.new(root, {
+                name: name,
                 calculateAggregates: true,
                 xAxis: dateAxis,
                 yAxis: valueAxis,
                 fill: am5.color(0x0ecb81),
                 valueYField: key,
                 valueXField: "dt",
+                
             }));
 
 
@@ -296,6 +287,8 @@
                 return triangle(color,dir)
             });
             newSerie.data.setAll(data);
+            
+            return newSerie;
         }
 
 
@@ -338,8 +331,7 @@
                 valueYField: "usdH",
                 valueXField: "dt",
                 valueField: "usdH",
-                legendValueText: "{value}",
-                legendRangeValueText: ""
+                legendValueText: "{value}[/]",
             }));
 
             var walletSeries = subPanel.series.push(am5xy.LineSeries.new(root, {
@@ -350,14 +342,10 @@
                 valueYField: "usdW",
                 valueXField: "dt",
                 valueField: "usdW",
-                legendValueText: "{value}",
-                legendRangeValueText: ""
+                legendValueText: "{value}[/]",
             }));
 
 
-            stockChart.set("holdSeries", holdSeries);
-            stockChart.set("walletSeries", walletSeries);
-            subValueLegend.data.setAll([holdSeries, walletSeries]);
 
             //Cursor
             subPanel.set("cursor", am5xy.XYCursor.new(root, {
@@ -367,6 +355,11 @@
 
             holdSeries.data.setAll(data);
             walletSeries.data.setAll(data);
+
+            
+            stockChart.set("holdSeries", holdSeries);
+            stockChart.set("walletSeries", walletSeries);
+            subValueLegend.data.setAll([holdSeries, walletSeries]);
         }
 
 
@@ -406,6 +399,7 @@
             tr += '<td class="text-end">'+to_dec(order[3],qd_qty)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[4],qd_price)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[3]*order[4],2)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[6],4)+'</td>';
             tr += '</tr>';
             tbody.append(tr);
         } 
@@ -417,7 +411,7 @@
             var tr = '<tr class="'+cls+'">';
             tr += '<td>'+order[0]+'</td>';
             tr += '<td>'+order[3]+'</td>';
-            tr += '<td class="text-end">'+order[6]+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[6],2)+'</td>';
             tr += '<td>'+(order[5]>0?bt.order_flag[order[5]]:'')+'</td>';
             tr += '<td class="text-end">'+to_dec(order[2],qd_qty)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[1],qd_price)+'</td>';
@@ -468,6 +462,7 @@
                         <th class="text-end">Cantidad</th>
                         <th class="text-end">Precio</th>
                         <th class="text-end">USD</th>
+                        <th class="text-end">Comision</th>
                     </tr>
                 </thead>
                 <tbody>
