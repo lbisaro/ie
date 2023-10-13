@@ -14,7 +14,7 @@ sys.path.append('/home/lbisaro/dj_app/ie/')
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ie.settings')
 
-activate_this = '/home/lbisaro/dj_app/ie/venv/bin/activate_this.py'
+activate_this = 'source /home/lbisaro/dj_app/ie/venv/bin/activate_this.py'
 exec(activate_this, dict(__file__=activate_this))
 
 from django.core.wsgi import get_wsgi_application
