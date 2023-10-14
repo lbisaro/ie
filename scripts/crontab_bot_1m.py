@@ -106,7 +106,8 @@ def run():
             signal = 'NEUTRO'
             if bot.estrategia_id in signals:
                 signal = signals[bot.estrategia_id]
-            log.info(f'Signal: {signal}')
+            if signal != 'NEUTRO':
+                log.info(f'Signal: {signal}')
 
             #signal = 'NEUTRO'
             #price = price * 0.9
@@ -116,7 +117,8 @@ def run():
                                        price=price, 
                                        wallet=wallet, 
                                        pos_orders=pos_orders)
-            log.info(f'Execute: {execRes}')
+            if len(execRes) > 0:
+                log.info(f'Execute: {execRes}')
             if 'execute' in execRes and execRes['execute'] == 'CLOSE':
                 closeRes = bot.close_pos()
                 log.info(f'Close: {closeRes}')
