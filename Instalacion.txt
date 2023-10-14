@@ -1,4 +1,10 @@
-python -m venv venv
+#Entorno virtual
+sudo apt install python3.9-venv
+
+
+
+
+
 pip install django
 django-admin startproject ie .
 configurar la base de datos en settings
