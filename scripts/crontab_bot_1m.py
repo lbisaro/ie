@@ -135,7 +135,7 @@ def run():
         jsonRsp['ok'] = False
     else:
         jsonRsp['ok'] = True
-    if not jsonRsp['ok']:
+    if jsonRsp['ok']:
         for k,v in jsonRsp.items():
             if k == 'klines':
                 for rk,rv in jsonRsp['klines'].items():
