@@ -108,7 +108,7 @@ def run():
                 signal = signals[bot.estrategia_id]
             log.info(f'Signal: {signal}')
 
-            signal = 'NEUTRO'
+            #signal = 'NEUTRO'
             #price = price * 0.9
 
             execRes = botClass.execute(exchange = exch, 
