@@ -82,7 +82,7 @@ def run():
             botClass.bot_id = bot.id
 
             if bot.usuario.id != usuario_id:
-                log.info(f'Usuario: {bot.usuario.username}')
+                #log.info(f'Usuario: {bot.usuario.username}')
                 usuario_id = bot.usuario.id
                 profile = UserProfile.objects.get(user_id=bot.usuario.id)
                 profile_config = profile.parse_config()
@@ -109,16 +109,13 @@ def run():
             if signal != 'NEUTRO':
                 log.info(f'Signal: {signal}')
 
-            #signal = 'NEUTRO'
-            #price = price * 0.9
-
             execRes = botClass.execute(exchange = exch, 
                                        signal=signal, 
                                        price=price, 
                                        wallet=wallet, 
                                        pos_orders=pos_orders)
-            if len(execRes) > 0:
-                log.info(f'Execute: {execRes}')
+            #if len(execRes) > 0:
+            #    log.info(f'Execute: {execRes}')
             if 'execute' in execRes and execRes['execute'] == 'CLOSE':
                 closeRes = bot.close_pos()
                 log.info(f'Close: {closeRes}')
