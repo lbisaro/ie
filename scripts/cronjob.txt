@@ -1,0 +1,4 @@
+#Configurar estas dos lineas en el crontab
+
+SHELL=/bin/bash
+* * * * * /home/lbisaro/ie/crontab.sh > /home/lbisaro/ie/crontab_res.txt
