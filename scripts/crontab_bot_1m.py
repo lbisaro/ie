@@ -24,7 +24,7 @@ def run():
     estrategias = Estrategia.get_estrategias_to_run(apply_intervals)
     active_symbols = []
     for estr in estrategias:
-        log.info(f'Estrategia: {estr}')
+        #log.info(f'Estrategia: {estr}')
         botClass = BotClass().get_instance(estr.clase)
         botClass.set(estr.parse_parametros())
         try:
@@ -95,7 +95,7 @@ def run():
                 exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
                 wallet = exch.get_wallet() 
 
-            log.info(f'Bot: {bot}')
+            #log.info(f'Bot: {bot}')
             price = prices[botClass.symbol]
             pos_orders = bot.get_pos_orders()
 
