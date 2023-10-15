@@ -114,8 +114,8 @@ def run():
                                        price=price, 
                                        wallet=wallet, 
                                        pos_orders=pos_orders)
-            #if len(execRes) > 0:
-            #    log.info(f'Execute: {execRes}')
+            if len(execRes) > 0:
+                log.info(f'Execute: {execRes}')
             if 'execute' in execRes and execRes['execute'] == 'CLOSE':
                 closeRes = bot.close_pos()
                 log.info(f'Close: {closeRes}')
