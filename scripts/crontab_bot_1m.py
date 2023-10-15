@@ -10,7 +10,7 @@ def run():
     log = Log()
     jsonRsp = {}
     startDt = datetime.now()
-    log.info(f'START {startDt}')
+    #log.info(f'START {startDt}')
     print(f'START {startDt}')
 
     jsonRsp['error'] = []
@@ -147,5 +147,5 @@ def run():
 
     print('Ready')
 
-    endDt = datetime.now()
-    log.info(f'END {endDt}')
+    #endDt = datetime.now()
+    #log.info(f'END {endDt}')
