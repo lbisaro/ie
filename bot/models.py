@@ -186,7 +186,6 @@ class Bot(models.Model):
 
 class Order(models.Model):
     bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
-    datetime = models.DateField(default=timezone.now)
     base_asset = models.CharField(max_length = 14, null=False, blank=False, db_index=True)
     quote_asset = models.CharField(max_length = 14, null=False, blank=False, db_index=True)
     completed = models.IntegerField(default=0, null=False, blank=False, db_index=True)
