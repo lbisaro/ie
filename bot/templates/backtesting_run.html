@@ -160,6 +160,7 @@
                 }
                 else if (rsp.ok)
                 {
+                    $('#add_resultado_title').html('BotClass {{botClass}}');
                     data = rsp.bt.data
                     timeUnit = 'minute';
                     if (rsp.parametros.interval_id.substring(1, 2) == 'd')

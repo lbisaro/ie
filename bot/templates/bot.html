@@ -59,7 +59,9 @@
     <div class="row pt-3 text-secondary">
         <div class="col">Creado {{creado}}</div>                                    
     </div>
-
+    <div class="container  pb-4" id="run" >
+        {% include 'klines_chart.html' %}
+    </div>
 </div>
 <input type="hidden" id="bot_id" value="{bot_id}" >
 

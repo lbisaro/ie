@@ -171,4 +171,8 @@ def bot_delete(request,bot_id):
         jsonRsp['error'] = 'No es psible eliminar el Bot'
     return JsonResponse(jsonRsp)
     
+@login_required
+def get_result(request,bot_id):
+    jsonRsp = {}
     
+    return JsonResponse(jsonRsp)   

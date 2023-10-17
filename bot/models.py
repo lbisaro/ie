@@ -114,6 +114,7 @@ class Bot(models.Model):
     estrategia = models.ForeignKey(Estrategia, on_delete = models.CASCADE)
     usuario = models.ForeignKey(User, on_delete = models.CASCADE)
     creado = models.DateField(default=timezone.now)
+    finalizado = models.DateField(null=True, blank=True)
     activo = models.IntegerField(default=0)
     quote_qty = models.FloatField(null=False, blank=False)
     max_drawdown = models.FloatField(null=False, blank=False)
@@ -211,3 +212,15 @@ class Order(models.Model):
     
     class Meta:
         verbose_name_plural='Bots'
+
+    class BotLog(models.Model):
+
+        LOG_ACTIVAR = 1
+        LOG_DESACTIVAR = 2
+
+        bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
+        datetime = models.DateTimeField(default=timezone.now)
+        log_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
+        
+        
+    
