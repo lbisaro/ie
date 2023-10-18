@@ -130,7 +130,6 @@ class Kline(models.Model):
             klines = Kline.objects.raw(query)
         
         #warnings.filterwarnings("default")
-
         if not klines:
             return None
         else:

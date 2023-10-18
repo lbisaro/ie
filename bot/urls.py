@@ -21,6 +21,7 @@ urlpatterns = [
     path('bot/create/',vb.bot_create,name='bot_create'),
     path('bot/get_parametros_estrategia/<int:estrategia_id>/',vb.get_parametros_estrategia,name='get_parametros_estrategia'),
     path('bot/edit/<int:bot_id>/',vb.bot_edit,name='bot_edit'),
+    path('bot/get_result/<int:bot_id>/',vb.get_result,name='get_result'),
     path('bot/toogle_activo/<int:bot_id>/',vb.bot_toogle_activo,name='bot_toogle_activo'),
     path('bot/delete/<int:bot_id>/',vb.bot_delete,name='bot_delete'),
 

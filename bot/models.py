@@ -7,6 +7,10 @@ import functions as fn
 import os, fnmatch
 import importlib
 from scripts.BotBase import BotBase
+from scripts.Exchange import Exchange
+from bot.model_kline import Kline
+import pandas as pd
+import datetime as dt
 
 
 class BotClass:
@@ -184,6 +188,166 @@ class Bot(models.Model):
                 order.save()
             return True
         return False
+    
+    def add_log(self,log_id):
+        bot_log = BotLog()
+        bot_log.bot = self
+        bot_log.log_id = log_id
+        bot_log.save()
+
+    def get_orders(self):
+        query = "SELECT * FROM bot_order "\
+                "WHERE bot_id = "+str(self.id)+" "\
+                "ORDER BY datetime"
+        orders = Order.objects.raw(query)
+        return orders
+
+    def get_brief_data(self):
+        botClass = self.get_instance()
+        botClass.reset_res()
+        botClass.reset_pos()
+        symbol = botClass.symbol
+        intervalo = fn.get_intervals(self.estrategia.interval_id,'binance') 
+        kline_ini = self.creado
+        if self.finalizado:
+            kline_end = self.finalizado
+        else:
+            kline_end = timezone.now()
+
+      
+        klines = Kline.get_df(strSymbol=symbol, 
+                              interval_id=self.estrategia.interval_id,
+                              from_date = kline_ini.strftime('%Y-%m-%d'),
+                              to_date = kline_end.strftime('%Y-%m-%d'),
+                              )
+        botClass.klines = klines
+        orders = self.get_orders()
+        order_columns = ['datetime','symbol','side','qty','price','flag','comision']
+        last_posorder_id = 0
+        for o in orders:
+            comision = round(o.price * o.qty * (BotBase.exch_comision_perc/100) ,4)
+            order_datetime = o.datetime.replace(second=0, microsecond=0)
+            if o.completed > 0 and o.pos_order_id > 0:
+                order = [
+                    order_datetime,
+                    o.base_asset+o.quote_asset,
+                    o.side,
+                    o.qty,
+                    o.price,
+                    o.flag,
+                    comision,
+                ] 
+                if o.pos_order_id != last_posorder_id:
+                    last_posorder_id = o.pos_order_id
+                    botClass.open_pos(o.datetime.strftime("%Y-%m-%d %H:%M"),o.price,o.qty)
+                else:
+                    botClass.close_pos(o.datetime.strftime("%Y-%m-%d %H:%M"),o.price,o.flag)
+
+                botClass.res['orders'].append(order)
+            
+
+        df_orders = pd.DataFrame(botClass.res['orders'], columns=order_columns)
+        df_orders.set_index('datetime', inplace=True)
+
+        klines['side'] = None
+        klines['qty'] = None
+        klines['price'] = None
+        klines['flag'] = None
+        klines['comision'] = None
+
+        botClass.wallet_base = 0.0
+        botClass.wallet_quote = self.quote_qty * (botClass.quote_perc/100)
+        hold_qty = 0
+        for i in klines.index:
+            k = klines.loc[i]
+            timestamp = pd.Timestamp(k['datetime']).timestamp()
+            unix_dt = int( (timestamp*1000) +  10800000 ) #Convierte a milisegundos y agrega 3 horas
+            
+            buy = None
+            sell_s = None
+            sell_sl = None
+            sell_tp = None
+            flag = None
+            if k['datetime'] in df_orders.index:
+                o = df_orders.loc[k['datetime']]
+                if o.side == BotBase.SIDE_BUY:
+                    botClass.wallet_quote = botClass.wallet_quote - (o.qty * o.price)
+                    botClass.wallet_base = botClass.wallet_base + o.qty
+                    buy = float(o.price)
+                if o.side == BotBase.SIDE_SELL:
+                    botClass.wallet_quote = botClass.wallet_quote + (o.qty * o.price)
+                    botClass.wallet_base = botClass.wallet_base - o.qty
+                    if o.flag == BotBase.FLAG_SIGNAL:
+                        sell_s = float(o.price)
+                    if o.flag == BotBase.FLAG_STOPLOSS:
+                        sell_sl = float(o.price)
+                    if o.flag == BotBase.FLAG_TAKEPROFIT:
+                        sell_tp = float(o.price)
+                flag = int(o.flag)
+
+            if hold_qty == 0:
+                hold_qty = botClass.wallet_quote / k['close']
+            usdH = float(hold_qty*k['close'])
+
+            usdW = botClass.wallet_quote + (botClass.wallet_base * k['close'])
+
+            data = {'dt': unix_dt,
+                    'o': k['open'],
+                    'h': k['high'],
+                    'l': k['low'],
+                    'c': k['close'],
+                    'v': k['volume'],
+                    'sigB': None,
+                    'sigS': None,
+                    'buy': buy,
+                    'sell_s': sell_s,
+                    'sell_sl': sell_sl,
+                    'sell_tp': sell_tp,
+                    'flag': flag,
+                    'usdH': usdH,
+                    'usdW': usdW,
+                    'dd': 0.0,
+                    'SL': None,
+                    'TP': None,
+                } 
+            botClass.res['data'].append(data)
+        
+        jsonRsp = {}
+        jsonRsp['parametros'] = {
+            'interes': botClass.interes,
+            'interval_id': self.estrategia.interval_id,
+            'quote_perc': botClass.quote_perc,
+            'quote_qty': botClass.quote_qty,
+            'stop_loss': botClass.stop_loss,
+            'take_profit': botClass.take_profit,
+            'symbol': symbol,
+
+        }
+        exch = Exchange(type='info',exchange='bnc',prms=None)
+        symbol_info = exch.get_symbol_info(symbol)
+        botClass.base_asset = symbol_info['base_asset']
+        botClass.quote_asset = symbol_info['quote_asset']
+        botClass.qd_price = symbol_info['qty_decs_price']
+        botClass.qd_qty = symbol_info['qty_decs_qty']
+        botClass.qd_quote = symbol_info['qty_decs_quote']
+
+        botClass.res['symbol'] = symbol
+        botClass.res['periods'] = int(klines['close'].count())
+        botClass.res['from'] = kline_ini.strftime('%Y-%m-%d')
+        botClass.res['to'] = kline_end.strftime('%Y-%m-%d')
+        botClass.res['base_asset'] = botClass.wallet_base
+        botClass.res['quote_asset'] = botClass.wallet_quote
+        botClass.res['qd_price'] = botClass.qd_price
+        botClass.res['qd_qty'] = botClass.qd_qty
+        botClass.res['qd_quote'] = botClass.qd_quote
+        botClass.res['interval_id'] = self.estrategia.interval_id
+
+        botClass.res['brief'] = botClass.bt_get_brief()
+
+        jsonRsp['bt'] = botClass.res
+        jsonRsp['ok'] = True
+
+        return jsonRsp
 
 class Order(models.Model):
     bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
@@ -213,14 +377,14 @@ class Order(models.Model):
     class Meta:
         verbose_name_plural='Bots'
 
-    class BotLog(models.Model):
+class BotLog(models.Model):
 
-        LOG_ACTIVAR = 1
-        LOG_DESACTIVAR = 2
+    LOG_ACTIVAR = 1
+    LOG_DESACTIVAR = 2
 
-        bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
-        datetime = models.DateTimeField(default=timezone.now)
-        log_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
+    bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
+    datetime = models.DateTimeField(default=timezone.now)
+    log_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
         
         
     

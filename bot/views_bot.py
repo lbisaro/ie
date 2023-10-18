@@ -158,6 +158,11 @@ def bot_toogle_activo(request,bot_id):
     else:
         bot.activo = 1
     bot.save()
+    if bot.activo > 0:
+        bot.add_log(BotLog.LOG_ACTIVAR)
+    else:
+        bot.add_log(BotLog.LOG_DESACTIVAR)
+
     return redirect('/bot/bot/'+str(bot.id))
 
 @login_required
@@ -174,5 +179,11 @@ def bot_delete(request,bot_id):
 @login_required
 def get_result(request,bot_id):
     jsonRsp = {}
-    
+
+    bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
+    if bot:
+        jsonRsp = bot.get_brief_data()
+    else:
+        jsonRsp['error'] = 'No existe el bot con ID: '+bot_id
     return JsonResponse(jsonRsp)   
+ 
