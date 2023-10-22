@@ -47,7 +47,6 @@ def run():
         msg_text = f'No fue posible encontrar velas\n{err}'
         jsonRsp['error'].append(msg_text)
     
-    print(f'KLINES OK')
 
     ## Obtener precios de los symbols activos
     prices = exchInfo.get_all_prices()
@@ -62,6 +61,7 @@ def run():
     ### Si el symbol se encuentra actualizado ejecuta la estrategia
     signals = {}
     if actSymOk:
+        print(f'actSymOk OK')
         actions = []
         ### Buscar Señales
         for estr in estrategias:
@@ -95,7 +95,7 @@ def run():
                 exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
                 wallet = exch.get_wallet() 
 
-            #log.info(f'Bot: {bot}')
+            log.info(f'Bot: {bot}')
             price = prices[botClass.symbol]
             pos_orders = bot.get_pos_orders()
 
@@ -108,7 +108,7 @@ def run():
                 signal = signals[bot.estrategia_id]
             if signal != 'NEUTRO':
                 log.info(f'Signal: {signal}')
-
+            
             execRes = botClass.execute(exchange = exch, 
                                        signal=signal, 
                                        price=price, 
@@ -120,13 +120,12 @@ def run():
                 closeRes = bot.close_pos()
                 log.info(f'Close: {closeRes}')
 
-            #verificar si hay ordenes para cerrar
-
-                
-        
-
-
-            
+    
+    #Buscar ordenes incompletas, agrupadas por usuario
+    #Si existen, reconectar con el Exchange para cada usuario 
+    # Repetir la busqueda de ordenes incompletas en un bucle para todos los usuarios  
+    # El bucle no puede ser infinito
+    # Si quedan ordenes incompletas, se revisaran en la proxima corrida del crontab
 
 
     ### Control de errores
