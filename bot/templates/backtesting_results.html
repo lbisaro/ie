@@ -411,7 +411,7 @@
             var tr = '<tr class="'+cls+'">';
             tr += '<td>'+order[0]+'</td>';
             tr += '<td>'+order[3]+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[6],2)+'</td>';
+            tr += '<td>'+to_dec(order[6],2)+'</td>';
             tr += '<td>'+(order[5]>0?bt.order_flag[order[5]]:'')+'</td>';
             tr += '<td class="text-end">'+to_dec(order[2],qd_qty)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[1],qd_price)+'</td>';
@@ -476,7 +476,7 @@
                     <tr>
                         <th>Compra</th>
                         <th>Venta</th>
-                        <th class="text-end">Duracion (Dias)</th>
+                        <th>Duracion (Dias)</th>
                         <th>SL/TP</th>
                         <th class="text-end">Cantidad</th>
                         <th class="text-end">Compra</th>

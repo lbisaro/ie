@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db import models
+from django.db import models, connection
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -7,8 +7,7 @@ import functions as fn
 import os, fnmatch
 import importlib
 from scripts.BotBase import BotBase
-from scripts.Exchange import Exchange
-from bot.model_kline import Kline
+from bot.model_kline import Symbol
 import pandas as pd
 import datetime as dt
 
@@ -168,26 +167,36 @@ class Bot(models.Model):
     def close_pos(self):
         orders = self.get_pos_orders()
         completed = True
+        qty_base = 0
         buy = 0
         sell = 0
         start_order_id = 0
 
         for order in orders:
             if order.side == BotBase.SIDE_BUY:
-                buy += 1
+                qty_base += 1
+                qty_base += order.qty
             if order.side == BotBase.SIDE_SELL:
                 sell += 1
+                qty_base -= order.qty
             if order.completed == 0:
                 completed = False
             if start_order_id == 0 or order.id < start_order_id:
                 start_order_id = order.id
-        
-        if buy > 0 and sell > 0 and completed:
+
+        if buy > 0 and sell > 0 and completed and qty_base == 0:
             for order in orders:
                 order.pos_order_id = start_order_id
                 order.save()
             return True
+        
+        self.bloquear()
         return False
+    
+    def bloquear(self):
+        self.activo = 0
+        self.save()
+        self.add_log(BotLog.LOG_DESACTIVAR)
     
     def add_log(self,log_id):
         bot_log = BotLog()
@@ -201,8 +210,103 @@ class Bot(models.Model):
                 "ORDER BY datetime"
         orders = Order.objects.raw(query)
         return orders
+    
+    def get_trades(self):
+        orders = self.get_orders()
+        
 
-    def get_brief_data(self):
+        last_posorder_id = -1
+        trades = {}
+        trade = {}
+        key = 0
+        
+        for o in orders:
+            if o.completed > 0 and o.pos_order_id > 0:
+                
+                #Reinicio de la posicion
+                if o.pos_order_id != last_posorder_id:
+                    last_posorder_id = o.pos_order_id
+                    key = o.pos_order_id
+                    trades[key] = {}
+                    trade = {}
+                    trade['start'] = o.datetime
+                    trade['buy_price'] = 0.0
+                    trade['qty'] = 0.0
+                    trade['end'] = None
+                    trade['flag'] = ''
+                    trade['sell_price'] = 0.0
+                    trade['str_flag'] = ''
+                    trade['days'] = 0.0
+                    trade['comision'] = 0.0
+                    trade['orders'] = 0
+                    trade['buy_ops'] = 0
+                    trade['buy_acum_quote'] = 0.0
+                    trade['buy_acum_base'] = 0.0
+                    trade['buy_avg_price'] = 0.0
+                    trade['sell_ops'] = 0
+                    trade['sell_acum_quote'] = 0.0
+                    trade['sell_acum_base'] = 0.0
+                    trade['sell_avg_price'] = 0.0
+                    trade['result_qty'] = 0.0
+                    trade['result_quote'] = 0.0
+                    trade['result_perc'] = 0.0
+                        
+                    
+                if o.side == BotBase.SIDE_BUY:
+                    trade['buy_ops'] += 1
+                    trade['buy_acum_quote'] += o.price * o.qty
+                    trade['buy_acum_base'] += o.qty
+                    trade['result_qty'] += o.qty
+
+                else:
+                    trade['sell_ops'] += 1
+                    trade['sell_acum_quote'] += o.price * o.qty
+                    trade['sell_acum_base'] += o.qty
+                    trade['result_qty'] -= o.qty
+                    
+
+                #Calculos
+                trade['comision'] = round(trade['comision'] + o.price * o.qty * (BotBase.exch_comision_perc/100) ,4)
+                if trade['buy_acum_base'] != 0:
+                    trade['buy_avg_price'] = trade['buy_acum_quote'] / trade['buy_acum_base']
+                if trade['sell_acum_base'] != 0:
+                    trade['sell_avg_price'] = trade['sell_acum_quote'] / trade['sell_acum_base']
+                if trade['buy_avg_price'] != 0:
+                    trade['result_perc'] = round(((trade['sell_avg_price']/trade['buy_avg_price'])-1)*100 - BotBase.exch_comision_perc , 2)
+                
+                trade['result_quote'] = trade['sell_acum_quote']-trade['buy_acum_quote']-trade['comision']
+                
+
+                trade['end'] = o.datetime
+                if o.flag == BotBase.FLAG_STOPLOSS:
+                   trade['flag'] += 'SL '
+                elif o.flag == BotBase.FLAG_TAKEPROFIT:
+                   trade['flag'] += 'TP '
+                
+                trades[key] = trade
+
+        #transforma el diccinoario de diccionarios en una lista de diccionarios
+        list_trades = []
+        for t in trades:
+            dif = trades[t]['end'] - trades[t]['start']
+            days = round(dif.total_seconds() / 60 / 60 / 24 , 2)
+            trades[t]['duracion'] = days
+            list_trades.append(trades[t])
+        return list_trades 
+                
+
+    
+    def can_activar(self):
+        if self.estrategia.activo > 0:
+            return True
+        return False
+    
+    def get_resultados(self):
+        jsonRsp = {}
+        orders = self.get_orders()
+        trades = self.get_trades()
+
+        """
         botClass = self.get_instance()
         botClass.reset_res()
         botClass.reset_pos()
@@ -312,7 +416,7 @@ class Bot(models.Model):
                 } 
             botClass.res['data'].append(data)
         
-        jsonRsp = {}
+        
         jsonRsp['parametros'] = {
             'interes': botClass.interes,
             'interval_id': self.estrategia.interval_id,
@@ -346,7 +450,7 @@ class Bot(models.Model):
 
         jsonRsp['bt'] = botClass.res
         jsonRsp['ok'] = True
-
+        """
         return jsonRsp
 
 class Order(models.Model):
@@ -359,6 +463,7 @@ class Order(models.Model):
     price = models.FloatField(null=False, blank=False)
     orderid = models.CharField(max_length = 20, null=False, unique = True, blank=False, db_index=True)
     pos_order_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
+    symbol = models.ForeignKey(Symbol, on_delete = models.CASCADE)
     #Definido en BotBase: SIDE_BUY, SIDE_SELL
     side = models.IntegerField(default=0, null=False, blank=False, db_index=True)
     #Definido en BotBase: FLAG_SIGNAL, FLAG_STOPLOSS, FLAG_TAKEPROFIT

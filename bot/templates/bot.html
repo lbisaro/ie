@@ -9,7 +9,7 @@
 <a class="btn btn-primary  btn-sm" href="{% url 'bot_edit' bot_id %}">Editar Bot</a>
 {% if activo > 0 %}
     <a class="btn btn-danger  btn-sm" href="{% url 'bot_toogle_activo' bot_id %}">Desactivar</a>
-{% else %}
+{% elif can_activar %}
     <a class="btn btn-success  btn-sm" href="{% url 'bot_toogle_activo' bot_id %}">Activar</a>
 {% endif %}
 {% if can_delete %}
@@ -60,10 +60,83 @@
         <div class="col">Creado {{creado}}</div>                                    
     </div>
 
+    <div class="row">
+        <h5 class="text-info pt-3 ">Resultados</h5>
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="resumen">
+              <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen-tab-pane" type="button" role="tab" aria-controls="resumen-tab-pane" aria-selected="true">Resumen</button>
+            </li>
+            <li class="nav-item" role="resumen">
+              <button class="nav-link" id="ordenes-tab" data-bs-toggle="tab" data-bs-target="#ordenes-tab-pane" type="button" role="tab" aria-controls="ordenes-tab-pane" aria-selected="false">Ordenes</button>
+            </li>
+            <li class="nav-item" role="resumen">
+                <button class="nav-link" id="trades-tab" data-bs-toggle="tab" data-bs-target="#trades-tab-pane" type="button" role="tab" aria-controls="trades-tab-pane" aria-selected="false">Operaciones</button>
+              </li>
+          </ul>
+          <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="resumen-tab-pane" role="tabpanel" aria-labelledby="resumen-tab" tabindex="0" >
+                <div class="row pt-4">
+                    <div class="col-6" id="general" style="font-size: 0.8em;" ></div>
+                    <div class="col-3" id="operaciones" style="font-size: 0.8em;" ></div>
+                    <div class="col-3" id="indicadores" style="font-size: 0.8em;" ></div>
+                </div>
+                
+            </div>
+            <div class="tab-pane fade" id="ordenes-tab-pane" role="tabpanel" aria-labelledby="ordenes-tab" tabindex="0">
+                <table class="table-dg table-trade-info">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Par</th>
+                            <th>Operacion</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end">Precio</th>
+                            <th class="text-end">USD</th>
+                            <th class="text-end">Comision</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="trades-tab-pane" role="tabpanel" aria-labelledby="trades-tab" tabindex="0">
+                <table class="table-dg table-trade-info">
+                    <thead>
+                        <tr>
+                            <th>Compra</th>
+                            <th>Venta</th>
+                            <th>Duracion (Dias)</th>
+                            <th>SL/TP</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end">Compra</th>
+                            <th class="text-end">Venta</th>
+                            <th class="text-end">Resultado USD</th>
+                            <th class="text-end">Resultado %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for t in trades %}
+                        <tr>
+                            <th>{{t.start|date:"d-m-Y h:i"}}</th>
+                            <th>{{t.end|date:"d-m-Y h:i"}}</th>
+                            <th>{{t.duracion}}</th>
+                            <th>{{t.flag}}</th>
+                            <th class="text-end">{{t.buy_acum_base}}</th>
+                            <th class="text-end">{{t.buy_avg_price}}</th>
+                            <th class="text-end">{{t.sell_avg_price}}</th>
+                            <th class="text-end">{{t.result_quote}}</th>
+                            <th class="text-end">{{t.result_perc}} %</th>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+          </div>
+    </div>
+
 </div>
-<div class="container  pb-4" id="run" >
-    {% include 'trading_results.html' %}
-</div>
+
 <input type="hidden" id="bot_id" value="{bot_id}" >
 
 {% endblock %}
@@ -72,7 +145,7 @@
 <script>
 
 $(document).ready( function () {
-    load_results();
+    
 })
 
 function eliminar()
@@ -94,32 +167,7 @@ function eliminar()
     }
 }
 
-function load_results() 
-{
-    url = '{% url "get_result" bot_id=bot_id %}';
-    data = {}
 
-    get_ajax(url,data).done( function (rsp) {
-        if (rsp.error)
-        {
-            html_alert('Errores detectados',rsp.error,'text-danger')
-        }
-        else if (rsp.ok)
-        {
-            data = rsp.bt.data
-            timeUnit = 'minute';
-            if (rsp.bt.interval_id.substring(1, 2) == 'd')
-                timeUnit = 'day';
-            else if (rsp.bt.interval_id.substring(1, 2) == 'h')
-                timeUnit = 'hour';
-            
-            chartDraw(data, rsp.bt.symbol, timeUnit )
-            infoDraw(rsp.bt);
-
-        }
-    });    
-    
-}
 </script>
 
 {% endblock %}

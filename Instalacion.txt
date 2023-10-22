@@ -20,6 +20,10 @@ python .\manage.py createsuperuser
 
 
 
+c:\users\lbisa\appdata\local\programs\python\python38\python.exe -m pip install --upgrade pip setuptools wheel
+
+
+
 EN PRODUCCION
 ref: https://render.com/docs/deploy-django
     settings.py
