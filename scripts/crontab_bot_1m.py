@@ -109,6 +109,10 @@ def run():
             if signal != 'NEUTRO':
                 log.info(f'Signal: {signal}')
             
+            #Forzar signal
+            #signal = 'VENTA'
+            #signal = 'COMPRA'
+            
             execRes = botClass.execute(exchange = exch, 
                                        signal=signal, 
                                        price=price, 

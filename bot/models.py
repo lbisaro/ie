@@ -167,7 +167,7 @@ class Bot(models.Model):
 
         for order in orders:
             if order.side == BotBase.SIDE_BUY:
-                qty_base += 1
+                buy += 1
                 qty_base += order.qty
             if order.side == BotBase.SIDE_SELL:
                 sell += 1
