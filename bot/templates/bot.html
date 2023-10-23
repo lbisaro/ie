@@ -96,7 +96,17 @@
                         </tr>
                     </thead>
                     <tbody>
-                        
+                        {% for o in orders %}
+                        <tr class="{% if o.side == 0 %}green{% else %}red{% endif %}">
+                            <td>{{o.datetime|date:"d-m-Y h:i"}}</td>
+                            <td>{{o.symbol}}</td>
+                            <td>{% if o.side == 0 %}COMPRA{% else %}VENTA{% endif %}</td>
+                            <td class="text-end">{{o.qty}}</td>
+                            <td class="text-end">{{o.price}}</td>
+                            <td class="text-end">{{o.quote_qty}}</td>
+                            <td class="text-end">{{o.comision}}</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -117,16 +127,16 @@
                     </thead>
                     <tbody>
                     {% for t in trades %}
-                        <tr>
-                            <th>{{t.start|date:"d-m-Y h:i"}}</th>
-                            <th>{{t.end|date:"d-m-Y h:i"}}</th>
-                            <th>{{t.duracion}}</th>
-                            <th>{{t.flag}}</th>
-                            <th class="text-end">{{t.buy_acum_base}}</th>
-                            <th class="text-end">{{t.buy_avg_price}}</th>
-                            <th class="text-end">{{t.sell_avg_price}}</th>
-                            <th class="text-end">{{t.result_quote}}</th>
-                            <th class="text-end">{{t.result_perc}} %</th>
+                        <tr class="{% if t.result_perc > 0 %}green{% else %}red{% endif %}">
+                            <td>{{t.start|date:"d-m-Y h:i"}}</td>
+                            <td>{{t.end|date:"d-m-Y h:i"}}</td>
+                            <td>{{t.duracion}}</td>
+                            <td>{{t.flag}}</td>
+                            <td class="text-end">{{t.buy_acum_base}}</td>
+                            <td class="text-end">{{t.buy_avg_price}}</td>
+                            <td class="text-end">{{t.sell_avg_price}}</td>
+                            <td class="text-end">{{t.result_quote}}</td>
+                            <td class="text-end">{{t.result_perc}} %</td>
                         </tr>
                     {% endfor %}
                     </tbody>

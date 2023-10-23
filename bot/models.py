@@ -122,7 +122,7 @@ class Bot(models.Model):
     quote_qty = models.FloatField(null=False, blank=False)
     max_drawdown = models.FloatField(null=False, blank=False)
     stop_loss = models.FloatField(null=False, blank=False)
-
+    
     def __str__(self):
         str = f"Bot {self.estrategia.nombre}"
 
@@ -156,13 +156,6 @@ class Bot(models.Model):
                 "ORDER BY usuario_id"
         bots = Bot.objects.raw(query)
         return bots
-
-    def get_pos_orders(self):
-        query = "SELECT * FROM bot_order "\
-                "WHERE bot_id = "+str(self.id)+" AND pos_order_id = 0 "\
-                "ORDER BY datetime"
-        pos_orders = Order.objects.raw(query)
-        return pos_orders
     
     def close_pos(self):
         orders = self.get_pos_orders()
@@ -205,12 +198,15 @@ class Bot(models.Model):
         bot_log.save()
 
     def get_orders(self):
-        query = "SELECT * FROM bot_order "\
-                "WHERE bot_id = "+str(self.id)+" "\
-                "ORDER BY datetime"
-        orders = Order.objects.raw(query)
+        orders = Order.objects.filter(bot=self).order_by('datetime')
+
         return orders
-    
+
+    # Ordenes correspondientes a la Posicion abierta (Actual)
+    def get_pos_orders(self):
+        pos_orders = Order.objects.filter(bot=self,pos_order_id=0).order_by('datetime')
+        return pos_orders
+        
     def get_trades(self):
         orders = self.get_orders()
         
@@ -268,13 +264,13 @@ class Bot(models.Model):
                 #Calculos
                 trade['comision'] = round(trade['comision'] + o.price * o.qty * (BotBase.exch_comision_perc/100) ,4)
                 if trade['buy_acum_base'] != 0:
-                    trade['buy_avg_price'] = trade['buy_acum_quote'] / trade['buy_acum_base']
+                    trade['buy_avg_price'] = round(trade['buy_acum_quote'] / trade['buy_acum_base'],o.symbol.qty_decs_price)
                 if trade['sell_acum_base'] != 0:
-                    trade['sell_avg_price'] = trade['sell_acum_quote'] / trade['sell_acum_base']
+                    trade['sell_avg_price'] = round(trade['sell_acum_quote'] / trade['sell_acum_base'],o.symbol.qty_decs_price)
                 if trade['buy_avg_price'] != 0:
                     trade['result_perc'] = round(((trade['sell_avg_price']/trade['buy_avg_price'])-1)*100 - BotBase.exch_comision_perc , 2)
                 
-                trade['result_quote'] = trade['sell_acum_quote']-trade['buy_acum_quote']-trade['comision']
+                trade['result_quote'] = round(trade['sell_acum_quote']-trade['buy_acum_quote']-trade['comision'],o.symbol.qty_decs_quote)
                 
 
                 trade['end'] = o.datetime
@@ -475,6 +471,12 @@ class Order(models.Model):
             str += 'Venta'
 
         return str
+    
+    def quote_qty(self):
+        return round( self.price * self.qty , self.symbol.qty_decs_quote)
+    
+    def comision(self):
+        return round(self.quote_qty() * (BotBase.exch_comision_perc/100) , self.symbol.qty_decs_quote )
 
     
     class Meta:

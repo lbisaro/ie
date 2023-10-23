@@ -21,6 +21,9 @@ class Symbol(models.Model):
     qty_decs_quote = models.IntegerField(null=False, blank=False)
     activo = models.IntegerField(default=0)  
     
+    def __str__(self):
+        return self.base_asset+self.quote_asset
+    
     class Meta:
         verbose_name = "Par"
         verbose_name_plural='Pares'

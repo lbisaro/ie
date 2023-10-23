@@ -95,7 +95,7 @@ def run():
                 exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
                 wallet = exch.get_wallet() 
 
-            log.info(f'Bot: {bot}')
+            #log.info(f'Bot: {bot}')
             price = prices[botClass.symbol]
             pos_orders = bot.get_pos_orders()
 
