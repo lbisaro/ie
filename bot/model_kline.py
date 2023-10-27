@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db.models import F, Min, Max, Avg, Sum
 from django.db.models.functions import TruncDay, TruncHour, TruncMinute
+from django.utils import timezone
 from datetime import datetime, timedelta
 import pandas as pd
 import functions as fn
@@ -36,11 +37,11 @@ class Symbol(models.Model):
 class Kline(models.Model):
     symbol = models.ForeignKey(Symbol, on_delete = models.CASCADE)
     datetime = models.DateTimeField(null=False, blank=False, db_index=True)
-    open = models.DecimalField(max_digits=15,decimal_places=8,null=False, blank=False)
-    close = models.DecimalField(max_digits=15,decimal_places=8,null=False, blank=False)
-    high = models.DecimalField(max_digits=15,decimal_places=8,null=False, blank=False)
-    low = models.DecimalField(max_digits=15,decimal_places=8,null=False, blank=False)
-    volume = models.DecimalField(max_digits=12,decimal_places=2,null=False, blank=False)
+    open = models.FloatField(null=False, blank=False)
+    close = models.FloatField(null=False, blank=False)
+    high = models.FloatField(null=False, blank=False)
+    low = models.FloatField(null=False, blank=False)
+    volume = models.FloatField(null=False, blank=False)
     
     def __str__(self):
         return f'{self.datetime} {self.close} {self.volume}'
@@ -50,21 +51,90 @@ class Kline(models.Model):
        # Definir que la combinación de 'symbol' y 'datetime' es única
         unique_together = ('symbol', 'datetime')
 
-    """
-    # kwargs -> opcionales
-        symbol(str) -> obligatorio
-        interval_id(str) -> obligatorio
-        limit(int) -> Cantidad de velas, desde now() hacia atras
-        from_date ('%Y-%m-%d')
-        to_date ('%Y-%m-%d')
-
-        Si no llegan parametros toma todas las velas registradas
-    """
     def get_df(strSymbol,interval_id,**kwargs):
+        """
+        Obtener velas desde la base de datos
+        El alcance de las velas se especifica con el parametro limit, o en su defecto los parametros from_date y to_date
 
-        #Procesando parametros
-        #strSymbol = kwargs.get('symbol', None )
-        #interval_id = kwargs.get('interval_id', None )
+        Args:
+            limit (int): Cantidad de velas anteriores a la fecha y hora actuales.
+            from_date ('%Y-%m-%d'): Fecha de inicio del alcance.
+            to_date ('%Y-%m-%d'): Fecha de fin del alacnce
+
+        Returns:
+            klines (DataFrame): Con fecha y hora, y valores de OHLCV.
+        """
+        func_start = timezone.now()
+        #Procesando parametros kwargs
+        limit = kwargs.get('limit', None )
+        from_date = kwargs.get('from_date', None )
+        to_date = kwargs.get('to_date', None )
+
+        symbol = Symbol.objects.get(symbol = strSymbol)
+        pandas_interval = fn.get_intervals(interval_id,'pandas_resample')
+        i_unit = interval_id[1:2]
+        i_qty = int(interval_id[2:])
+        
+        if limit is not None:
+            if i_unit == 'm': #Minutos
+                delta_time = timedelta(minutes = i_qty*limit)
+                from_datetime = (datetime.now() - delta_time ).strftime('%Y-%m-%d %H:%M')+':00'
+            elif i_unit == 'h': #Horas
+                delta_time = timedelta(hours = i_qty*limit)
+                from_datetime = (datetime.now() - delta_time ).strftime('%Y-%m-%d %H')+':00:00'
+            elif i_unit == 'd': #Dias
+                delta_time = timedelta(days = i_qty*limit)
+                from_datetime = (datetime.now() - delta_time ).strftime('%Y-%m-%d')+' 00:00:00'
+            
+            to_datetime = (datetime.now() + timedelta(days = 1) ).strftime('%Y-%m-%d')+' 23:59:59'
+
+        else:
+            from_datetime = from_date+' 00:00:00' if from_date is not None else '2010-01-01 00:00:00'
+            to_datetime = to_date+' 23:59:59' if to_date is not None else (datetime.now() - timedelta(days = 1) ).strftime('%Y-%m-%d')+' 23:59:59'
+        
+        #Se agrega UTC
+        from_datetime = from_datetime + '+00:00'
+        to_datetime   = to_datetime   + '+00:00'
+
+        klines_values = Kline.objects.filter(symbol_id=symbol.id, 
+                                             datetime__gt=from_datetime,
+                                             datetime__lt=to_datetime).values('datetime', 
+                                                                              'open', 
+                                                                              'close', 
+                                                                              'high', 
+                                                                              'low', 
+                                                                              'volume')
+        
+        # Convertir los datos filtrados en un DataFrame de pandas
+        df = pd.DataFrame.from_records(klines_values)
+        df.rename(columns={'symbol__symbol': 'symbol'}, inplace=True)
+        df['open'] = df['open'].astype(float)
+        df['close'] = df['close'].astype(float)
+        df['high'] = df['high'].astype(float)
+        df['low'] = df['low'].astype(float)
+        df['volume'] = df['volume'].astype(float)
+        
+        agg_funcs = {
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum",
+        }   
+        
+        if interval_id != '0m01':
+            df = df.resample(pandas_interval, on="datetime").agg(agg_funcs).reset_index()
+        if limit is not None:
+            df = df[0:limit]
+        df['volume'] = round(df['volume'],2)
+        df['symbol'] = strSymbol
+        print('model: Kline.get_df() ',(timezone.now()-func_start))
+        return df 
+    
+    """
+    def get_df_old(strSymbol,interval_id,**kwargs):
+        print('Kline:get_df ',strSymbol,interval_id,' START ',timezone.now())
+        #Procesando parametros kwargs
         limit = kwargs.get('limit', None )
         from_date = kwargs.get('from_date', None )
         to_date = kwargs.get('to_date', None )
@@ -96,8 +166,6 @@ class Kline(models.Model):
         to_datetime   = to_datetime   + '+00:00'
 
         
-        #warnings.filterwarnings("ignore") #Se evita el warning generado por el timezone de la base de datos y DJango
-
         if i_unit == 'm': #Minutos
             query =  "SELECT id, symbol_id, datetime, open, high, low, close, volume "
             query += " FROM bot_kline "
@@ -132,17 +200,15 @@ class Kline(models.Model):
             query += " ORDER BY datetime" 
             klines = Kline.objects.raw(query)
         
-        #warnings.filterwarnings("default")
         if not klines:
             return None
         else:
-            data = [{'symbol': symbol.symbol,
-                    'datetime': kline.datetime, 
-                    'open': float(kline.open),
+            data = [{'datetime': kline.datetime, 
+                    'open':  float(kline.open),
                     'close': float(kline.close),
-                    'high': float(kline.high),
-                    'low': float(kline.low),
-                    'volume': float(kline.volume)
+                    'high':  float(kline.high),
+                    'low':   float(kline.low),
+                    'volume':float(kline.volume)
                     } for kline in klines]
             df = pd.DataFrame(data)
             
@@ -159,5 +225,8 @@ class Kline(models.Model):
             if limit is not None:
                 df = df[0:limit]
 
+            df['symbol'] = strSymbol
+
+            print('Kline:get_df ',strSymbol,interval_id,' END   ',timezone.now())
             return df 
-        
+    """

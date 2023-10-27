@@ -132,6 +132,11 @@ def run():
     # Si quedan ordenes incompletas, se revisaran en la proxima corrida del crontab
 
 
+    #Para cada job activo recalcular max-drawdown y demas indicadores y cachearlo en la db
+    # Luego del recalculo verificar si se debe detener el bot por exceder
+    # el max-drawdown general o el stop-loss general
+
+
     ### Control de errores
     if len(jsonRsp['error']) > 0:
         jsonRsp['ok'] = False

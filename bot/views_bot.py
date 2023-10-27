@@ -31,8 +31,6 @@ def bots(request):
 def bot(request, bot_id):
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     intervalo = fn.get_intervals(bot.estrategia.interval_id,'name')
-    trades = bot.get_trades()
-    orders = bot.get_orders()
     return render(request, 'bot.html',{
         'title': str(bot),
         'nav_title': str(bot),
@@ -50,8 +48,6 @@ def bot(request, bot_id):
         'can_delete': bot.can_delete(),
         'can_activar': bot.can_activar(),
         'parametros': bot.parse_parametros(),
-        'trades': trades,
-        'orders': orders,
     })
 
 @login_required
@@ -168,12 +164,7 @@ def bot_toogle_activo(request,bot_id):
             bot.add_log(BotLog.LOG_ACTIVAR)
             
     return redirect('/bot/bot/'+str(bot.id))
-    
-    
-        
-
-    
-
+ 
 @login_required
 def bot_delete(request,bot_id):
     jsonRsp = {}
@@ -185,5 +176,13 @@ def bot_delete(request,bot_id):
         jsonRsp['error'] = 'No es psible eliminar el Bot'
     return JsonResponse(jsonRsp)
     
-  
+def get_resultados(request,bot_id):
+    jsonRsp = {}
+    
+    bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
+    if bot:
+        jsonRsp = bot.get_resultados()
+    else:
+        jsonRsp['error'] = 'No existe el bot con ID: '+bot_id
+    return JsonResponse(jsonRsp)   
  

@@ -7,9 +7,11 @@ import functions as fn
 import os, fnmatch
 import importlib
 from scripts.BotBase import BotBase
-from bot.model_kline import Symbol
+from scripts.Exchange import Exchange
+from bot.model_kline import Kline, Symbol
 import pandas as pd
 import datetime as dt
+from django_pandas.io import read_frame
 
 
 class BotClass:
@@ -199,7 +201,6 @@ class Bot(models.Model):
 
     def get_orders(self):
         orders = Order.objects.filter(bot=self).order_by('datetime')
-
         return orders
 
     # Ordenes correspondientes a la Posicion abierta (Actual)
@@ -297,46 +298,100 @@ class Bot(models.Model):
             return True
         return False
     
+    def get_resultados_CHAU(self):
+        jsonRsp = {}
+        interval_id = self.estrategia.interval_id
+        from_date = self.creado.strftime('%Y-%m-%d')
+        to_date = timezone.now().strftime('%Y-%m-%d')
+        run_bot = self.get_instance()
+        symbol = run_bot.symbol
+        orders = self.get_orders()
+
+
+        klines = Kline.get_df(strSymbol=symbol,
+                            interval_id=interval_id,
+                            from_date = from_date,
+                            to_date = to_date)
+        
+        df_orders = read_frame(orders)
+        df_orders['qty'] = (df_orders['qty'] * -1).where(df_orders['side'] > 0, df_orders['qty'])
+        df_orders['usd'] = round(-1*df_orders['qty']*df_orders['price'], 2)
+        
+        
+        pandas_interval = fn.get_intervals(interval_id,'pandas_resample')
+        agg_funcs = {
+                "qty": "sum",
+                "usd": "sum",
+            }   
+        df_orders = df_orders.resample(pandas_interval, on="datetime").agg(agg_funcs).reset_index()
+        
+        
+        merged_df = pd.merge(klines, df_orders, on=['datetime'], how='outer').sort_values(by='datetime')
+
+
+
+        start_quote = run_bot.quote_qty * (run_bot.quote_perc/100)
+        start_price = klines.loc[0]['close']
+        hold_base_qty = start_quote/start_price
+        merged_df['qty'].fillna(0.0, inplace=True)
+        merged_df['usd'].fillna(0.0, inplace=True)
+
+
+        merged_df['usd_hold'] = round(merged_df['close']*hold_base_qty + run_bot.quote_qty-start_quote ,2)
+
+        merged_df['base_wallet'] = merged_df['qty'].cumsum()
+        merged_df['usd_wallet']     = round(merged_df['usd'].cumsum() , 2)
+        merged_df['usd_wallet']     = round(merged_df['usd_wallet'] + run_bot.quote_qty , 2)
+        merged_df['usd_estrategia'] = round(merged_df['base_wallet']*merged_df['close'] + merged_df['usd_wallet'] , 2)
+
+
+
+
+        return jsonRsp
+
+    
     def get_resultados(self):
         jsonRsp = {}
         orders = self.get_orders()
         trades = self.get_trades()
 
-        """
+        
         botClass = self.get_instance()
         botClass.reset_res()
         botClass.reset_pos()
         symbol = botClass.symbol
-        intervalo = fn.get_intervals(self.estrategia.interval_id,'binance') 
         kline_ini = self.creado
         if self.finalizado:
             kline_end = self.finalizado
         else:
             kline_end = timezone.now()
 
-      
+        pandas_interval = fn.get_intervals(self.estrategia.interval_id,'pandas_resample')
+
         klines = Kline.get_df(strSymbol=symbol, 
                               interval_id=self.estrategia.interval_id,
                               from_date = kline_ini.strftime('%Y-%m-%d'),
                               to_date = kline_end.strftime('%Y-%m-%d'),
                               )
         botClass.klines = klines
-        orders = self.get_orders()
         order_columns = ['datetime','symbol','side','qty','price','flag','comision']
         last_posorder_id = 0
         for o in orders:
             comision = round(o.price * o.qty * (BotBase.exch_comision_perc/100) ,4)
-            order_datetime = o.datetime.replace(second=0, microsecond=0)
+            order_datetime = pd.to_datetime(o.datetime)
+            order_datetime = order_datetime.floor(pandas_interval)
+            
             if o.completed > 0 and o.pos_order_id > 0:
                 order = [
                     order_datetime,
-                    o.base_asset+o.quote_asset,
+                    o.symbol.symbol,
                     o.side,
                     o.qty,
                     o.price,
                     o.flag,
                     comision,
                 ] 
+                
                 if o.pos_order_id != last_posorder_id:
                     last_posorder_id = o.pos_order_id
                     botClass.open_pos(o.datetime.strftime("%Y-%m-%d %H:%M"),o.price,o.qty)
@@ -442,11 +497,11 @@ class Bot(models.Model):
         botClass.res['qd_quote'] = botClass.qd_quote
         botClass.res['interval_id'] = self.estrategia.interval_id
 
-        botClass.res['brief'] = botClass.bt_get_brief()
+        botClass.res['brief'] = botClass.get_brief()
 
         jsonRsp['bt'] = botClass.res
         jsonRsp['ok'] = True
-        """
+        
         return jsonRsp
 
 class Order(models.Model):
@@ -464,13 +519,27 @@ class Order(models.Model):
     flag = models.IntegerField(default=0, null=False, blank=False)
     
     def __str__(self):
-        str = f"{self.base_asset}{self.quote_asset} "
+        str = f"{self.datetime} {self.symbol.symbol} "
         if self.side == 0:
             str += 'Compra'
         else:
             str += 'Venta'
 
         return str
+    
+    def str_side(self):
+        if self.side == BotBase.SIDE_BUY:
+            return 'Compra'
+        elif self.side == BotBase.SIDE_SELL:
+            return 'Venta'
+        return ''
+    
+    def str_flag(self):
+        if self.flag == BotBase.FLAG_STOPLOSS:
+            return 'Stop-Loss'
+        elif self.flag == BotBase.FLAG_TAKEPROFIT:
+            return 'Take-Profit'
+        return ''
     
     def quote_qty(self):
         return round( self.price * self.qty , self.symbol.qty_decs_quote)
