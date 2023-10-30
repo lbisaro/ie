@@ -4,6 +4,7 @@ from django.db.models import Q
 import functions as fn
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.template import RequestContext
 
 from bot.models import *
 from bot.model_kline import *
@@ -48,6 +49,10 @@ def bot(request, bot_id):
         'can_delete': bot.can_delete(),
         'can_activar': bot.can_activar(),
         'parametros': bot.parse_parametros(),
+        'trades': bot.get_trades(),
+        'orders': bot.get_orders(),
+        'resultados': bot.get_resultados(),
+        'log': bot.get_log(),
     })
 
 @login_required

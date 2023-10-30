@@ -19,13 +19,13 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container" >
     <div class="row pb-2">
         <div class="col-2">Estrategia:  
         <span class="col fw-bold">{{estrategia}}</span> 
         {% if estrategia_activo == 0%} <span class="text-danger">Inactiva</span>{% endif %}
     </div>
-    <div class="row pb-2">                                  
+    <div class="row pb-1">                                  
         <pre style="font-family: inherit;">{{descripcion}}</pre>                                    
     </div>
     {% if activo == 0 %}
@@ -33,41 +33,149 @@
         <h3 class="text-danger text-center">Bot inactivo</h3>
     </div>
     {% endif %}
-    <!--
-    <div class="row">
-
-        <div class="d-flex flex-row flex-wrap rounded border border-1 pb-2 mb-1">
-            <pre class="py-2" style="font-family: inherit;">{{descripcion}}</pre>
-            
-            <div class="w-50 py-2">Intervalo: <b>{{intervalo}}</b></div>
-            
+    <div class="row" style="font-size: 0.8em;">
+        <div class="d-flex flex-row flex-wrap rounded border border-1 pb-1 mb-1">
+            <div class="w-25 py-1">Intervalo: <b>{{intervalo}}</b></div>
             {% for k,prm in parametros.items %}
                 {% if prm.pub %}
-                    
-                
-                    <div class="w-50 py-2">{{prm.d}}: <b>{{prm.str}}</b></div>
-                    
+                    <div class="w-25 py-1">{{prm.d}}: <b>{{prm.str}}</b></div>
                 {% endif %}
             {% endfor %}
-            
-            
         </div>
-
     </div>
-    
--->
-    <div class="row pb-4">
-        <div class="col-4">Capital USD: <b>{{quote_qty}}</b></div>                                    
-        <div class="col-4">Stop Loss General: <b>{{stop_loss}} %</b></div>
-        <div class="col-4">Maximo DrowDawn: <b>{{max_drawdown}} %</b></div>                                   
+    <div class="row pb-2" style="font-size: 0.8em;">
+        <div class="d-flex flex-row flex-wrap rounded border border-1 pb-1 mb-1">
+            <div class="w-25 py-1">Capital USD: <b>{{quote_qty|stringformat:".2f"}}</b></div>
+            <div class="w-25 py-1">Stop Loss General: <b>{{stop_loss|stringformat:".2f"}} %</b></div>
+            <div class="w-25 py-1">Maximo DrowDawn: <b>{{max_drawdown|stringformat:".2f" }} %</b></div>
+        </div>
     </div>
-
-
-    <div class="container  pb-2" id="run" style="display:none;">
-        {% include 'trade_results.html' %}
-    </div>
-    <div class="row text-secondary">
-        <div class="col">Creado {{creado}}</div>                                    
+    <div class="row">
+        <ul class="nav nav-tabs" id="myTab" role="tablist" style="font-size: 0.9em;">
+            <li class="nav-item" role="resumen">
+              <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen-tab-pane" type="button" role="tab" aria-controls="resumen-tab-pane" aria-selected="true">Resumen</button>
+            </li>
+            <li class="nav-item" role="ordenes">
+              <button class="nav-link" id="ordenes-tab" data-bs-toggle="tab" data-bs-target="#ordenes-tab-pane" type="button" role="tab" aria-controls="ordenes-tab-pane" aria-selected="false">Ordenes</button>
+            </li>
+            <li class="nav-item" role="trades">
+                <button class="nav-link" id="trades-tab" data-bs-toggle="tab" data-bs-target="#trades-tab-pane" type="button" role="tab" aria-controls="trades-tab-pane" aria-selected="false">Operaciones</button>
+            </li>
+            <li class="nav-item" role="log">
+                <button class="nav-link" id="log-tab" data-bs-toggle="tab" data-bs-target="#log-tab-pane" type="button" role="tab" aria-controls="log-tab-pane" aria-selected="false">Log</button>
+            </li>
+          </ul>
+          <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="resumen-tab-pane" role="tabpanel" aria-labelledby="resumen-tab" tabindex="0" >
+                <div class="row pt-4">
+                    <div class="col-6" id="general" style="font-size: 0.8em;" >
+                        <h6 class="text-info">General</h5>
+                        {% for item in resultados.general %}
+                            <div class="row pb-1">
+                                <div class="col-6">{{item.t}}</div><div class="col-6 {{item.c}}" >{{item.v}}</div>
+                            </div> 
+                        {% endfor %}
+                    </div>
+                    <div class="col-3" id="operaciones" style="font-size: 0.8em;" >
+                        <h6 class="text-info">Operaciones</h5>
+                        {% for item in resultados.operaciones %}
+                            <div class="row pb-1">
+                                <div class="col-6">{{item.t}}</div><div class="col-6 {{item.c}}" >{{item.v}}</div>
+                            </div> 
+                        {% endfor %}
+                    </div>
+                    <div class="col-3" id="indicadores" style="font-size: 0.8em;" >
+                        <h6 class="text-info">Indicadores</h5>
+                        {% for item in resultados.indicadores %}
+                            <div class="row pb-1">
+                                <div class="col-6">{{item.t}}</div><div class="col-6 {{item.c}}">{{item.v}}</div>
+                            </div> 
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="ordenes-tab-pane" role="tabpanel" aria-labelledby="ordenes-tab" tabindex="0">
+                <table class="table-dg table-trade-info">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Par</th>
+                            <th>Operacion</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end">Precio</th>
+                            <th class="text-end">USD</th>
+                            <th class="text-end">Comision USD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr class="{% if o.side == 0 %}green{% else %}red{% endif %}">
+                            <td>{{o.datetime|date:"d-m-Y h:i"}}</td>
+                            <td>{{o.symbol}}</td>
+                            <td>{% if o.side == 0 %}COMPRA{% else %}VENTA{% endif %}</td>
+                            <td class="text-end">{{o.qty}}</td>
+                            <td class="text-end">{{o.price}}</td>
+                            <td class="text-end">{{o.quote_qty|stringformat:".2f"}}</td>
+                            <td class="text-end">{{o.comision|stringformat:".2f"}}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="trades-tab-pane" role="tabpanel" aria-labelledby="trades-tab" tabindex="0">
+                <table class="table-dg table-trade-info">
+                    <thead>
+                        <tr>
+                            <th>Compra</th>
+                            <th>Venta</th>
+                            <th>Duracion (Dias)</th>
+                            <th>SL/TP</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end">Compra</th>
+                            <th class="text-end">Venta</th>
+                            <th class="text-end">Resultado USD</th>
+                            <th class="text-end">Resultado %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for t in trades %}
+                        <tr class="{% if t.result_perc > 0 %}green{% else %}red{% endif %}">
+                            <td>{{t.start|date:"d-m-Y h:i"}}</td>
+                            <td>{{t.end|date:"d-m-Y h:i"}}</td>
+                            <td>{{t.duracion}}</td>
+                            <td>{{t.flag}}</td>
+                            <td class="text-end">{{t.buy_acum_base}}</td>
+                            <td class="text-end">{{t.buy_avg_price}}</td>
+                            <td class="text-end">{{t.sell_avg_price}}</td>
+                            <td class="text-end">{{t.result_quote|stringformat:".2f"}}</td>
+                            <td class="text-end">{{t.result_perc|stringformat:".2f"}} %</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade show" id="log-tab-pane" role="tabpanel" aria-labelledby="log-tab" tabindex="0" >
+                <table class="table-dg table-trade-info">
+                    <thead>
+                        <tr>
+                            <th width="10%">Fecha</th>
+                            <th width="10%">Tipo</th>
+                            <th>Texto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in log %}
+                        <tr class="{{l.class}}">
+                            <td>{{l.datetime|date:"d-m-Y h:i"}}</td>
+                            <td>{{l.type}}</td>
+                            <td>{{l.texto}}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+          </div>
     </div>
 </div>
 
@@ -79,7 +187,7 @@
 <script>
 
 $(document).ready( function () {
-    get_resultados()
+    //get_resultados()
 })
 function get_resultados() {
     url = '{% url "get_resultados" bot_id %}';

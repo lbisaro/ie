@@ -98,12 +98,13 @@ class Kline(models.Model):
 
         klines_values = Kline.objects.filter(symbol_id=symbol.id, 
                                              datetime__gt=from_datetime,
-                                             datetime__lt=to_datetime).values('datetime', 
-                                                                              'open', 
-                                                                              'close', 
-                                                                              'high', 
-                                                                              'low', 
-                                                                              'volume')
+                                             datetime__lt=to_datetime).order_by('datetime').values(
+                                                'datetime', 
+                                                'open', 
+                                                'close', 
+                                                'high', 
+                                                'low', 
+                                                'volume')
         
         # Convertir los datos filtrados en un DataFrame de pandas
         df = pd.DataFrame.from_records(klines_values)
@@ -121,14 +122,14 @@ class Kline(models.Model):
             "close": "last",
             "volume": "sum",
         }   
-        
+        print('model: Kline.get_df() - Resampling',(timezone.now()-func_start))
         if interval_id != '0m01':
             df = df.resample(pandas_interval, on="datetime").agg(agg_funcs).reset_index()
         if limit is not None:
             df = df[0:limit]
         df['volume'] = round(df['volume'],2)
         df['symbol'] = strSymbol
-        print('model: Kline.get_df() ',(timezone.now()-func_start))
+        print('model: Kline.get_df() - End ',(timezone.now()-func_start))
         return df 
     
     """

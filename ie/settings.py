@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'django_extensions',
     'django_pandas',
     'user',
@@ -72,6 +73,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.i18n',
+                'django.contrib.auth.context_processors.auth',
             ],
         },
     },
@@ -130,8 +133,6 @@ DATETIME_FORMAT = 'd-m-Y H:i'
 DATETIME_INPUT_FORMATS = 'd-m-Y H:i'
 
 USE_L10N = False
-USE_THOUSAND_SEPARATOR = False
-DECIMAL_SEPARATOR = '.'
 
 
 

@@ -193,10 +193,11 @@ class Bot(models.Model):
         self.save()
         self.add_log(BotLog.LOG_DESACTIVAR)
     
-    def add_log(self,log_id):
+    def add_log(self,log_id,texto=''):
         bot_log = BotLog()
         bot_log.bot = self
-        bot_log.log_id = log_id
+        bot_log.log_type_id = log_id
+        bot_log.texto = texto
         bot_log.save()
 
     def get_orders(self):
@@ -233,9 +234,7 @@ class Bot(models.Model):
                     trade['flag'] = ''
                     trade['sell_price'] = 0.0
                     trade['str_flag'] = ''
-                    trade['days'] = 0.0
                     trade['comision'] = 0.0
-                    trade['orders'] = 0
                     trade['buy_ops'] = 0
                     trade['buy_acum_quote'] = 0.0
                     trade['buy_acum_base'] = 0.0
@@ -298,8 +297,37 @@ class Bot(models.Model):
             return True
         return False
     
-    def get_resultados_CHAU(self):
+    def get_log(self):
+        log = BotLog.objects.filter(bot_id=self.id).order_by('datetime')
+        jsonLog = []
+        jsonLog.append({
+                'datetime': dt.datetime(self.creado.year,self.creado.month,self.creado.day),
+                'type': 'CREADO',
+                'texto': '',
+                'class': '',
+            })
+        for l in log:
+            jsonLog.append({
+                'datetime': l.datetime,
+                'type': l.get_type(),
+                'texto': l.texto,
+                'class': l.get_class(),
+
+            })
+        if self.finalizado:
+            jsonLog.append({
+                'datetime': dt.datetime(self.finalizado.year,self.finalizado.month,self.finalizado.day),
+                'type': 'FINALIZADO',
+                'texto': '',
+                'class': '',
+            })
+        return jsonLog
+    
+    def get_resultados(self):
         jsonRsp = {}
+        jsonRsp['general'] = []
+        jsonRsp['operaciones'] = []
+        jsonRsp['indicadores'] = []
         interval_id = self.estrategia.interval_id
         from_date = self.creado.strftime('%Y-%m-%d')
         to_date = timezone.now().strftime('%Y-%m-%d')
@@ -344,13 +372,54 @@ class Bot(models.Model):
         merged_df['usd_wallet']     = round(merged_df['usd_wallet'] + run_bot.quote_qty , 2)
         merged_df['usd_estrategia'] = round(merged_df['base_wallet']*merged_df['close'] + merged_df['usd_wallet'] , 2)
 
+        trades = self.get_trades()
+        df_trades = pd.DataFrame(trades)
 
+
+        
+        kline_ini = klines.loc[klines.index[0]]
+        kline_end = klines.loc[klines.index[-1]]
+        dif_days = kline_end['datetime'] - kline_ini['datetime']
+        dias_operando = dif_days.total_seconds() / 3600 / 24
+        dias_trades = df_trades['duracion'].sum()
+        dias_sin_operar = dias_operando - dias_trades
+        usd_final = self.quote_qty + df_orders['usd'].sum()
+        
+        resultado_usd = usd_final-self.quote_qty
+        resultado_perc = (resultado_usd/self.quote_qty)*100
+        resultado_mensual = (resultado_perc/dias_operando)*run_bot.DIAS_X_MES
+
+        volatilidad_cap  = run_bot.ind_volatilidad(merged_df,'usd_estrategia')
+        volatilidad_sym  = run_bot.ind_volatilidad(merged_df,'usd_hold')
+        max_drawdown_cap = run_bot.ind_maximo_drawdown(merged_df,'usd_estrategia')
+        max_drawdown_sym = run_bot.ind_maximo_drawdown(merged_df,'usd_hold')
+
+        jsonRsp['general'] = []
+        jsonRsp['general'].append({'t':'Periodo','v':kline_ini['datetime'].strftime('%d-%m-%Y %H:%M')+' - '+kline_end['datetime'].strftime('%d-%m-%Y %H:%M')})
+        jsonRsp['general'].append({'t':'Dias del periodo','v':f'{dias_operando:.1f}'})
+        jsonRsp['general'].append({'t':'Dias sin operar','v':f'{dias_sin_operar:.2f}'})
+
+        jsonRsp['general'].append({'t':'Resultado general','v':   f'USD {resultado_usd:.2f} ({resultado_perc:.2f} %)',
+                                   'c':'text-danger' if resultado_perc < 0 else 'text-success'})
+
+        jsonRsp['general'].append({'t':'Resultado mensual (Estimado)','v':   f'{resultado_mensual:.2f} %',
+                                   'c':'text-danger' if resultado_mensual < 0 else 'text-success'})
+
+        jsonRsp['operaciones'] = [{'t':'Operaciones','v':'inicio Operaciones a fin'},
+                              {'t':'Operaciones 2','v':'inicio Operaciones a fin 2'},
+                              ]
+        
+        jsonRsp['indicadores'].append({'t':'Volatilidad del capital','v':   f'{volatilidad_cap:.2f} %'})
+        jsonRsp['indicadores'].append({'t':'Volatilidad del par','v':       f'{volatilidad_sym:.2f} %'})
+        jsonRsp['indicadores'].append({'t':'Max DrawDown del capital','v':  f'{max_drawdown_cap:.2f} %'})
+        jsonRsp['indicadores'].append({'t':'Max DrawDown del par','v':      f'{max_drawdown_sym:.2f} %'})
+                              
 
 
         return jsonRsp
 
     
-    def get_resultados(self):
+    def get_resultados__GRAPH(self):
         jsonRsp = {}
         orders = self.get_orders()
         trades = self.get_trades()
@@ -411,7 +480,7 @@ class Bot(models.Model):
         klines['comision'] = None
 
         botClass.wallet_base = 0.0
-        botClass.wallet_quote = self.quote_qty * (botClass.quote_perc/100)
+        botClass.wallet_quote = self.quote_qty 
         hold_qty = 0
         for i in klines.index:
             k = klines.loc[i]
@@ -442,7 +511,8 @@ class Bot(models.Model):
 
             if hold_qty == 0:
                 hold_qty = botClass.wallet_quote / k['close']
-            usdH = float(hold_qty*k['close'])
+            usdH = float(hold_qty*k['close']) + (self.quote_qty - hold_qty)
+            print(botClass.wallet_quote - hold_qty)
 
             usdW = botClass.wallet_quote + (botClass.wallet_base * k['close'])
 
@@ -558,7 +628,22 @@ class BotLog(models.Model):
 
     bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
     datetime = models.DateTimeField(default=timezone.now)
-    log_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
+    log_type_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
+    texto = models.TextField(null=False, blank=True, default='')
+    
+    def get_type(self):
+        if self.log_type_id == self.LOG_ACTIVAR:
+            return 'Activar'
+        if self.log_type_id == self.LOG_DESACTIVAR:
+            return 'Desactivar'
+        return 'Evento'
+    
+    def get_class(self):
+        if self.log_type_id == self.LOG_ACTIVAR:
+            return 'green'
+        if self.log_type_id == self.LOG_DESACTIVAR:
+            return 'red'
+        return ''
         
         
     
