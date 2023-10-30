@@ -163,12 +163,12 @@
 
 
         //Bullets
-        buySerie        = addBullet("buy",     "Buy",  0x0ecb81,'r')
-        sell_s_Serie    = addBullet("sell_s",  "Sell",  0xf6465d,'r')
-        sell_sl_Serie   = addBullet("sell_sl", "Sell SL",  0xf6465d,'d')
-        sell_tp_Serie   = addBullet("sell_tp", "Sell TP",  0xf6465d,'u')
-        sigBSerie       = addBullet("sigB",    "Sig Buy",  0xfeb272,'u')
-        sigSSerie       = addBullet("sigS",    "Sig Serll",  0xfeb272,'d')
+        buySerie        = addBullet("by",   "Buy",  0x0ecb81,'r')
+        sell_s_Serie    = addBullet("sls",  "Sell",  0xf6465d,'r')
+        sell_sl_Serie   = addBullet("slsl", "Sell SL",  0xf6465d,'d')
+        sell_tp_Serie   = addBullet("sltp", "Sell TP",  0xf6465d,'u')
+        sigBSerie       = addBullet("sB",   "Sig Buy",  0xfeb272,'u')
+        sigSSerie       = addBullet("sS",   "Sig Serll",  0xfeb272,'d')
 
         stockChart.set("Buy", buySerie);
         valueLegend.data.setAll([valueSeries, volumeSeries ]); //buySerie,sell_s_Serie,sell_sl_Serie,sell_tp_Serie,sigBSerie,sigSSerie,
@@ -328,9 +328,9 @@
                 xAxis: dateAxis,
                 yAxis: subValueAxis,
                 stroke: am5.color(0x888888),
-                valueYField: "usdH",
+                valueYField: "uH",
                 valueXField: "dt",
-                valueField: "usdH",
+                valueField: "uH",
                 legendValueText: "{value}[/]",
             }));
 
@@ -339,9 +339,9 @@
                 xAxis: dateAxis,
                 yAxis: subValueAxis,
                 stroke: am5.color(0x6edff6),
-                valueYField: "usdW",
+                valueYField: "uW",
                 valueXField: "dt",
-                valueField: "usdW",
+                valueField: "uW",
                 legendValueText: "{value}[/]",
             }));
 
@@ -418,6 +418,8 @@
             tr += '<td class="text-end">'+to_dec(order[4],qd_price)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[7],2)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[8],2)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[9],2)+'</td>';
+            tr += '<td class="text-end">'+to_dec(order[10],2)+'</td>';
             tr += '</tr>';
             tbody.append(tr);
         } 
@@ -483,6 +485,8 @@
                         <th class="text-end">Venta</th>
                         <th class="text-end">Resultado USD</th>
                         <th class="text-end">Resultado %</th>
+                        <th class="text-end">MEF %</th>
+                        <th class="text-end">MEA %</th>
                     </tr>
                 </thead>
                 <tbody>
