@@ -32,8 +32,11 @@ class Exchange():
 
     def check_connection(self):
         try:
-            self.client.get_account()
-            return True
+            if self.exchange == 'bnc':
+                self.client.get_account()
+                return True
+            
+            return False
         except:
             return False
         

@@ -369,6 +369,7 @@
     {
         var div = $('#resumen-tab-pane');
         div.find('#general').html('<h6 class="text-info">General</h6>');
+        //div.find('#excursion').html('<h6 class="text-info">Excursiones</h6>');
         div.find('#operaciones').html('<h6 class="text-info">Operaciones</h6>');
         div.find('#indicadores').html('<h6 class="text-info">Indicadores</h6>');
         for (const items of bt.brief) {
@@ -381,8 +382,29 @@
             html += '</div>';
             div.find('#'+items[0]).append(html);
         } 
-        
 
+        //html = '<table>';
+        //html += '<thead>';
+        //html += '<tr>';
+        //html += '<th>&nbsp;</th>';
+        //html += '<th>MEA</th>';
+        //html += '<th>MEF</th>';
+        //html += '</tr>';
+        //html += '</thead>';
+        //html += '<tbody>';
+        //for (const items of bt.me)
+        //{
+        //    html += '<tr>';
+        //    html += '<th>'+item.tit+'</th>';
+        //    html += '<th>'+item.mea+'</th>';
+        //    html += '<th>'+item.mef+'</th>';
+        //    html += '</tr>';
+        //}
+        //html += '</tbody>';
+        //html += '</table>';
+        //div.find('#excursion').append(html);
+                    
+                    
         var tbody = $('#ordenes-tab-pane table tbody');
         tbody.html('')
         qd_price = bt.qd_price;
@@ -418,8 +440,8 @@
             tr += '<td class="text-end">'+to_dec(order[4],qd_price)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[7],2)+'</td>';
             tr += '<td class="text-end">'+to_dec(order[8],2)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[9],2)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[10],2)+'</td>';
+            tr += '<td class="text-end">'+(order[9]!=null ? order[9] : '')+'</td>';
+            tr += '<td class="text-end">'+(order[10]!=null ? order[10] : '')+'</td>';
             tr += '</tr>';
             tbody.append(tr);
         } 
@@ -447,7 +469,7 @@
       <div class="tab-content" id="myTabContent">
         <div class="tab-pane fade show active" id="resumen-tab-pane" role="tabpanel" aria-labelledby="resumen-tab" tabindex="0" >
             <div class="row pt-4">
-                <div class="col-6" id="general" style="font-size: 0.8em;" ></div>
+                <div class="col-4" id="general" style="font-size: 0.8em;" ></div>
                 <div class="col-3" id="operaciones" style="font-size: 0.8em;" ></div>
                 <div class="col-3" id="indicadores" style="font-size: 0.8em;" ></div>
             </div>
