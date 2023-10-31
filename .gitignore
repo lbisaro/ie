@@ -4,5 +4,4 @@ local__*
 */migrations/*.py
 *.log
 scripts/Bot*.py
-
 scripts/bots/*
