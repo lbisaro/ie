@@ -28,6 +28,11 @@ def get_intervals(i='ALL',c='ALL'):
                     return None
             else:
                 return None
+            
+def get_binance_intervals():
+    intervals = get_intervals()
+    return intervals['binance'].values
+
 
 def get_apply_intervals(dt):
     

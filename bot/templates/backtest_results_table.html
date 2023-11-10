@@ -1,0 +1,23 @@
+<h6 class="text-info text-center">{{titulo}}</h6>
+<table class="table backtest_results">
+    <thead>
+        <tr>
+            {% for col in df.columns %}
+              <th>
+                {{col}}
+              </th>
+            {% endfor %}
+        </tr>    
+    </thead>
+    <tbody>
+      {% for index, row in df.iterrows %}
+        <tr class="{{index}}">
+          {% for cell in row %}
+            <td>
+              {{cell}}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+</table>

@@ -36,7 +36,7 @@ def symbol(request, symbol_id):
 
 @login_required
 def symbol_add(request):
-    jsonRsp = {}
+    json_rsp = {}
     if request.method == 'GET':
         return render(request, 'symbol_add.html')
     else:
@@ -52,7 +52,7 @@ def symbol_add(request):
             symbol.full_clean()
 
             symbol.save()
-            jsonRsp['ok'] = '/bot/symbol/'+str(symbol.id)
+            json_rsp['ok'] = '/bot/symbol/'+str(symbol.id)
 
         except ValidationError as e:
             strError = ''
@@ -61,50 +61,50 @@ def symbol_add(request):
                     strError += '<br/><b>'+err[0]+'</b> '
                 for desc in err[1]:
                     strError += desc+" "
-            jsonRsp['error'] = strError
+            json_rsp['error'] = strError
 
-        return JsonResponse(jsonRsp)
+        return JsonResponse(json_rsp)
         
 def symbol_get_info(request,symbol):
-    jsonRsp = {}
+    json_rsp = {}
     exch = Exchange('info',exchange='bnc',prms=None)
     symbol = symbol.upper()
     
     try:
         info = exch.get_symbol_info(symbol)
-        jsonRsp['ok'] = True
-        jsonRsp['base_asset'] = info['base_asset']
-        jsonRsp['quote_asset'] = info['quote_asset']
-        jsonRsp['qty_decs_qty'] = info['qty_decs_qty']
+        json_rsp['ok'] = True
+        json_rsp['base_asset'] = info['base_asset']
+        json_rsp['quote_asset'] = info['quote_asset']
+        json_rsp['qty_decs_qty'] = info['qty_decs_qty']
         
-        jsonRsp['qty_decs_price'] = info['qty_decs_price']
-        jsonRsp['qty_decs_quote'] = info['qty_decs_quote']
+        json_rsp['qty_decs_price'] = info['qty_decs_price']
+        json_rsp['qty_decs_quote'] = info['qty_decs_quote']
 
         if info['quote_asset'] != 'USDT' and info['quote_asset'] != 'BUSD' and info['quote_asset'] != 'USDC':
-            jsonRsp['ok'] = False
-            jsonRsp['error'] = 'Solo se permite agregar Symbols contra USDT, BUSD o USDC'
+            json_rsp['ok'] = False
+            json_rsp['error'] = 'Solo se permite agregar Symbols contra USDT, BUSD o USDC'
 
     except Exception as e:
         e = str(e)
         msg_text = f'No fue posible encontrar informacion sobre el Symbol {symbol}\n{e}'
-        jsonRsp['error'] = msg_text
-        jsonRsp['ok'] = False
+        json_rsp['error'] = msg_text
+        json_rsp['ok'] = False
     
-    return JsonResponse(jsonRsp)
+    return JsonResponse(json_rsp)
 
 def update_klines(request,symbol):
-    jsonRsp = {}
+    json_rsp = {}
     exch = Exchange('info',exchange='bnc',prms=None)
     symbol = symbol.upper()
     try:
         res = exch.update_klines(symbol)
-        jsonRsp['ok'] = True
-        jsonRsp['res'] = res
+        json_rsp['ok'] = True
+        json_rsp['res'] = res
                 
     except Exception as e:
         e = str(e)
         msg_text = f'No fue posible encontrar velas para el Symbol {symbol}\n{e}'
-        jsonRsp['error'] = msg_text
-        jsonRsp['ok'] = False
+        json_rsp['error'] = msg_text
+        json_rsp['ok'] = False
     
-    return JsonResponse(jsonRsp)
+    return JsonResponse(json_rsp)

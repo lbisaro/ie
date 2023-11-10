@@ -41,10 +41,10 @@ def estrategia(request, estrategia_id):
 
 @login_required
 def estrategia_create(request):
-    jsonRsp = {}
+    json_rsp = {}
     if request.method == 'GET':
-        botClass = BotClass()
-        clases = botClass.get_clases()
+        gen_bot = GenericBotClass()
+        clases = gen_bot.get_clases()
         symbols = Symbol.objects.filter(activo=1).order_by('symbol')
         intervals = fn.get_intervals().to_dict('records')
         return render(request, 'estrategia_edit.html',{
@@ -68,7 +68,7 @@ def estrategia_create(request):
             estrategia.full_clean()
 
             estrategia.save()
-            jsonRsp['ok'] = '/bot/estrategia/'+str(estrategia.id)
+            json_rsp['ok'] = '/bot/estrategia/'+str(estrategia.id)
 
         except ValidationError as e:
             strError = ''
@@ -77,29 +77,29 @@ def estrategia_create(request):
                     strError += '<br/><b>'+err[0]+'</b> '
                 for desc in err[1]:
                     strError += desc+" "
-            jsonRsp['error'] = strError
+            json_rsp['error'] = strError
 
-        return JsonResponse(jsonRsp)
+        return JsonResponse(json_rsp)
 
 @login_required
 def load_parametros(request,clase):
-    jsonRsp = {}
-    botClass = BotClass().get_instance(clase)
-    parametros = botClass.parametros
-    descripcion = botClass.descripcion
-    jsonRsp['ok'] = len(parametros)
-    jsonRsp['parametros'] = parametros
-    jsonRsp['descripcion'] = descripcion
-    return JsonResponse(jsonRsp)
+    json_rsp = {}
+    gen_bot = GenericBotClass().get_instance(clase)
+    parametros = gen_bot.parametros
+    descripcion = gen_bot.descripcion
+    json_rsp['ok'] = len(parametros)
+    json_rsp['parametros'] = parametros
+    json_rsp['descripcion'] = descripcion
+    return JsonResponse(json_rsp)
 
 
 @login_required
 def estrategia_edit(request,estrategia_id):
-    jsonRsp = {}
+    json_rsp = {}
     estrategia = get_object_or_404(Estrategia, pk=estrategia_id)
     bots = Bot.objects.filter(estrategia_id=estrategia_id)
-    botClass = BotClass()
-    clases = botClass.get_clases()
+    gen_bot = GenericBotClass()
+    clases = gen_bot.get_clases()
     qtyBots = len(bots)
     symbols = Symbol.objects.filter(activo=1).order_by('symbol')
     intervals = fn.get_intervals().to_dict('records')
@@ -132,7 +132,7 @@ def estrategia_edit(request,estrategia_id):
             estrategia.full_clean()
 
             estrategia.save()
-            jsonRsp['ok'] = '/bot/estrategia/'+str(estrategia.id)
+            json_rsp['ok'] = '/bot/estrategia/'+str(estrategia.id)
 
         except ValidationError as e:
             strError = ''
@@ -141,9 +141,9 @@ def estrategia_edit(request,estrategia_id):
                     strError += '<br/><b>'+err[0]+'</b> '
                 for desc in err[1]:
                     strError += desc+" "
-            jsonRsp['error'] = strError
+            json_rsp['error'] = strError
 
-        return JsonResponse(jsonRsp)
+        return JsonResponse(json_rsp)
 
 @login_required
 def estrategia_toogle_activo(request,estrategia_id):
@@ -157,14 +157,14 @@ def estrategia_toogle_activo(request,estrategia_id):
 
 @login_required
 def estrategia_delete(request,estrategia_id):
-    jsonRsp = {}
+    json_rsp = {}
     estrategia = get_object_or_404(Estrategia, pk=estrategia_id)
     
     if estrategia.can_delete():
         estrategia.delete()
-        jsonRsp['ok'] = True
+        json_rsp['ok'] = True
     else:
-        jsonRsp['error'] = 'No es psible eliminar la estrategia'
-    return JsonResponse(jsonRsp)
+        json_rsp['error'] = 'No es psible eliminar la estrategia'
+    return JsonResponse(json_rsp)
     
     

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}BackTest{% endblock %}
+{% block nav_title %}BackTest{% endblock %}
+
+{% load static %}
+
+{% block action_bar %}
+
+{% endblock %}
+
+{% block css %}
+<style>
+    table#clases tr {
+        cursor: pointer;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="container">
+        <h5 class="text-center text-info">Seleccionar una Bot Class para ejecutar</h5>
+        <table id="clases" class="table-dg">
+            <thead>
+                <tr>
+                    <th>Bot</th>
+                    <th>Descripcion</th>
+                </tr>
+            </thead>
+            
+            <tbody>
+                {% for e in clases %}
+                <tr onclick="configurar('{{e.class}}')" >
+                    <td>{{e.class}}</td>
+                    <td>{{e.descripcion}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>        
+        
+    </div>
+    <div class="container">
+        <h5 class="text-center text-info">BackTests</h5>
+        <table id="clases" class="table-dg">
+            <thead>
+                <tr>
+                    <th>Bot</th>
+                    <th>Intervalo</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            
+            <tbody>
+                {% for bt in backtests %}
+                <tr onclick="ver('{{bt.id}}')" >
+                    <td>{{bt.name}}</td>
+                    <td>{{bt.str_interval}}</td>
+                    <td>{{bt.str_estado}}</td>
+                    <td>{{bt.creado|date:"d-m-Y h:i"}}</td>
+                    <td>{{bt.usuario.username}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>
+    </div>
+
+</div>
+    
+{% endblock %}
+
+{% block script %}
+<script>
+function configurar(id)
+{
+    window.location = '{% url "backtest_config" 0 %}'.replace('0',id);
+}
+
+function ver(id)
+{
+    window.location = '{% url "backtest_view" 0 %}'.replace('0',id);
+}
+</script>
+
+{% endblock %}

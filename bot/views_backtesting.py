@@ -11,11 +11,11 @@ from bot.model_kline import *
 
 @login_required
 def backtesting(request):
-    botClass = BotClass()
-    classList = botClass.get_clases()
+    gen_bot = GenericBotClass()
+    classList = gen_bot.get_clases()
     clases = []
     for c in classList:
-        obj = botClass.get_instance(c)
+        obj = gen_bot.get_instance(c)
         cls = {'class':c,'descripcion':obj.descripcion, }
         clases.append(cls)
     if request.method == 'GET':
@@ -24,15 +24,15 @@ def backtesting(request):
         })
 
 @login_required
-def config(request,botClassId):
-    botClass = BotClass()
-    obj = botClass.get_instance(botClassId)
+def config(request,bot_class_name):
+    gen_bot = GenericBotClass()
+    obj = gen_bot.get_instance(bot_class_name)
     intervals = fn.get_intervals().to_dict('records')
     symbols = Symbol.objects.filter(activo=1).order_by('symbol')
         
     if request.method == 'GET':
         return render(request, 'backtesting_run.html',{
-            'botClass': botClassId,
+            'bot_class_name': bot_class_name,
             'intervals': intervals,
             'symbols': symbols,
             'parametros': obj.parametros,
@@ -42,44 +42,44 @@ def config(request,botClassId):
 @login_required
 def run(request):
     if request.method == 'POST':
-        jsonRsp = {}
-        botClassId = request.POST['botClassId']
-        botClass = BotClass()
-        runBot = botClass.get_instance(botClassId)
+        json_rsp = {}
+        bot_class_name = request.POST['bot_class_name']
+        gen_bot = GenericBotClass()
+        run_bot = gen_bot.get_instance(bot_class_name)
         
-        runBot.quote_qty = float(request.POST['quote_qty'])
-        runBot.interval_id = request.POST['interval_id']
+        run_bot.quote_qty = float(request.POST['quote_qty'])
+        run_bot.interval_id = request.POST['interval_id']
 
         prmPost = eval(request.POST['parametros'])
         for dict in prmPost:
             for k,v in dict.items():
-                runBot.__setattr__(k, v)
+                run_bot.__setattr__(k, v)
 
         from_date = request.POST['from_date']
         to_date = request.POST['to_date']
 
-        atributos = runBot.__dict__
-        jsonRsp['parametros'] = {}
+        atributos = run_bot.__dict__
+        json_rsp['parametros'] = {}
         for attr in atributos:
             val = atributos[attr]
-            jsonRsp['parametros'][attr] = val
+            json_rsp['parametros'][attr] = val
 
         #try:
-        runBot.valid()
+        run_bot.valid()
 
-        bt = runBot.backtesting(from_date,to_date)
-        jsonRsp['bt'] = bt
+        bt = run_bot.backtesting(from_date,to_date)
+        json_rsp['bt'] = bt
 
         if bt['error']:
-            jsonRsp['error'] = bt['error']
-            jsonRsp['ok'] = False
+            json_rsp['error'] = bt['error']
+            json_rsp['ok'] = False
         else:
-            jsonRsp['ok'] = True
+            json_rsp['ok'] = True
         #except Exception as e:
-        #    jsonRsp['ok'] = False
-        #    jsonRsp['error'] = str(e)
+        #    json_rsp['ok'] = False
+        #    json_rsp['error'] = str(e)
 
-        return JsonResponse(jsonRsp)
+        return JsonResponse(json_rsp)
     
 
 

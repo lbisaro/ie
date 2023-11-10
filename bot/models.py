@@ -14,7 +14,7 @@ import datetime as dt
 from django_pandas.io import read_frame
 
 
-class BotClass:
+class GenericBotClass:
     
     def get_clases(self):
         clases = []
@@ -45,11 +45,11 @@ class Estrategia(models.Model):
         return str
     
     def get_descripcion(self):
-        botClass = BotClass()
-        runBot = botClass.get_instance(self.clase)
-        runBot.set(self.parametros)
+        gen_bot = GenericBotClass()
+        run_bot = gen_bot.get_instance(self.clase)
+        run_bot.set(self.parametros)
         intervalo = fn.get_intervals(self.interval_id,'pandas_resample')
-        add_nombre = f'[{intervalo}] '+runBot.get_add_nombre()  
+        add_nombre = f'[{intervalo}] '+run_bot.get_add_nombre()  
         return add_nombre
     
     def can_delete(self):
@@ -59,17 +59,17 @@ class Estrategia(models.Model):
          
     
     def clean(self):
-        botClass = BotClass().get_instance(self.clase)
-        botClass.set(self.parse_parametros())
+        gen_bot = GenericBotClass().get_instance(self.clase)
+        gen_bot.set(self.parse_parametros())
         
         try:
-            botClass.valid()
+            gen_bot.valid()
         except Exception as e:
             raise ValidationError(e)
 
     def parse_parametros(self):
-        botClass = BotClass().get_instance(self.clase)
-        parametros = botClass.parametros
+        gen_bot = GenericBotClass().get_instance(self.clase)
+        parametros = gen_bot.parametros
         pe = eval(self.parametros)
         for prm in pe:
             for v in prm:
@@ -108,11 +108,11 @@ class Estrategia(models.Model):
         return estrategias
 
     def get_instance(self):
-        botClass = BotClass().get_instance(self.clase)
-        botClass.set(self.parse_parametros())
-        botClass.interval_id = self.interval_id
+        gen_bot = GenericBotClass().get_instance(self.clase)
+        gen_bot.set(self.parse_parametros())
+        gen_bot.interval_id = self.interval_id
 
-        return botClass
+        return gen_bot
 
 
 class Bot(models.Model):
@@ -324,10 +324,10 @@ class Bot(models.Model):
         return jsonLog
     
     def get_resultados(self):
-        jsonRsp = {}
-        jsonRsp['general'] = []
-        jsonRsp['operaciones'] = []
-        jsonRsp['indicadores'] = []
+        json_rsp = {}
+        json_rsp['general'] = []
+        json_rsp['operaciones'] = []
+        json_rsp['indicadores'] = []
         interval_id = self.estrategia.interval_id
         from_date = self.creado.strftime('%Y-%m-%d')
         to_date = timezone.now().strftime('%Y-%m-%d')
@@ -394,33 +394,33 @@ class Bot(models.Model):
         max_drawdown_cap = run_bot.ind_maximo_drawdown(merged_df,'usd_estrategia')
         max_drawdown_sym = run_bot.ind_maximo_drawdown(merged_df,'usd_hold')
 
-        jsonRsp['general'] = []
-        jsonRsp['general'].append({'t':'Periodo','v':kline_ini['datetime'].strftime('%d-%m-%Y %H:%M')+' - '+kline_end['datetime'].strftime('%d-%m-%Y %H:%M')})
-        jsonRsp['general'].append({'t':'Dias del periodo','v':f'{dias_operando:.1f}'})
-        jsonRsp['general'].append({'t':'Dias sin operar','v':f'{dias_sin_operar:.2f}'})
+        json_rsp['general'] = []
+        json_rsp['general'].append({'t':'Periodo','v':kline_ini['datetime'].strftime('%d-%m-%Y %H:%M')+' - '+kline_end['datetime'].strftime('%d-%m-%Y %H:%M')})
+        json_rsp['general'].append({'t':'Dias del periodo','v':f'{dias_operando:.1f}'})
+        json_rsp['general'].append({'t':'Dias sin operar','v':f'{dias_sin_operar:.2f}'})
 
-        jsonRsp['general'].append({'t':'Resultado general','v':   f'USD {resultado_usd:.2f} ({resultado_perc:.2f} %)',
+        json_rsp['general'].append({'t':'Resultado general','v':   f'USD {resultado_usd:.2f} ({resultado_perc:.2f} %)',
                                    'c':'text-danger' if resultado_perc < 0 else 'text-success'})
 
-        jsonRsp['general'].append({'t':'Resultado mensual (Estimado)','v':   f'{resultado_mensual:.2f} %',
+        json_rsp['general'].append({'t':'Resultado mensual (Estimado)','v':   f'{resultado_mensual:.2f} %',
                                    'c':'text-danger' if resultado_mensual < 0 else 'text-success'})
 
-        jsonRsp['operaciones'] = [{'t':'Operaciones','v':'inicio Operaciones a fin'},
+        json_rsp['operaciones'] = [{'t':'Operaciones','v':'inicio Operaciones a fin'},
                               {'t':'Operaciones 2','v':'inicio Operaciones a fin 2'},
                               ]
         
-        jsonRsp['indicadores'].append({'t':'Volatilidad del capital','v':   f'{volatilidad_cap:.2f} %'})
-        jsonRsp['indicadores'].append({'t':'Volatilidad del par','v':       f'{volatilidad_sym:.2f} %'})
-        jsonRsp['indicadores'].append({'t':'Max DrawDown del capital','v':  f'{max_drawdown_cap:.2f} %'})
-        jsonRsp['indicadores'].append({'t':'Max DrawDown del par','v':      f'{max_drawdown_sym:.2f} %'})
+        json_rsp['indicadores'].append({'t':'Volatilidad del capital','v':   f'{volatilidad_cap:.2f} %'})
+        json_rsp['indicadores'].append({'t':'Volatilidad del par','v':       f'{volatilidad_sym:.2f} %'})
+        json_rsp['indicadores'].append({'t':'Max DrawDown del capital','v':  f'{max_drawdown_cap:.2f} %'})
+        json_rsp['indicadores'].append({'t':'Max DrawDown del par','v':      f'{max_drawdown_sym:.2f} %'})
                               
 
 
-        return jsonRsp
+        return json_rsp
 
     
     def get_resultados__GRAPH(self):
-        jsonRsp = {}
+        json_rsp = {}
         orders = self.get_orders()
         trades = self.get_trades()
 
@@ -538,7 +538,7 @@ class Bot(models.Model):
             botClass.res['data'].append(data)
         
         
-        jsonRsp['parametros'] = {
+        json_rsp['parametros'] = {
             'interes': botClass.interes,
             'interval_id': self.estrategia.interval_id,
             'quote_perc': botClass.quote_perc,
@@ -569,10 +569,10 @@ class Bot(models.Model):
 
         botClass.res['brief'] = botClass.get_brief()
 
-        jsonRsp['bt'] = botClass.res
-        jsonRsp['ok'] = True
+        json_rsp['bt'] = botClass.res
+        json_rsp['ok'] = True
         
-        return jsonRsp
+        return json_rsp
 
 class Order(models.Model):
     bot = models.ForeignKey(Bot, on_delete = models.CASCADE)

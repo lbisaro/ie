@@ -3,8 +3,9 @@ from django.urls import path
 
 from bot import views_estrategia as ve
 from bot import views_bot as vb
-from bot import views_backtesting as vbt
-from bot import views_api as api
+from bot import views_backtesting as vbt_old
+from bot import views_backtest as vbt
+
 from bot import views_symbols as vs
 
 urlpatterns = [
@@ -25,17 +26,22 @@ urlpatterns = [
     path('bot/get_resultados/<int:bot_id>/',vb.get_resultados,name='get_resultados'),
     path('bot/delete/<int:bot_id>/',vb.bot_delete,name='bot_delete'),
 
-    path('api/bots/',api.bots,name='api_bots'),
-    path('api/bot/run/<int:bot_id>/',api.bot_run,name='api_bot_run'),
-
     path('symbols/',vs.symbols,name='symbols'),
     path('symbol/add/',vs.symbol_add,name='symbol_add'),
     path('symbol/get_info/<str:symbol>/',vs.symbol_get_info,name='symbol_get_info'),
     path('symbol/<int:symbol_id>/',vs.symbol,name='symbol'),
     path('update_klines/<str:symbol>/',vs.update_klines,name='update_klines'),
 
-    path('backtesting/',vbt.backtesting,name='backtesting'),
-    path('backtesting/config/<str:botClassId>/',vbt.config,name='backtesting_config'),
-    path('backtesting/run/',vbt.run,name='backtesting_run'),
+    path('backtest/',vbt.backtest,name='backtest'),
+    path('backtest/config/<str:bot_class_name>/',vbt.config,name='backtest_config'),
+    path('backtest/create/',vbt.create,name='backtest_create'),
+    path('backtest/view/<int:backtest_id>/',vbt.view,name='backtest_view'),
+    path('backtest/execute/<int:backtest_id>/',vbt.execute,name='backtest_execute'),
+    path('backtest/delete/<int:backtest_id>/',vbt.delete,name='backtest_delete'),
+
+
+    path('backtesting/',vbt_old.backtesting,name='backtesting'),
+    path('backtesting/config/<str:bot_class_name>/',vbt_old.config,name='backtesting_config'),
+    path('backtesting/run/',vbt_old.run,name='backtesting_run'),
     
 ]

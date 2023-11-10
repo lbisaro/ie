@@ -57,7 +57,7 @@ def bot(request, bot_id):
 
 @login_required
 def bot_create(request):
-    jsonRsp = {}
+    json_rsp = {}
     if request.method == 'GET':
         intervals = fn.get_intervals().to_dict('records')
         symbols = Symbol.objects.filter(activo=1).order_by('symbol')
@@ -83,7 +83,7 @@ def bot_create(request):
             bot.full_clean()
 
             bot.save()
-            jsonRsp['ok'] = '/bot/bot/'+str(bot.id)
+            json_rsp['ok'] = '/bot/bot/'+str(bot.id)
 
         except ValidationError as e:
             strError = ''
@@ -92,30 +92,30 @@ def bot_create(request):
                     strError += '<br/><b>'+err[0]+'</b> '
                 for desc in err[1]:
                     strError += desc+" "
-            jsonRsp['error'] = strError
+            json_rsp['error'] = strError
 
-        return JsonResponse(jsonRsp)
+        return JsonResponse(json_rsp)
         
 @login_required
 def get_parametros_estrategia(request,estrategia_id):
-    jsonRsp = {}
+    json_rsp = {}
     estrategia = Estrategia.objects.get(pk=estrategia_id)
     parametros = estrategia.parse_parametros(),
 
     descripcion = estrategia.descripcion
     intervalo = fn.get_intervals(estrategia.interval_id,'name')
-    jsonRsp['ok'] = len(parametros)
-    jsonRsp['max_drawdown'] = estrategia.max_drawdown
-    jsonRsp['descripcion'] = descripcion
-    jsonRsp['intervalo'] = intervalo
-    jsonRsp['parametros'] = parametros
-    return JsonResponse(jsonRsp)
+    json_rsp['ok'] = len(parametros)
+    json_rsp['max_drawdown'] = estrategia.max_drawdown
+    json_rsp['descripcion'] = descripcion
+    json_rsp['intervalo'] = intervalo
+    json_rsp['parametros'] = parametros
+    return JsonResponse(json_rsp)
 
 
 
 @login_required
 def bot_edit(request,bot_id):
-    jsonRsp = {}
+    json_rsp = {}
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     if request.method == 'GET':
         symbols = Symbol.objects.filter(activo=1).order_by('symbol')
@@ -143,7 +143,7 @@ def bot_edit(request,bot_id):
             bot.full_clean()
 
             bot.save()
-            jsonRsp['ok'] = '/bot/bot/'+str(bot.id)
+            json_rsp['ok'] = '/bot/bot/'+str(bot.id)
 
         except ValidationError as e:
             strError = ''
@@ -152,9 +152,9 @@ def bot_edit(request,bot_id):
                     strError += '<br/><b>'+err[0]+'</b> '
                 for desc in err[1]:
                     strError += desc+" "
-            jsonRsp['error'] = strError
+            json_rsp['error'] = strError
 
-        return JsonResponse(jsonRsp)
+        return JsonResponse(json_rsp)
 
 @login_required
 def bot_toogle_activo(request,bot_id):
@@ -172,22 +172,22 @@ def bot_toogle_activo(request,bot_id):
  
 @login_required
 def bot_delete(request,bot_id):
-    jsonRsp = {}
+    json_rsp = {}
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     if bot.can_delete():
         bot.delete()
-        jsonRsp['ok'] = True
+        json_rsp['ok'] = True
     else:
-        jsonRsp['error'] = 'No es psible eliminar el Bot'
-    return JsonResponse(jsonRsp)
+        json_rsp['error'] = 'No es psible eliminar el Bot'
+    return JsonResponse(json_rsp)
     
 def get_resultados(request,bot_id):
-    jsonRsp = {}
+    json_rsp = {}
     
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     if bot:
-        jsonRsp = bot.get_resultados()
+        json_rsp = bot.get_resultados()
     else:
-        jsonRsp['error'] = 'No existe el bot con ID: '+bot_id
-    return JsonResponse(jsonRsp)   
+        json_rsp['error'] = 'No existe el bot con ID: '+bot_id
+    return JsonResponse(json_rsp)   
  

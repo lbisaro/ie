@@ -17,7 +17,7 @@ def home(request):
     return render(request, 'home.html')
 
 def signup(request):
-    jsonRsp = {}
+    json_rsp = {}
     
     if request.method == 'GET':
         form = RegistrationForm()
@@ -57,10 +57,10 @@ def signup(request):
             # send_mail(email_subject, email_body, 'leonardo.bisaro@gmail.com',
             #     [email], fail_silently=False)
             
-            jsonRsp['ok'] = 'Registro correcto'
+            json_rsp['ok'] = 'Registro correcto'
 
         else: 
-            #jsonRsp['error'] = dict(form.errors.items())
+            #json_rsp['error'] = dict(form.errors.items())
             msgError = ''
             for field in form:
                 if field.errors:
@@ -70,12 +70,12 @@ def signup(request):
                     msgError += "</div>"
             msgError = msgError.replace("First name", "Nombre")
             msgError = msgError.replace("Last name", "Apellido")
-            jsonRsp['error'] = msgError
-        return JsonResponse(jsonRsp)
+            json_rsp['error'] = msgError
+        return JsonResponse(json_rsp)
     
 
 def signin(request):
-    jsonRsp = {}
+    json_rsp = {}
     if request.method == 'GET':
         return render(request, 'signin.html')
     else:
@@ -84,16 +84,16 @@ def signin(request):
         if user:
             if user.is_active:
                 login(request, user)
-                jsonRsp['login_ok'] = 'Redireccionando al home'
+                json_rsp['login_ok'] = 'Redireccionando al home'
             else:
-                jsonRsp['login_error'] = 'La cuenta de usuario se encuentra inactiva'
+                json_rsp['login_error'] = 'La cuenta de usuario se encuentra inactiva'
         else:
-            jsonRsp['login_error'] = 'El usuario o contraseña es invalido'
-        return JsonResponse(jsonRsp)
+            json_rsp['login_error'] = 'El usuario o contraseña es invalido'
+        return JsonResponse(json_rsp)
 
 @login_required
 def profile(request):
-    jsonRsp = {}
+    json_rsp = {}
     profile = UserProfile.objects.get(user_id=request.user.id)
     if request.method == 'GET':
         return render(request, 'profile.html',{
@@ -110,7 +110,7 @@ def profile(request):
             del config[request.POST['remove']]
             profile.config = json.dumps(config)
             profile.save()
-            jsonRsp['ok'] = True
+            json_rsp['ok'] = True
 
         elif request.POST['config'] == 'bnc': # Binance
             prms = {'bnc_apk': request.POST['bnc_apk'],
@@ -123,13 +123,13 @@ def profile(request):
                 config['bnc'] = prms
                 profile.config = json.dumps(config)
                 profile.save()
-                jsonRsp['ok'] = True
+                json_rsp['ok'] = True
             else:
-                jsonRsp['error'] = 'Verifique los datos provistos, No fue posible conectar con el exchange. '
+                json_rsp['error'] = 'Verifique los datos provistos, No fue posible conectar con el exchange. '
 
         
 
-    return JsonResponse(jsonRsp)
+    return JsonResponse(json_rsp)
 
 @login_required
 def signout(request):
