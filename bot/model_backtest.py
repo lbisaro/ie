@@ -26,6 +26,8 @@ class Backtest(models.Model):
     completo = models.FloatField(null=False, blank=False, default=0)
     creado = models.DateTimeField(default=timezone.now)
     usuario = models.ForeignKey(User, on_delete = models.CASCADE) 
+    scoring = models.FloatField(null=False, blank=False, default=0)
+    scoring_str = models.TextField(null=False, blank=True, default='')
     
     def __str__(self):
         interval = fn.get_intervals(self.interval_id,'binance')
@@ -72,7 +74,6 @@ class Backtest(models.Model):
         resultados = self.get_resultados()
 
         json_rsp = {}
-        df_media = None
         for periodo in resultados['periodos']:
 
             start_date = periodo['start']
@@ -85,87 +86,264 @@ class Backtest(models.Model):
                 else:
                     tmp_df = pd.DataFrame(periodo['bt'],columns=['ind',symbol])
                     json_rsp[tendencia][symbol] = tmp_df[symbol]
-            
-        for periodo in resultados['periodos']:
-            tendencia = periodo['tendencia']
-            
+    
+        tendencias = ['Completo','Alcista','Lateral','Bajista']
+        for tendencia in tendencias:
+            #Eliminando metricas que no se van a medir
+            json_rsp[tendencia].drop(json_rsp[tendencia][json_rsp[tendencia]['ind'] == 'maximo_operaciones_negativas_consecutivas'].index, inplace=True)
+            json_rsp[tendencia].drop(json_rsp[tendencia][json_rsp[tendencia]['ind'] == 'ratio_dias_sin_operar'].index, inplace=True)
+            json_rsp[tendencia].drop(json_rsp[tendencia][json_rsp[tendencia]['ind'] == 'trades_x_mes'].index, inplace=True)
+
             json_rsp[tendencia]['Media'] = json_rsp[tendencia].drop(columns=['ind']).mean(axis=1)
             json_rsp[tendencia]['Dev.Est.'] = json_rsp[tendencia].drop(columns=['ind']).std(axis=1)
-            
+            json_rsp[tendencia]['Dev.Est.(%)'] = (json_rsp[tendencia].drop(columns=['ind']).std(axis=1)/json_rsp[tendencia]['Media'])
+        
             col_media_tendencia = f'Media {tendencia}'
+            col_scoring_tendencia = f'Scoring {tendencia}'
             if not 'Media' in json_rsp:
                 json_rsp['Media'] = json_rsp[tendencia][['ind','Media']]
                 json_rsp['Media'] = json_rsp['Media'].rename(columns={'Media': col_media_tendencia})
             else:
                 json_rsp['Media'][col_media_tendencia] = json_rsp[tendencia]['Media']
-            
+
+            json_rsp['Media'][col_scoring_tendencia] = json_rsp['Media'].apply(lambda row: self.calcular_scoring_columna(row['ind'], row[col_media_tendencia]), axis=1)
         
         #Formateando los dataframes generados
         ind_names = []
-        ind_names.append({'ind':'ratio_dias_sin_operar','name':'Ratio de Dias sin operar'})  
-        ind_names.append({'ind':'trades_x_mes','name':'Operaciones mensuales'})
-        ind_names.append({'ind':'ratio_trade_pos','name':'Ratio operaciones positivas vs negtivas'})
-        ind_names.append({'ind':'ratio_perdida_ganancia','name':'Ratio de Perdida vs Ganancia'}) 
-        ind_names.append({'ind':'ratio_max_perdida_ganancia','name':'Ratio de Max.Perdida vs Max.Ganancia'}) 
-        ind_names.append({'ind':'maximo_operaciones_negativas_consecutivas','name':'Max. operaciones negativas consecutivas'}) 
-        ind_names.append({'ind':'mea_promedio','name':'MEA Promedio'}) 
-        ind_names.append({'ind':'mef_promedio','name':'MEF Promedio'}) 
-        ind_names.append({'ind':'ratio_volatilidad','name':'Ratio de Volatilidad'})
-        ind_names.append({'ind':'max_drawdown_cap','name':'Max. DrawDown Capital'})
-        ind_names.append({'ind':'ratio_max_drawdown','name':'Ratio Max. DrawDown Capital vs Par'})
-        ind_names.append({'ind':'ratio_max_drawup','name':'Ratio Max. DrawUp Capital vs Par'})
-        ind_names.append({'ind':'cagr','name':'CAGR'}) 
-        ind_names.append({'ind':'ratio_cagr_drawdown','name':'Ratio CAGR vs DrawDown'})
-        ind_names.append({'ind':'ratio_calmar','name':'Ratio CALMAR'})
-        ind_names.append({'ind':'modificacion_sharpe','name':'Ratio SHARPE Modificado'})
+        ind_names.append({'ind':'cagr',
+                          'name':'CAGR'}) 
+        ind_names.append({'ind':'max_drawdown_cap',
+                          'name':'Max. DrawDown Capital'})
+        ind_names.append({'ind':'maximo_operaciones_negativas_consecutivas',
+                          'name':'Max.Op. negativas consecutivas'}) 
+        ind_names.append({'ind':'ratio_dias_sin_operar',
+                          'name':'Ratio de Dias sin operar'})  
+        ind_names.append({'ind':'trades_x_mes',
+                          'name':'Operaciones mensuales'})
+        ind_names.append({'ind':'ratio_trade_pos',
+                          'name':'Ratio operaciones positivas/total'})
+        ind_names.append({'ind':'ratio_perdida_ganancia',
+                          'name':'Ratio de Perdida vs Ganancia'}) 
+        ind_names.append({'ind':'ratio_max_perdida_ganancia',
+                          'name':'Ratio Max.Perdida/Max.Ganancia'}) 
+        ind_names.append({'ind':'ratio_volatilidad',
+                          'name':'Ratio de Volatilidad'})
+        ind_names.append({'ind':'ratio_max_drawdown',
+                          'name':'Ratio Max.DrawDown Capital/Par'})
+        ind_names.append({'ind':'ratio_max_drawup',
+                          'name':'Ratio Max. DrawUp Capital/Par'})
+        ind_names.append({'ind':'ratio_calmar',
+                          'name':'Ratio CALMAR (CAGR/DrawDown)'})
+        ind_names.append({'ind':'modificacion_sharpe',
+                          'name':'Ratio SHARPE Modificado'})
+        ind_names.append({'ind':'mea_promedio',
+                          'name':'MEA Promedio'}) 
+        ind_names.append({'ind':'mef_promedio',
+                          'name':'MEF Promedio'}) 
         df_ind_names = pd.DataFrame(ind_names, columns=['ind','name'])
         df_ind_names = df_ind_names.set_index('ind')
 
         for key in json_rsp:
-            print(key)
             json_rsp[key] = json_rsp[key].set_index('ind')
             json_rsp[key] = json_rsp[key].round(2)
-            json_rsp[key].insert(0, 'Indicador', df_ind_names['name'])
+            json_rsp[key].insert(0, 'Metrica', df_ind_names['name'])
 
         return json_rsp
+
+    def calcular_scoring_columna(self,ind,col_media):
+    
+        if ind == 'cagr':
+            if col_media <= 6:
+                return 0
+            elif col_media <= 10:
+                return 1
+            elif col_media <= 20:
+                return 2
+            else:
+                return 3
         
+        elif ind == 'max_drawdown_cap':
+            if col_media >= 30:
+                return 0
+            elif col_media >= 20:
+                return 1
+            else:
+                return 2
+
+        elif ind == 'ratio_trade_pos':
+            if col_media <= 30:
+                return 0
+            elif col_media <= 50:
+                return 1
+            elif col_media <= 60:
+                return 2
+            else:
+                return 3
+        elif ind == 'ratio_perdida_ganancia':
+            """ 
+            Revisar
+            """
+            if col_media <= 0.9:
+                return 0
+            elif col_media <= 1.2:
+                return 1
+            elif col_media <= 2:
+                return 2
+            else:
+                return 3
+        elif ind == 'ratio_max_perdida_ganancia':
+            """ 
+            Revisar
+            """
+            if col_media <= 1.5:
+                return 0
+            elif col_media <= 2.0:
+                return 1
+            elif col_media <= 2.5:
+                return 2
+            else:
+                return 3
+        elif ind == 'ratio_volatilidad':
+            if col_media >= 85:
+                return 0
+            elif col_media >= 60:
+                return 1
+            elif col_media >= 40:
+                return 2
+            else:
+                return 3
+        elif ind == 'ratio_max_drawdown':
+            if col_media >= 85:
+                return 0
+            elif col_media >= 60:
+                return 1
+            elif col_media >= 40:
+                return 2
+            else:
+                return 3
+        elif ind == 'ratio_max_drawup':
+            if col_media <= 20:
+                return 0
+            elif col_media <= 50:
+                return 1
+            elif col_media <= 80:
+                return 2
+            else:
+                return 3
+        elif ind == 'ratio_calmar':
+            if col_media <= 1:
+                return 0
+            elif col_media <= 2:
+                return 1
+            elif col_media <= 3:
+                return 2
+            else:
+                return 3
+        elif ind == 'modificacion_sharpe':
+            if col_media <= 1:
+                return 0
+            elif col_media <= 2:
+                return 1
+            elif col_media <= 3:
+                return 2
+            else:
+                return 3
+        return -1
+    
+    def calcular_scoring_completpo(self,resumen_resultados):
+        json_rsp = {}
+
+        #max_scoring surge de: 
+        # un valor promedio de 3 como maximo para cada merica
+        # multiplicado por el valor maximo de cagr (3) 
+        # multiplicado por el valor maximo de max_drawdown_cap (2)
+        # 3 * 3 * 2 = 18 
+        max_scoring = 18
+
+        #Completo
+        scoring = resumen_resultados['Media']['Scoring Completo']
+        cagr = scoring.loc['cagr']
+        max_drawdown_cap = scoring.loc['max_drawdown_cap']
+        count = scoring.count()
+        sum = scoring.sum() - cagr - max_drawdown_cap
+        avg = sum / (count-2)
+        json_rsp['Completo'] = (( cagr * max_drawdown_cap * avg ) /18 ) *100  
+
+        #Alcista
+        scoring = resumen_resultados['Media']['Scoring Alcista']
+        cagr = scoring.loc['cagr']
+        max_drawdown_cap = scoring.loc['max_drawdown_cap']
+        count = scoring.count()
+        sum = scoring.sum() - cagr - max_drawdown_cap
+        avg = sum / (count-2)
+        json_rsp['Alcista'] = ((cagr * max_drawdown_cap * avg) /18 ) *100
+        
+        #Bajista
+        scoring = resumen_resultados['Media']['Scoring Bajista']
+        cagr = scoring.loc['cagr']
+        max_drawdown_cap = scoring.loc['max_drawdown_cap']
+        count = scoring.count()
+        sum = scoring.sum() - cagr - max_drawdown_cap
+        avg = sum / (count-2)
+        json_rsp['Bajista'] = ((cagr * max_drawdown_cap * avg) /18 ) *100
+
+        #Lateral
+        scoring = resumen_resultados['Media']['Scoring Lateral']
+        cagr = scoring.loc['cagr']
+        max_drawdown_cap = scoring.loc['max_drawdown_cap']
+        count = scoring.count()
+        sum = scoring.sum() - cagr - max_drawdown_cap
+        avg = sum / (count-2)
+        json_rsp['Lateral'] = ((cagr * max_drawdown_cap * avg) /max_scoring ) *100
+        return json_rsp
+
+
+
     def get_results_file(self):
         file = f'{self.results_folder}id_{self.id}.json'
         return file
 
     def get_periodos(self,interval_id):
 
-        interval = fn.get_intervals(interval_id,'binance')
-
-        if interval:
-            files = glob.glob(self.klines_folder+interval_id+'/*.DataFrame')
-            periodos = []
-            for f in files:
-                file = f
-                f = f.replace(os.sep, '')
-                f = f.replace('.DataFrame', '')
-                f = f.replace(self.klines_folder+interval_id, '')
-                parts = f.split('_')
-                tendencia = parts[0]
-                symbol = parts[1]
-                interval = parts[2]
-                start = parts[3]
-                end = parts[4]
-                key = len(periodos)
-                periodos.append({
-                            'key': key,
-                            'tendencia':tendencia,
-                            'interval':interval,
-                            'interval_id': interval_id,
-                            'start': start,
-                            'end': end,
-                            'symbol': symbol,
-                            'str': f'{symbol} {tendencia} desde el {start} al {end}',
-                            'file': file,
-                            'procesado': 'NO',
-                            }
-                        )
-                            
+        periodos = [] 
+        folders = glob.glob(self.klines_folder+'*')
+        for fld in folders:
+            folder = fld
+            folder = folder.replace(os.sep, '')
+            folder = folder.replace(self.klines_folder[:-1], '')
+            
+            
+            interval = fn.get_intervals(folder,'binance')
+            if interval:
+                if interval_id == 'ALL' or folder == interval_id:
+                
+                    files = glob.glob(self.klines_folder+folder+'/*.DataFrame')
+                    
+                    for f in files:
+                        file = f
+                        f = f.replace(os.sep, '')
+                        f = f.replace('.DataFrame', '')
+                        f = f.replace(self.klines_folder+folder, '')
+                        parts = f.split('_')
+                        tendencia = parts[0]
+                        symbol = parts[1]
+                        start = parts[3]
+                        end = parts[4]
+                        key = len(periodos)
+                        periodos.append({
+                                    'key': key,
+                                    'tendencia':tendencia,
+                                    'interval':interval,
+                                    'interval_id': folder,
+                                    'start': start,
+                                    'end': end,
+                                    'symbol': symbol,
+                                    'str': f'{symbol} {interval} {tendencia} desde el {start} al {end}',
+                                    'file': file,
+                                    'procesado': 'NO',
+                                    }
+                                )
+                                   
         return periodos
     
     def parse_parametros(self):
@@ -186,18 +364,20 @@ class Backtest(models.Model):
                         parametros[v]['str'] = 'Simple'
                     elif parametros[v]['v'] == 'c':
                         parametros[v]['str'] = 'Compuesto'
-                
-                    
+
         return parametros
 
     def str_parametros(self):
         prm = self.parse_parametros()
         str = ''
-        for p in prm:
-            if str != '':
-                str += ', '
-            str += p['v']
-        return f"{str}"
+        for p,values in prm.items():
+            if (p != 'symbol') or (p == 'symbol' and values['v'] != 'BACKTEST'):
+                if str != '':
+                    str += ', '
+                v = values['v']
+                sn = values['sn']
+                str += f'{sn}: {v}'
+        return str
 
     def get_instance(self):
         gen_bot = GenericBotClass().get_instance(self.clase)

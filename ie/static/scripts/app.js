@@ -59,7 +59,8 @@ function get_ajax(url,data) {
         url: url,
         data: data,
         error: function (xhr, errmsg, err) {
-            console.log(xhr.status + ": " + xhr.responseText); 
+            //console.log(xhr.status + ": " + xhr.responseText); 
+            console.log(xhr.status + "\n" + errmsg+ "\n" + err); 
         }
     }).done(function () {
         bootstrapFormat();

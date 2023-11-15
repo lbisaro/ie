@@ -369,9 +369,8 @@
     {
         var div = $('#resumen-tab-pane');
         div.find('#general').html('<h6 class="text-info">General</h6>');
-        //div.find('#excursion').html('<h6 class="text-info">Excursiones</h6>');
         div.find('#operaciones').html('<h6 class="text-info">Operaciones</h6>');
-        div.find('#indicadores').html('<h6 class="text-info">Indicadores</h6>');
+        div.find('#indicadores').html('<h6 class="text-info">Metricas</h6>');
         for (const items of bt.brief) {
             cls = '';
             if (items[3])
@@ -383,28 +382,6 @@
             div.find('#'+items[0]).append(html);
         } 
 
-        //html = '<table>';
-        //html += '<thead>';
-        //html += '<tr>';
-        //html += '<th>&nbsp;</th>';
-        //html += '<th>MEA</th>';
-        //html += '<th>MEF</th>';
-        //html += '</tr>';
-        //html += '</thead>';
-        //html += '<tbody>';
-        //for (const items of bt.me)
-        //{
-        //    html += '<tr>';
-        //    html += '<th>'+item.tit+'</th>';
-        //    html += '<th>'+item.mea+'</th>';
-        //    html += '<th>'+item.mef+'</th>';
-        //    html += '</tr>';
-        //}
-        //html += '</tbody>';
-        //html += '</table>';
-        //div.find('#excursion').append(html);
-                    
-                    
         var tbody = $('#ordenes-tab-pane table tbody');
         tbody.html('')
         qd_price = bt.qd_price;

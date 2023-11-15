@@ -10,9 +10,6 @@
 
 {% block css %}
 <style>
-    table#clases tr {
-        cursor: pointer;
-    }
 
 </style>
 {% endblock %}
@@ -27,14 +24,21 @@
                 <tr>
                     <th>Bot</th>
                     <th>Descripcion</th>
+                    <th>Ejecutar</th>
                 </tr>
             </thead>
             
             <tbody>
                 {% for e in clases %}
-                <tr onclick="configurar('{{e.class}}')" >
+                <tr >
                     <td>{{e.class}}</td>
                     <td>{{e.descripcion}}</td>
+                    <td>
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <span class="btn btn-primary btn-sm" onclick="prueba_simple('{{e.class}}')" >Simple</span>
+                            <span class="btn btn-primary btn-sm" onclick="prueba_completa('{{e.class}}')" >Completo</span>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -52,6 +56,8 @@
                     <th>Estado</th>
                     <th>Creado</th>
                     <th>Usuario</th>
+                    <th>Parametros</th>
+                    <th class="text-end">Scoring</th>
                 </tr>
             </thead>
             
@@ -63,6 +69,8 @@
                     <td>{{bt.str_estado}}</td>
                     <td>{{bt.creado|date:"d-m-Y h:i"}}</td>
                     <td>{{bt.usuario.username}}</td>
+                    <td>{{bt.str_parametros}}</td>
+                    <td class="text-end">{{bt.scoring}}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -76,7 +84,12 @@
 
 {% block script %}
 <script>
-function configurar(id)
+function prueba_simple(id)
+{
+    window.location = '{% url "backtesting_config" 0 %}'.replace('0',id);
+}
+
+function prueba_completa(id)
 {
     window.location = '{% url "backtest_config" 0 %}'.replace('0',id);
 }

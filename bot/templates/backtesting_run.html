@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Configurar BackTesting{% endblock %}
-{% block nav_title %}Configurar BackTesting{% endblock %}
+{% block title %}BackTest Simple{% endblock %}
+{% block nav_title %}BackTest Simple{% endblock %}
 
 {% load static %}
 
@@ -15,31 +15,22 @@
             Bot Class                                    
         </div>
         <div class="col-9 fw-bold">
-            {{botClass}}
+            {{bot_class_name}}
         </div>
     </div>
     <div class="row pt-2">
-        <div class="form-group col-3">
-            <label class="form-label" for="interval_id">Intervalo</label>   
-            <select id="interval_id" class="form-control" >
-            {% for i in intervals %}
-                <option value="{{i.interval_id}}" >{{i.name}}</option>
-            {% endfor %}
-            </select>
-        </div>
-        <div class="form-group col-3">
-            <label class="form-label" for="quote_qty">Capital USD</label>
-            <input type="text" class="form-control" id="quote_qty" readonly value="1000">
-        </div>
-        <div class="form-group col-3">
-            <label class="form-label" for="from_date">Desde</label>   
-            <input type="text" class="form-control" id="from_date" value="2023-07-01">
-        </div>
-        <div class="form-group col-3">
-            <label class="form-label" for="to_date">Hasta</label>   
-            <input type="text" class="form-control" id="to_date" value="2023-10-28">
+        <div class="form-group col">
+            <label for="exampleDataList" class="form-label">Periodo</label>
+            <input class="form-control" list="datalistOptionsPeriodo" id="periodo" placeholder="Type to search...">
+            <datalist id="datalistOptionsPeriodo">
+                {% for p in periodos %}
+                <option onclick="console.log($(this).attr('data-symbol'))" value="{{p.str}}" data-file="{{p.file}}" data-start="{{p.start}}" data-end="{{p.end}}" data-symbol="{{p.symbol}}" data-interval_id="{{p.interval_id}}">
+                {% endfor %}
+            </datalist>
         </div>
     </div>
+
+
 
     <div class="fw-bold  pt-3">Parametros del BackTesting</div>
     <div id="parametros" class="row" >
@@ -62,7 +53,7 @@
     </div>
 </div>
 <input type="hidden" id="estrategia_id" value="{{estrategia.id}}">
-
+<input type="hidden" id="quote_qty" readonly value="1000">
 <div class="container  pb-4" id="run" style="display:none;">
     {% include 'trade_results.html' %}
 </div>
@@ -80,11 +71,8 @@
         //{% for k,prm in parametros.items %}
             addParametro('{{prm.c}}', '{{prm.d}}', '{{prm.v}}', '{{prm.t}}');
         //{% endfor %} 
-        
-        $('#interval_id').val("2d01").change()
-        $('#symbol_v').val("BTCUSDT").change()
-        
     })
+
 
     function addParametro(parametro,descripcion,value,type)
     {
@@ -102,12 +90,8 @@
         }
         else if (type == 'symbol')
         {
-            html += '<select class="form-control value" id="'+parametro+'_v" >';
-            html += '<option value="">Seleccionar</option>';
-            //{% for symbol in symbols %}
-                html += '<option value="{{symbol.symbol}}" >{{symbol.symbol}}</option>';
-            //{% endfor %}
-            html += '</select>';
+            html += '<span class="form-control" >Definidos en periodos de BackTest</span>';
+            html += '<input class="value" value="BACKTEST" type="hidden" id="'+parametro+'_v" >';
         }
         else if (type == 't_int')
         {
@@ -128,18 +112,26 @@
 
     function ejecutar() {
         makeWait()
-        url = '{% url "backtesting_run" %}';
+        var url = '{% url "backtesting_run" %}';
+        var periodoValue = $('#periodo').val();
+        var periodo = $("[value|='"+periodoValue+"']");
         
+       
         data = {
                 bot_class_name: '{{bot_class_name}}',
-                from_date: $('#from_date').val(),
-                to_date: $('#to_date').val(),
-                interval_id: $('#interval_id').val(),
+                from_date: periodo.attr('data-start'),
+                to_date: periodo.attr('data-end'),
+                symbol: periodo.attr('data-symbol'),
+                interval_id: periodo.attr('data-interval_id'),
+                file: periodo.attr('data-file'),
                 quote_qty: $('#quote_qty').val(),
             }
         err = ''
-        if (data.interval_id == '0')
-            err += 'Se deben especificar el intervalo<br>';
+        if (!data.interval_id || !data.symbol || !data.from_date || !data.to_date || !data.file)
+        {
+            console.log(data);
+            err += 'Se deben seleccionar un Periodo valido<br>';
+        }
         if (parseFloat(data.quote_qty*1) <= 0)
             err += 'Se deben especificar Capital<br>';
         
@@ -148,7 +140,10 @@
            err += 'Se deben completar todos los parametros para el BackTesting<br>';
         
         if (err)
+        {
             html_alert('Errores detectados',err,'text-danger');
+            showConfig();
+        }
         else
         {
             $('#btn_ejecutar').attr('disabled',true);
@@ -160,7 +155,7 @@
                 }
                 else if (rsp.ok)
                 {
-                    $('#add_resultado_title').html('BOT {{botClass}}');
+                    $('#add_resultado_title').html('BOT {{bot_class_name}}');
                     data = rsp.bt.data
                     timeUnit = 'minute';
                     if (rsp.parametros.interval_id.substring(1, 2) == 'd')

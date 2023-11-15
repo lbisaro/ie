@@ -18,16 +18,28 @@
 {% block content %}
 <div class="container">
     <div class="row pb-2">
-        <div class="col-2">Bot</div>
-        <div class="col-4 data">{{backtest.name}}</div>
-        <div class="col-2">Intervalo</div>
-        <div class="col-4 data">{{backtest.str_interval}}</div>
-    </div>
-    <div class="row pb-2">
-        <div class="col-2">Estado</div>
-        <div class="col-4 data" id="estado">{{backtest.str_estado}}</div>
-        <div class="col-2">Usuario</div>
-        <div class="col-4 data">{{backtest.usuario.username}}</div>
+        <div class="col-2">Bot
+            <div class="data">{{backtest.name}}</div>
+        </div>
+        <div class="col-2">Estado
+            <div class="data">{{backtest.str_estado}}</div>
+        </div>
+        <div class="col-2">Intervalo
+            <div class="data">{{backtest.str_interval}}</div>
+        </div>
+        <div class="col-3">Usuario
+            <div class="data">{{backtest.usuario.username}}</div>
+        </div>
+        {% if backtest.completo == 100 %}
+        <div class="col-3 rounded border border-1 text-center" >
+           
+                SCORING <b>{{scoring}}</b>
+                <br>
+                {{scoring_str}}
+                
+
+        </div>
+        {% endif %}
     </div>
     <div class="row rounded border border-1 " style="font-size: 0.8em;">
         <div class="pt-2 text-info">Parametros</div>

@@ -6,6 +6,8 @@ import json
 
 from bot.models import *
 from bot.model_kline import *
+from bot.model_backtest import *
+import backtest.config as bt_config
 
 
 
@@ -27,14 +29,12 @@ def backtesting(request):
 def config(request,bot_class_name):
     gen_bot = GenericBotClass()
     obj = gen_bot.get_instance(bot_class_name)
-    intervals = fn.get_intervals().to_dict('records')
-    symbols = Symbol.objects.filter(activo=1).order_by('symbol')
+    periodos = Backtest().get_periodos(interval_id='ALL')
         
     if request.method == 'GET':
         return render(request, 'backtesting_run.html',{
             'bot_class_name': bot_class_name,
-            'intervals': intervals,
-            'symbols': symbols,
+            'periodos': periodos,
             'parametros': obj.parametros,
         })
 
@@ -47,13 +47,18 @@ def run(request):
         gen_bot = GenericBotClass()
         run_bot = gen_bot.get_instance(bot_class_name)
         
-        run_bot.quote_qty = float(request.POST['quote_qty'])
-        run_bot.interval_id = request.POST['interval_id']
+
 
         prmPost = eval(request.POST['parametros'])
         for dict in prmPost:
             for k,v in dict.items():
                 run_bot.__setattr__(k, v)
+
+        run_bot.quote_qty = float(request.POST['quote_qty'])
+        run_bot.interval_id = request.POST['interval_id']
+        run_bot.symbol = request.POST['symbol']
+
+        backtest_file = request.POST['file']
 
         from_date = request.POST['from_date']
         to_date = request.POST['to_date']
@@ -67,7 +72,9 @@ def run(request):
         #try:
         run_bot.valid()
 
-        bt = run_bot.backtesting(from_date,to_date)
+        backtest = Backtest()
+        klines = backtest.get_df_from_file(backtest_file)
+        bt = run_bot.backtest(klines,from_date,to_date)
         json_rsp['bt'] = bt
 
         if bt['error']:

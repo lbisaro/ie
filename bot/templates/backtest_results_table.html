@@ -3,7 +3,7 @@
     <thead>
         <tr>
             {% for col in df.columns %}
-              <th>
+              <th {% if not forloop.first %} class="text-center" {% endif %}>
                 {{col}}
               </th>
             {% endfor %}
@@ -13,7 +13,7 @@
       {% for index, row in df.iterrows %}
         <tr class="{{index}}">
           {% for cell in row %}
-            <td>
+            <td  {% if not forloop.first %} class="text-center" {% endif %}>
               {{cell}}
             </td>
           {% endfor %}

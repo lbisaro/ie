@@ -6,3 +6,4 @@ local__*
 scripts/Bot*.py
 scripts/bots/*
 *.DataFrame
+backtest/results/*.json

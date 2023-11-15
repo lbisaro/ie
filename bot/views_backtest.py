@@ -62,8 +62,8 @@ def create(request):
         if existentes and existentes.count() > 0 and rewrite:
             for instance in existentes:
                 bt = instance
-                print('iterar',bt.id,bt.clase)
                 bt.usuario=request.user
+                bt.completo = 0
                 bt.creado = timezone.now()
                 pass
                 
@@ -89,8 +89,6 @@ def create(request):
                 run_bot.__setattr__(k, v)
 
         atributos = run_bot.__dict__
-        for k in atributos:
-            print(k,atributos[k],type(atributos[k]))
 
         json_rsp['parametros'] = {}
         run_botValid = False
@@ -139,14 +137,13 @@ def view(request,backtest_id):
             'parametros': backtest.parse_parametros(),
             'resultados': resultados,
             'periodos': resultados['periodos'],
+            'str_parametros': backtest.str_parametros,
         }
     if backtest.completo < 100:
         
         for i in range(0,len(resultados['periodos'])-1):
             if not next and resultados['periodos'][i]['procesado'] == 'NO':
                 next = resultados['periodos'][i]
-
-        print(next)
         
         context['next'] = next
       
@@ -183,6 +180,16 @@ def view(request,backtest_id):
         context['titulo_lateral']  = 'Lateral '+rango_fechas_lateral    
         context['titulo_bajista']  = 'Bajista '+rango_fechas_bajista   
 
+        scoring = backtest.calcular_scoring_completpo(df_resultados)
+
+        backtest.scoring = round(scoring['Completo'],1)
+        scoring_alcista = scoring['Alcista']
+        scoring_bajista = scoring['Bajista']
+        scoring_lateral = scoring['Lateral']
+        backtest.scoring_str = f'Alcista: {scoring_alcista:.1f} Bajista: {scoring_bajista:.1f} Lateral: {scoring_lateral:.1f} '
+        backtest.save()
+        context['scoring']  = f'{backtest.scoring:.1f}'
+        context['scoring_str']  = backtest.scoring_str  
 
     return render(request, 'backtest_view.html',context)
 
@@ -210,7 +217,7 @@ def execute(request,backtest_id):
         run_bot.valid()
         
         klines = backtest.get_df_from_file(periodo['file'])
-        bt = run_bot.backtest(klines,periodo['start'],periodo['end'])
+        bt = run_bot.backtest(klines,periodo['start'],periodo['end'],'ind')
         json_rsp['bt'] = bt
         json_rsp['ok'] = True
                 
@@ -232,10 +239,6 @@ def execute(request,backtest_id):
         else:
             backtest.estado = backtest.ESTADO_COMPLETO
         backtest.save()
-        print('key', key)
-        print('periodos_q', periodos_q)
-        print('periodos_completos', periodos_completos)
-        print('completo', backtest.completo)
 
         json_rsp['completo'] = backtest.completo
         json_rsp['str_estado'] = backtest.str_estado()
