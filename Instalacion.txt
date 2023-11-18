@@ -1,3 +1,13 @@
+Luego de clonar
+copiar:
+local_config.py
+Bots base desde ./scripts
+Carpeta Bots desde ./Scripts
+
+
+
+
+
 #Entorno virtual
 #Usar python 3.8
 sudo apt install python3-venv
