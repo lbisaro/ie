@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from bot.models import GenericBotClass
@@ -16,8 +17,8 @@ class Backtest(models.Model):
     ESTADO_ENCURSO = 50
     ESTADO_COMPLETO = 100
 
-    klines_folder = './backtest/klines/'
-    results_folder = './backtest/results/'
+    klines_folder = os.path.join(settings.BASE_DIR,'backtest','klines')
+    results_folder = os.path.join(settings.BASE_DIR,'backtest','results')
 
     clase = models.SlugField(max_length = 50, null=False, blank=False)
     parametros = models.TextField(null=False, blank=False)
@@ -300,30 +301,27 @@ class Backtest(models.Model):
 
 
     def get_results_file(self):
-        file = f'{self.results_folder}id_{self.id}.json'
+        file = f'{self.results_folder}/id_{self.id}.json'
         return file
 
     def get_periodos(self,interval_id):
-
+        
         periodos = [] 
-        folders = glob.glob(self.klines_folder+'*')
+        folders = glob.glob(self.klines_folder+os.sep+'*')
         for fld in folders:
             folder = fld
-            folder = folder.replace(os.sep, '')
-            folder = folder.replace(self.klines_folder[:-1], '')
-            
-            
+            folder = folder.replace(self.klines_folder+os.sep, '')
             interval = fn.get_intervals(folder,'binance')
             if interval:
                 if interval_id == 'ALL' or folder == interval_id:
-                
-                    files = glob.glob(self.klines_folder+folder+'/*.DataFrame')
+                    mask = os.path.join(self.klines_folder,folder,'*.DataFrame')
+                    files = glob.glob(mask)
                     
                     for f in files:
                         file = f
-                        f = f.replace(os.sep, '')
                         f = f.replace('.DataFrame', '')
-                        f = f.replace(self.klines_folder+folder, '')
+                        f = f.replace(fld, '')
+                        f = f.replace(os.sep, '')
                         parts = f.split('_')
                         tendencia = parts[0]
                         symbol = parts[1]
