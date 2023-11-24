@@ -7,4 +7,4 @@ www/scripts/Bot*.py
 www/scripts/bots/*
 *.DataFrame
 www/backtest/results/*.json
-db_postgres/*
+db_postgres/
