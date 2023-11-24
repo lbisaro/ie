@@ -1,9 +1,10 @@
 __pycache__
-venv
-local__*
+ie/venv
+ie/local__*
 */migrations/*.py
 *.log
-scripts/Bot*.py
-scripts/bots/*
+ie/scripts/Bot*.py
+ie/scripts/bots/*
 *.DataFrame
-backtest/results/*.json
+ie/backtest/results/*.json
+ie/db_postgres/

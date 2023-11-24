@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  #db_postgres:
+  #  image: postgres:11.5
+  #  volumes:
+  #    - ./db_postgres:/var/lib/postgresql/data
+  
+  django_app:
+    build: .
+    container_name: django_app
+    volumes: 
+      - ./www:/var/www/html
+      - ./www/config/apache:/etc/apache2/sites-available
+    ports:
+      - '8000:8000'
+      - '3501:3500'
+      - '4701:81'
+    #depends_on:
+    #  - db_postgres
+
