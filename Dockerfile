@@ -1,15 +1,21 @@
-FROM ubuntu
+FROM ubuntu:20.04
 
 RUN apt-get update
+RUN apt-get install -y tzdata
+
 RUN apt-get install -y apt-utils vim curl apache2 apache2-utils 
-RUN apt-get -y install python3 libapache2-mod-wsgi-py3 
-RUN ln /usr/bin/python3 /usr/bin/python 
+#RUN apt-get -y install python3.8 
+
+#Instalar librerias para PostgreSQL
+#RUN apt-get -y install gcc musl-dev libghc-persistent-postgresql-dev libffi-dev
+
+RUN apt-get -y install libapache2-mod-wsgi-py3 
 RUN apt-get -y install python3-pip 
 RUN pip3 install --upgrade pip 
 RUN pip3 install django ptvsd 
 
-ADD ./www/config/apache/ienv.conf /etc/apache2/sites-available/000-default.conf 
-ADD ./requirements.txt /var/www/html 
+COPY ./www/config/apache/000-default.conf /etc/apache2/sites-available/000-default.conf 
+COPY ./requirements.txt /var/www/html 
 
 ENV PYTHONUNBUFFERED=1
 
@@ -26,15 +32,20 @@ RUN chmod 775 /var/www/html/log
 RUN chown www-data:www-data /var/www/html/db_sqlite/db.sqlite3
 RUN chown www-data:www-data /var/www/html 
 RUN chown www-data:www-data /var/www/html/log 
-EXPOSE 80 7000 8000 3500 
+RUN chmod +x /var/www/html/ie/wsgi.py
+EXPOSE 80 8000 3500 
 
-#Setear timezone y sincronizar hora con afip
-#ENV TZ=America/Argentina/Buenos_Aires
-#RUN rm /etc/localtime && \ 
-#    ln -s /usr/share/zoneinfo/America/Buenos_Aires /etc/localtime
+#Setear timezone 
+RUN rm /etc/localtime && \ 
+    ln -s /usr/share/zoneinfo/America/Buenos_Aires /etc/localtime
 #
+
+#Developer
+CMD ["python3", "manage.py", "runserver","0.0.0.0:8000"]
+
+#Production
 #CMD ["apache2ctl", "-D", "FOREGROUND"]
-CMD ["python", "manage.py", "runserver","0.0.0.0:8000"]
+
 
 
 #Scripts para crear base de datos y migraciones
@@ -43,5 +54,7 @@ CMD ["python", "manage.py", "runserver","0.0.0.0:8000"]
 # RUN python ./manage.py makemigrations user
 # RUN python ./manage.py makemigrations bot
 # RUN python manage.py migrate
+
+
 
 

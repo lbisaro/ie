@@ -1,9 +1,11 @@
 Django
-pandas
+ptvsd
 django-extensions
-django-pandas
+pandas
 numpy
 pickleshare
 python-binance
 ta
+django-pandas
 
+#psycopg2

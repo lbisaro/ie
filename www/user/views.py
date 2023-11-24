@@ -78,7 +78,7 @@ def signup(request):
 def signin(request):
     json_rsp = {}
 
-    env = 'TESTING' if settings.DEBUG else 'PRODUCTION'
+    env = 'TEST' if settings.DEBUG else 'PRODUCTION'
     #env += ' '+str(settings.CSRF_TRUSTED_ORIGINS)
     if request.method == 'GET':
         return render(request, 'signin.html',{
