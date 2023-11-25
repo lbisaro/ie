@@ -9,6 +9,10 @@ class BotBase():
     SIDE_BUY = 0
     SIDE_SELL = 1
 
+    ORDER_TYPE_MARKET = 0
+    ORDER_TYPE_LIMIT = 1
+    ORDER_TYPE_TRAILING = 2
+
     FLAG_SIGNAL = 0
     FLAG_STOPLOSS = 1
     FLAG_TAKEPROFIT = 2
@@ -24,6 +28,7 @@ class BotBase():
 
     ### Informacion para Backtesting
     backtesting = False
+    exchange = None
     bt_index = None #Almacena el datetime de la siguiente vela en el loop de backtesting 
     wallet_base = 0.0
     wallet_quote = 0.0
@@ -61,6 +66,10 @@ class BotBase():
     ### Fin - Informacion para Backtesting
 
     def __init__(self):
+        self.reset_pos()
+        self.reset_res()
+
+    def setExchange(self,exchange):
         pass
 
     def get_signal(self):
@@ -89,6 +98,7 @@ class BotBase():
            'mef':0,
            'mea': 0,
            }
+        
     def update_pos(self,price_low,price_high):
         if price_high > self.pos['max']:
             self.pos['max'] = price_high
@@ -173,7 +183,6 @@ class BotBase():
             strFlag = 'Stop-Loss'
         elif flag == self.FLAG_TAKEPROFIT:
             strFlag = 'Take-Profit'
-
     
         quote_qty = round( ( qty * price ) , self.qd_quote )
         comision = quote_qty*self.exch_comision_perc/100
