@@ -48,7 +48,7 @@ class Kline(models.Model):
     
     class Meta:
         verbose_name_plural='Velas'
-       # Definir que la combinación de 'symbol' y 'datetime' es única
+        # Definir que la combinación de 'symbol' y 'datetime' es única
         unique_together = ('symbol', 'datetime')
 
     def get_df(strSymbol,interval_id,**kwargs):

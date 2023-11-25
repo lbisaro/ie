@@ -30,6 +30,10 @@ class Backtest(models.Model):
     scoring = models.FloatField(null=False, blank=False, default=0)
     scoring_str = models.TextField(null=False, blank=True, default='')
     
+    class Meta:
+        verbose_name = "BackTest"
+        verbose_name_plural='BackTests'
+    
     def __str__(self):
         interval = fn.get_intervals(self.interval_id,'binance')
         str = f'{self.clase} {interval} {self.creado}'

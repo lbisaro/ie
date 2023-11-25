@@ -25,10 +25,10 @@ RUN echo 'alias ll="ls -l"' > ~/.bashrc
 
 ADD ./www/ /var/www/html/
 
-RUN chmod 664 /var/www/html/db_sqlite/db.sqlite3 
+RUN chmod 664 /var/www/html/db_sqlite/ 
 RUN chmod 775 /var/www/html 
 RUN chmod 775 /var/www/html/log 
-RUN chown www-data:www-data /var/www/html/db_sqlite/db.sqlite3
+RUN chown www-data:www-data /var/www/html/db_sqlite/
 RUN chown www-data:www-data /var/www/html 
 RUN chown www-data:www-data /var/www/html/log 
 RUN chmod +x /var/www/html/ie/wsgi.py
