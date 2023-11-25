@@ -8,3 +8,4 @@ www/scripts/bots/*
 *.DataFrame
 www/backtest/results/*.json
 db_postgres/
+*.sqlite3
