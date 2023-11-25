@@ -4,7 +4,6 @@ RUN apt-get update
 RUN apt-get install -y tzdata
 
 RUN apt-get install -y apt-utils vim curl apache2 apache2-utils 
-#RUN apt-get -y install python3.8 
 
 #Instalar librerias para PostgreSQL
 #RUN apt-get -y install gcc musl-dev libghc-persistent-postgresql-dev libffi-dev
