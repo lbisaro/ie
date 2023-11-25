@@ -39,7 +39,11 @@ class Estrategia(models.Model):
     creado = models.DateField(default=timezone.now)
     activo = models.IntegerField(default=0)  
     max_drawdown = models.FloatField(null=False, blank=False)
-
+    
+    class Meta:
+        verbose_name = "Estrategia"
+        verbose_name_plural='Estrategias'
+    
     def __str__(self):
         str = self.nombre
         return str
@@ -124,6 +128,10 @@ class Bot(models.Model):
     quote_qty = models.FloatField(null=False, blank=False)
     max_drawdown = models.FloatField(null=False, blank=False)
     stop_loss = models.FloatField(null=False, blank=False)
+    
+    class Meta:
+        verbose_name = "Bot"
+        verbose_name_plural='Bots'
     
     def __str__(self):
         str = f"Bot {self.estrategia.nombre}"
@@ -588,6 +596,10 @@ class Order(models.Model):
     #Definido en BotBase: FLAG_SIGNAL, FLAG_STOPLOSS, FLAG_TAKEPROFIT
     flag = models.IntegerField(default=0, null=False, blank=False)
     
+    class Meta:
+        verbose_name = "Bot Order"
+        verbose_name_plural='Bot Orders'
+    
     def __str__(self):
         str = f"{self.datetime} {self.symbol.symbol} "
         if self.side == 0:
@@ -617,10 +629,6 @@ class Order(models.Model):
     def comision(self):
         return round(self.quote_qty() * (BotBase.exch_comision_perc/100) , self.symbol.qty_decs_quote )
 
-    
-    class Meta:
-        verbose_name_plural='Bots'
-
 class BotLog(models.Model):
 
     LOG_ACTIVAR = 1
@@ -630,6 +638,10 @@ class BotLog(models.Model):
     datetime = models.DateTimeField(default=timezone.now)
     log_type_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
     texto = models.TextField(null=False, blank=True, default='')
+    
+    class Meta:
+        verbose_name = "Bot Log"
+        verbose_name_plural='Bot Logs'
     
     def get_type(self):
         if self.log_type_id == self.LOG_ACTIVAR:
