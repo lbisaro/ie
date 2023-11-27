@@ -20,7 +20,7 @@
     </div>
     <div class="row pt-2">
         <div class="form-group col">
-            <label for="exampleDataList" class="form-label">Periodo</label>
+            <label for="periodo" class="form-label">Periodo</label>
             <input class="form-control" list="datalistOptionsPeriodo" id="periodo" placeholder="Type to search...">
             <datalist id="datalistOptionsPeriodo">
                 {% for p in periodos %}
@@ -78,7 +78,10 @@
     {
         html = '<div class="col-6">';
         html += '<div class="pt-1 form-group prm">'
-        html += '<label class="form-label" for="'+parametro+'_v">'+descripcion+'</label>'
+        if (type != 'symbol')
+            html += '<label class="form-label" for="'+parametro+'_v">'+descripcion+'</label>';
+        else
+            html += '<label class="form-label" >'+descripcion+'</label>';
         html += '<input type="hidden" id="'+parametro+'_c" class="parametro"  value="'+parametro+'">';
         
         if (type == 'perc')

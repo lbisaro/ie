@@ -2,7 +2,8 @@ import pandas as pd
 
 #Configurando intervals
 columns=['id','interval_id','name','binance','pandas_resample','minutes']
-intervals = pd.DataFrame([#['0m01','0m01','1 minuto','1m','1T',1],
+intervals = pd.DataFrame([ 
+                            ['0m01','0m01','1 minuto','1m','1T',1],
                             #['0m05','0m05','5 minutos','5m','5T',5],
                             #['0m15','0m15','15 minutos','15m','15T',15],
                             #['0m30','0m30','30 minutos','30m','30T',30],
