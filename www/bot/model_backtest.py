@@ -116,9 +116,9 @@ class Backtest(models.Model):
         #Formateando los dataframes generados
         ind_names = []
         ind_names.append({'ind':'cagr',
-                          'name':'CAGR'}) 
+                          'name':'CAGR (Rendimiento anual %)'}) 
         ind_names.append({'ind':'max_drawdown_cap',
-                          'name':'Max. DrawDown Capital'})
+                          'name':'Max. DrawDown (%)'})
         ind_names.append({'ind':'maximo_operaciones_negativas_consecutivas',
                           'name':'Max.Op. negativas consecutivas'}) 
         ind_names.append({'ind':'ratio_dias_sin_operar',
@@ -126,7 +126,7 @@ class Backtest(models.Model):
         ind_names.append({'ind':'trades_x_mes',
                           'name':'Operaciones mensuales'})
         ind_names.append({'ind':'ratio_trade_pos',
-                          'name':'Ratio operaciones positivas/total'})
+                          'name':'Operaciones positivas/total (%)'})
         ind_names.append({'ind':'ratio_perdida_ganancia',
                           'name':'Ratio de Perdida vs Ganancia'}) 
         ind_names.append({'ind':'ratio_max_perdida_ganancia',

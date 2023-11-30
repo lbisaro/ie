@@ -22,6 +22,7 @@
     });
 
     function chartDraw(data, symbol, timeUnit) {
+
         root.dispose();
         root = am5.Root.new("chardiv-tab-pane");
         root.setThemes([
@@ -213,19 +214,32 @@
         slSeries.data.setAll(data);
 
         var tpSeries = mainPanel.series.push(am5xy.LineSeries.new(root, {
-            name: "Stop Loss",
+            name: "Take Profit",
             xAxis: dateAxis,
             yAxis: valueAxis,
             connect: false,
-            stroke: am5.color(0x318866),
+            stroke: am5.color(0x9a5760), 
             valueYField: "TP",
             valueXField: "dt",
             valueField: "TP",
         }));
         tpSeries.data.setAll(data);
 
-        addWalletPanel()
+        
+        var bySeries = mainPanel.series.push(am5xy.LineSeries.new(root, {
+            name: "Buy",
+            xAxis: dateAxis,
+            yAxis: valueAxis,
+            connect: false,
+            stroke: am5.color(0x318866),
+            valueYField: "BY",
+            valueXField: "dt",
+            valueField: "BY",
+        }));
+        bySeries.data.setAll(data);
 
+        addWalletPanel()
+        
         /// Functions
 
         function triangle(color,dir) {
@@ -364,6 +378,8 @@
 
 
     };
+
+    
 
     function infoDraw(bt)
     {

@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime, date
+from math import floor
 
 def get_intervals(i='ALL',c='ALL'):
     columns=['id','interval_id','name','binance','pandas_resample','minutes']
@@ -54,3 +54,11 @@ def get_apply_intervals(dt):
         whereIn = whereIn + ",'2d01'"
 
     return whereIn
+
+
+def round_down(num, decs):
+    pot = 10**decs
+    num = num * pot
+    num = floor(num)
+    num = num / pot
+    return num
