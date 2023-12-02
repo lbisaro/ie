@@ -8,7 +8,7 @@ from django.db.models.functions import TruncDay, TruncHour, TruncMinute
 from django.utils import timezone
 from datetime import datetime, timedelta
 import pandas as pd
-import functions as fn
+import scripts.functions as fn
 import warnings
 import pytz
 

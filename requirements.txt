@@ -8,4 +8,5 @@ python-binance
 ta
 django-pandas
 
-#psycopg2
+#Libs for Backtesting
+tqdm==4.66.1

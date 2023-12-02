@@ -5,7 +5,7 @@ from bot.models import GenericBotClass
 from user.models import User
 import pandas as pd
 import json
-import functions as fn
+import scripts.functions as fn
 import glob
 import os
 import pickle

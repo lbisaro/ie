@@ -3,7 +3,7 @@ from django.db import models, connection
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-import functions as fn
+import scripts.functions as fn
 import os, fnmatch
 import importlib
 from scripts.BotBase import BotBase

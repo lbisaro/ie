@@ -2,7 +2,7 @@ from scripts.Exchange import Exchange
 from bot.models import *
 from bot.model_kline import *
 from user.models import UserProfile
-import functions as fn
+import scripts.functions as fn
 
 from app_log import app_log as Log
 
