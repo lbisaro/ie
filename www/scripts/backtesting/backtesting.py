@@ -408,7 +408,7 @@ class Order:
         return self
 
     def __repr__(self):
-        return '<Order {}>'.format(', '.join(f'{param}={round(value, 5)}'
+        return f'<Order {self.__tag}'+' {} >'.format(', '.join(f'{param}={round(value, 5)}'
                                              for param, value in (
                                                  ('size', self.__size),
                                                  ('limit', self.__limit_price),
@@ -416,7 +416,7 @@ class Order:
                                                  ('sl', self.__sl_price),
                                                  ('tp', self.__tp_price),
                                                  ('contingent', self.is_contingent),
-                                                 ('tag', self.__tag),
+                                                 
                                              ) if value is not None))
 
     def cancel(self):
@@ -722,7 +722,7 @@ class _Broker:
         self.closed_trades: List[Trade] = []
 
     def __repr__(self):
-        return f'<Broker: {self._cash:.0f}{self.position.pl:+.1f} ({len(self.trades)} trades)>'
+        return f'<Broker: {self._cash:.0f} {self.position.pl:.1f} ({len(self.trades)} trades)>'
 
     def new_order(self,
                   size: float,
@@ -744,7 +744,6 @@ class _Broker:
 
         is_long = size > 0
         adjusted_price = self._adjusted_price(size)
-
         if is_long:
             if not (sl or -np.inf) < (limit or stop or adjusted_price) < (tp or np.inf):
                 raise ValueError(
