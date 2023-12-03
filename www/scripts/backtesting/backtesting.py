@@ -49,6 +49,8 @@ class Strategy(metaclass=ABCMeta):
     `backtesting.backtesting.Strategy.next` to define
     your own strategy.
     """
+    exclude_first_data = 0
+
     def __init__(self, broker, data, params):
         self._indicators = []
         self._broker: _Broker = broker
@@ -1021,14 +1023,16 @@ class Backtest:
     instance, or `backtesting.backtesting.Backtest.optimize` to
     optimize it.
     """
+    exclude_first_data = 0
+
     def __init__(self,
                  data: pd.DataFrame,
                  strategy: Type[Strategy],
                  *,
-                 cash: float = 10_000,
-                 commission: float = .0,
+                 cash: float = 1_000,
+                 commission: float = .002,
                  margin: float = 1.,
-                 trade_on_close=False,
+                 trade_on_close=True,
                  hedging=False,
                  exclusive_orders=False
                  ):
@@ -1197,6 +1201,8 @@ class Backtest:
         # +1 to have at least two entries available
         start = 1 + max((np.isnan(indicator.astype(float)).argmin(axis=-1).max()
                          for _, indicator in indicator_attrs), default=0)
+        if start <= strategy.exclude_first_data:
+            start = strategy.exclude_first_data-1
 
         # Disable "invalid value encountered in ..." warnings. Comparison
         # np.nan >= 3 is not invalid; it's False.
@@ -1234,8 +1240,8 @@ class Backtest:
             equity = pd.Series(broker._equity).bfill().fillna(broker._cash).values
             self._results = compute_stats(
                 trades=broker.closed_trades,
-                equity=equity,
-                ohlc_data=self._data,
+                equity=equity[(strategy.exclude_first_data-1):],
+                ohlc_data=self._data[(strategy.exclude_first_data-1):],
                 risk_free_rate=0.0,
                 strategy_instance=strategy,
             )
@@ -1558,7 +1564,8 @@ class Backtest:
              smooth_equity=False, relative_equity=True,
              superimpose: Union[bool, str] = True,
              resample=True, reverse_indicators=False,
-             show_legend=True, open_browser=True):
+             show_legend=True, 
+             open_browser=True):
         """
         Plot the progression of the last backtest run.
 
@@ -1645,8 +1652,8 @@ class Backtest:
 
         return plot(
             results=results,
-            df=self._data,
-            indicators=results._strategy._indicators,
+            df=self._data[(self.exclude_first_data-1):],
+            indicators=results._strategy._indicators[(self.exclude_first_data-1):],
             filename=filename,
             plot_width=plot_width,
             plot_equity=plot_equity,
