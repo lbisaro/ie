@@ -50,6 +50,9 @@ class Strategy(metaclass=ABCMeta):
     your own strategy.
     """
     exclude_first_data = 0
+    stop_loss = 0
+    take_profit = 0
+    cash = 0
 
     def __init__(self, broker, data, params):
         self._indicators = []
@@ -961,6 +964,7 @@ class _Broker:
                             UserWarning)
 
             # Order processed
+
             self.orders.remove(order)
 
         if reprocess_orders:

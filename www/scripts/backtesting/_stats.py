@@ -56,7 +56,7 @@ def compute_stats(
     else:
         # Came straight from Backtest.run()
         trades_df = pd.DataFrame({
-            'Size': [t.size for t in trades],
+            'Size': [float(t.size) for t in trades],
             'EntryBar': [t.entry_bar for t in trades],
             'ExitBar': [t.exit_bar for t in trades],
             'EntryPrice': [t.entry_price for t in trades],
