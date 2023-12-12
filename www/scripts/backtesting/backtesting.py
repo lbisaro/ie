@@ -213,8 +213,13 @@ class Strategy(metaclass=ABCMeta):
 
         See also `Strategy.sell()`.
         """
+        """
         assert 0 < size < 1 or round(size) == size, \
             "size must be a positive fraction of equity, or a positive whole number of units"
+        """
+        size = round(size,8)
+        assert 0 < size , \
+            "size must be a positive number of units"
         return self._broker.new_order(size, limit, stop, sl, tp, tag)
 
     def sell(self, *,
@@ -233,8 +238,8 @@ class Strategy(metaclass=ABCMeta):
             If you merely want to close an existing long position,
             use `Position.close()` or `Trade.close()`.
         """
-        assert 0 < size < 1 or round(size) == size, \
-            "size must be a positive fraction of equity, or a positive whole number of units"
+        #assert 0 < size < 1 or round(size) == size, \
+        #    "size must be a positive fraction of equity, or a positive whole number of units"
         return self._broker.new_order(-size, limit, stop, sl, tp, tag)
 
     @property
@@ -710,6 +715,7 @@ class _Broker:
             ("commission should be between -10% "
              f"(e.g. market-maker's rebates) and 10% (fees), is {commission}")
         assert 0 < margin <= 1, f"margin should be between 0 and 1, is {margin}"
+        
         self._data: _Data = data
         self._cash = cash
         self._commission = commission
@@ -772,7 +778,6 @@ class _Broker:
                         o.cancel()
                 for t in self.trades:
                     t.close()
-
             self.orders.append(order)
 
         return order
@@ -787,7 +792,8 @@ class _Broker:
         Long/short `price`, adjusted for commisions.
         In long positions, the adjusted price is a fraction higher, and vice versa.
         """
-        return (price or self.last_price) * (1 + copysign(self._commission, size))
+        #return (price or self.last_price) * (1 + copysign(self._commission, size))
+        return (price or self.last_price)
 
     @property
     def equity(self) -> float:
@@ -802,7 +808,7 @@ class _Broker:
     def next(self):
         i = self._i = len(self._data) - 1
         self._process_orders()
-
+        
         # Log account equity for the equity curve
         equity = self.equity
         self._equity[i] = equity
@@ -821,10 +827,10 @@ class _Broker:
         open, high, low = data.Open[-1], data.High[-1], data.Low[-1]
         prev_close = data.Close[-2]
         reprocess_orders = False
-
+        index = self._data.index[-1]
         # Process orders
         for order in list(self.orders):  # type: Order
-
+            
             # Related SL/TP order was already removed
             if order not in self.orders:
                 continue
@@ -858,6 +864,7 @@ class _Broker:
                          if order.is_long else
                          max(stop_price or open, order.limit))
             else:
+                
                 # Market-if-touched / market order
                 price = prev_close if self._trade_on_close else open
                 price = (max(price, stop_price or -np.inf)
@@ -875,6 +882,7 @@ class _Broker:
                 # If order.size is "greater" than trade.size, this order is a trade.close()
                 # order and part of the trade was already closed beforehand
                 size = copysign(min(abs(_prev_size), abs(order.size)), order.size)
+                
                 # If this trade isn't already closed (e.g. on multiple `trade.close(.5)` calls)
                 if trade in self.trades:
                     self._reduce_trade(trade, price, size, time_index)
@@ -885,7 +893,7 @@ class _Broker:
                     assert order not in self.orders  # Removed when trade was closed
                 else:
                     # It's a trade.close() order, now done
-                    assert abs(_prev_size) >= abs(size) >= 1
+                    assert abs(_prev_size) >= abs(size) 
                     self.orders.remove(order)
                 continue
 
@@ -898,16 +906,17 @@ class _Broker:
             # If order size was specified proportionally,
             # precompute true size in units, accounting for margin and spread/commissions
             size = order.size
-            if -1 < size < 1:
-                size = copysign(int((self.margin_available * self._leverage * abs(size))
-                                    // adjusted_price), size)
-                # Not enough cash/margin even for a single unit
-                if not size:
-                    self.orders.remove(order)
-                    continue
-            assert size == round(size)
-            need_size = int(size)
-
+            
+            #size = copysign(float((self.margin_available * self._leverage * abs(size))
+            #                    // adjusted_price), size)
+            
+            # Not enough cash/margin even for a single unit
+            if not size:
+                self.orders.remove(order)
+                continue
+            
+            
+            need_size = size
             if not self._hedging:
                 # Fill position by FIFO closing/reducing existing opposite-facing trades.
                 # Existing trades are closed at unadjusted price, because the adjustment
@@ -973,7 +982,7 @@ class _Broker:
     def _reduce_trade(self, trade: Trade, price: float, size: float, time_index: int):
         assert trade.size * size < 0
         assert abs(trade.size) >= abs(size)
-
+        
         size_left = trade.size + size
         assert size_left * trade.size >= 0
         if not size_left:
@@ -1002,10 +1011,11 @@ class _Broker:
         self.closed_trades.append(trade._replace(exit_price=price, exit_bar=time_index))
         self._cash += trade.pl
 
-    def _open_trade(self, price: float, size: int,
+    def _open_trade(self, price: float, size: float,
                     sl: Optional[float], tp: Optional[float], time_index: int, tag):
         trade = Trade(self, size, price, time_index, tag)
         self.trades.append(trade)
+        
         # Create SL/TP (bracket) orders.
         # Make sure SL order is created first so it gets adversarially processed before TP order
         # in case of an ambiguous tie (both hit within a single bar).
