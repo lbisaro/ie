@@ -49,7 +49,7 @@ class Strategy(metaclass=ABCMeta):
     `backtesting.backtesting.Strategy.next` to define
     your own strategy.
     """
-    exclude_first_data = 0
+    exclude_first_data = 1
     stop_loss = 0
     take_profit = 0
     cash = 0
@@ -1036,7 +1036,7 @@ class Backtest:
     instance, or `backtesting.backtesting.Backtest.optimize` to
     optimize it.
     """
-    exclude_first_data = 0
+    exclude_first_data = 1
 
     def __init__(self,
                  data: pd.DataFrame,
@@ -1128,11 +1128,11 @@ class Backtest:
             raise ValueError('Some OHLC values are missing (NaN). '
                              'Please strip those lines with `df.dropna()` or '
                              'fill them in with `df.interpolate()` or whatever.')
-        if np.any(data['Close'] > cash):
-            warnings.warn('Some prices are larger than initial cash value. Note that fractional '
-                          'trading is not supported. If you want to trade Bitcoin, '
-                          'increase initial cash, or trade μBTC or satoshis instead (GH-134).',
-                          stacklevel=2)
+        #if np.any(data['Close'] > cash):
+        #    warnings.warn('Some prices are larger than initial cash value. Note that fractional '
+        #                  'trading is not supported. If you want to trade Bitcoin, '
+        #                  'increase initial cash, or trade μBTC or satoshis instead (GH-134).',
+        #                  stacklevel=2)
         if not data.index.is_monotonic_increasing:
             warnings.warn('Data index is not sorted in ascending order. Sorting.',
                           stacklevel=2)
