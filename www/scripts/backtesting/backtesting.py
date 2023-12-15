@@ -49,11 +49,6 @@ class Strategy(metaclass=ABCMeta):
     `backtesting.backtesting.Strategy.next` to define
     your own strategy.
     """
-    exclude_first_data = 1
-    stop_loss = 0
-    take_profit = 0
-    cash = 0
-
     def __init__(self, broker, data, params):
         self._indicators = []
         self._broker: _Broker = broker
@@ -212,10 +207,6 @@ class Strategy(metaclass=ABCMeta):
         See `Position.close()` and `Trade.close()` for closing existing positions.
 
         See also `Strategy.sell()`.
-        """
-        """
-        assert 0 < size < 1 or round(size) == size, \
-            "size must be a positive fraction of equity, or a positive whole number of units"
         """
         size = round(size,8)
         assert 0 < size , \
@@ -416,7 +407,7 @@ class Order:
         return self
 
     def __repr__(self):
-        return f'<Order {self.__tag}'+' {} >'.format(', '.join(f'{param}={round(value, 5)}'
+        return '<Order {}>'.format(', '.join(f'{param}={round(value, 5)}'
                                              for param, value in (
                                                  ('size', self.__size),
                                                  ('limit', self.__limit_price),
@@ -424,7 +415,7 @@ class Order:
                                                  ('sl', self.__sl_price),
                                                  ('tp', self.__tp_price),
                                                  ('contingent', self.is_contingent),
-                                                 
+                                                 ('tag', self.__tag),
                                              ) if value is not None))
 
     def cancel(self):
@@ -715,7 +706,6 @@ class _Broker:
             ("commission should be between -10% "
              f"(e.g. market-maker's rebates) and 10% (fees), is {commission}")
         assert 0 < margin <= 1, f"margin should be between 0 and 1, is {margin}"
-        
         self._data: _Data = data
         self._cash = cash
         self._commission = commission
@@ -753,6 +743,7 @@ class _Broker:
 
         is_long = size > 0
         adjusted_price = self._adjusted_price(size)
+
         if is_long:
             if not (sl or -np.inf) < (limit or stop or adjusted_price) < (tp or np.inf):
                 raise ValueError(
@@ -778,6 +769,7 @@ class _Broker:
                         o.cancel()
                 for t in self.trades:
                     t.close()
+
             self.orders.append(order)
 
         return order
@@ -808,7 +800,7 @@ class _Broker:
     def next(self):
         i = self._i = len(self._data) - 1
         self._process_orders()
-        
+
         # Log account equity for the equity curve
         equity = self.equity
         self._equity[i] = equity
@@ -827,10 +819,10 @@ class _Broker:
         open, high, low = data.Open[-1], data.High[-1], data.Low[-1]
         prev_close = data.Close[-2]
         reprocess_orders = False
-        index = self._data.index[-1]
+        
         # Process orders
         for order in list(self.orders):  # type: Order
-            
+
             # Related SL/TP order was already removed
             if order not in self.orders:
                 continue
@@ -864,7 +856,6 @@ class _Broker:
                          if order.is_long else
                          max(stop_price or open, order.limit))
             else:
-                
                 # Market-if-touched / market order
                 price = prev_close if self._trade_on_close else open
                 price = (max(price, stop_price or -np.inf)
@@ -882,7 +873,6 @@ class _Broker:
                 # If order.size is "greater" than trade.size, this order is a trade.close()
                 # order and part of the trade was already closed beforehand
                 size = copysign(min(abs(_prev_size), abs(order.size)), order.size)
-                
                 # If this trade isn't already closed (e.g. on multiple `trade.close(.5)` calls)
                 if trade in self.trades:
                     self._reduce_trade(trade, price, size, time_index)
@@ -906,17 +896,15 @@ class _Broker:
             # If order size was specified proportionally,
             # precompute true size in units, accounting for margin and spread/commissions
             size = order.size
-            
+        
             #size = copysign(float((self.margin_available * self._leverage * abs(size))
             #                    // adjusted_price), size)
-            
             # Not enough cash/margin even for a single unit
             if not size:
                 self.orders.remove(order)
                 continue
-            
-            
             need_size = size
+
             if not self._hedging:
                 # Fill position by FIFO closing/reducing existing opposite-facing trades.
                 # Existing trades are closed at unadjusted price, because the adjustment
@@ -973,7 +961,6 @@ class _Broker:
                             UserWarning)
 
             # Order processed
-
             self.orders.remove(order)
 
         if reprocess_orders:
@@ -982,7 +969,7 @@ class _Broker:
     def _reduce_trade(self, trade: Trade, price: float, size: float, time_index: int):
         assert trade.size * size < 0
         assert abs(trade.size) >= abs(size)
-        
+
         size_left = trade.size + size
         assert size_left * trade.size >= 0
         if not size_left:
@@ -1015,7 +1002,6 @@ class _Broker:
                     sl: Optional[float], tp: Optional[float], time_index: int, tag):
         trade = Trade(self, size, price, time_index, tag)
         self.trades.append(trade)
-        
         # Create SL/TP (bracket) orders.
         # Make sure SL order is created first so it gets adversarially processed before TP order
         # in case of an ambiguous tie (both hit within a single bar).
@@ -1036,8 +1022,6 @@ class Backtest:
     instance, or `backtesting.backtesting.Backtest.optimize` to
     optimize it.
     """
-    exclude_first_data = 1
-
     def __init__(self,
                  data: pd.DataFrame,
                  strategy: Type[Strategy],
@@ -1214,8 +1198,6 @@ class Backtest:
         # +1 to have at least two entries available
         start = 1 + max((np.isnan(indicator.astype(float)).argmin(axis=-1).max()
                          for _, indicator in indicator_attrs), default=0)
-        if start <= strategy.exclude_first_data:
-            start = strategy.exclude_first_data-1
 
         # Disable "invalid value encountered in ..." warnings. Comparison
         # np.nan >= 3 is not invalid; it's False.
@@ -1253,8 +1235,8 @@ class Backtest:
             equity = pd.Series(broker._equity).bfill().fillna(broker._cash).values
             self._results = compute_stats(
                 trades=broker.closed_trades,
-                equity=equity[(strategy.exclude_first_data-1):],
-                ohlc_data=self._data[(strategy.exclude_first_data-1):],
+                equity=equity,
+                ohlc_data=self._data,
                 risk_free_rate=0.0,
                 strategy_instance=strategy,
             )
@@ -1577,8 +1559,7 @@ class Backtest:
              smooth_equity=False, relative_equity=True,
              superimpose: Union[bool, str] = True,
              resample=True, reverse_indicators=False,
-             show_legend=True, 
-             open_browser=True):
+             show_legend=True, open_browser=True):
         """
         Plot the progression of the last backtest run.
 
@@ -1665,8 +1646,8 @@ class Backtest:
 
         return plot(
             results=results,
-            df=self._data[(self.exclude_first_data-1):],
-            indicators=results._strategy._indicators[(self.exclude_first_data-1):],
+            df=self._data,
+            indicators=results._strategy._indicators,
             filename=filename,
             plot_width=plot_width,
             plot_equity=plot_equity,
