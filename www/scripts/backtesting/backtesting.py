@@ -779,6 +779,11 @@ class _Broker:
         """ Price at the last (current) close. """
         return self._data.Close[-1]
 
+    @property
+    def last_open(self) -> float:
+        """ Price at the last (current) close. """
+        return self._data.Open[-1]
+
     def _adjusted_price(self, size=None, price=None) -> float:
         """
         Long/short `price`, adjusted for commisions.
