@@ -901,7 +901,6 @@ class _Broker:
             # If order size was specified proportionally,
             # precompute true size in units, accounting for margin and spread/commissions
             size = order.size
-        
             #size = copysign(float((self.margin_available * self._leverage * abs(size))
             #                    // adjusted_price), size)
             # Not enough cash/margin even for a single unit

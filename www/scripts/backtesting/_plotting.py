@@ -199,9 +199,9 @@ def plot(*, results: pd.Series,
     df = df[list(OHLCV_AGG.keys())].copy(deep=False)
 
     # Limit data to max_candles
-    if is_datetime_index:
-        df, indicators, equity_data, trades = _maybe_resample_data(
-            resample, df, indicators, equity_data, trades)
+    #if is_datetime_index:
+    #    df, indicators, equity_data, trades = _maybe_resample_data(
+    #        resample, df, indicators, equity_data, trades)
 
     df.index.name = None  # Provides source name @index
     df['datetime'] = df.index  # Save original, maybe datetime index
@@ -359,6 +359,7 @@ return this.labels[index] || "";
 
         # Peaks
         argmax = equity.idxmax()
+        """ Elimina el label de equity, peaky drawdown
         fig.scatter(argmax, equity[argmax],
                     legend_label='Peak ({})'.format(
                         legend_format.format(equity[argmax] * (100 if relative_equity else 1))),
@@ -367,20 +368,23 @@ return this.labels[index] || "";
                     legend_label='Final ({})'.format(
                         legend_format.format(equity.iloc[-1] * (100 if relative_equity else 1))),
                     color='blue', size=8)
-
+        
         if not plot_drawdown:
             drawdown = equity_data['DrawdownPct']
             argmax = drawdown.idxmax()
             fig.scatter(argmax, equity[argmax],
                         legend_label='Max Drawdown (-{:.1f}%)'.format(100 * drawdown[argmax]),
                         color='red', size=8)
+        
+        """
         dd_timedelta_label = df['datetime'].iloc[int(round(dd_end))] - df['datetime'].iloc[dd_start]
         fig.line([dd_start, dd_end], equity.iloc[dd_start],
-                 line_color='red', line_width=2,
-                 legend_label=f'Max Dd Dur. ({dd_timedelta_label})'
-                 .replace(' 00:00:00', '')
-                 .replace('(0 days ', '('))
-
+                 line_color='red', line_width=2)
+        """
+        legend_label=f'Max Dd Dur. ({dd_timedelta_label})'
+        .replace(' 00:00:00', '')
+        .replace('(0 days ', '('))
+        """
         figs_above_ohlc.append(fig)
 
     def _plot_drawdown_section():
