@@ -94,7 +94,8 @@ def create(request):
         run_botValid = False
         for attr in atributos:
             val = atributos[attr]
-            json_rsp['parametros'][attr] = val
+            if attr != '_strategy':
+                json_rsp['parametros'][attr] = val
 
         try:
             run_bot.valid()
@@ -121,7 +122,6 @@ def create(request):
                         strError += desc+" "
                 json_rsp['ok'] = False
                 json_rsp['error'] = strError
-
         return JsonResponse(json_rsp)
 
 

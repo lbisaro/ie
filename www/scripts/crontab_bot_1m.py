@@ -74,7 +74,7 @@ def run():
                 signal = signal_res['signal']
                 signals[estr.id] = signal
         
-        ### - Obtener lista de bots activos
+        ### - Obtener lista de bots activos ordenados por usuario_id
         bots = Bot.get_bots_activos()
         usuario_id = 0
         for bot in bots:
@@ -113,7 +113,7 @@ def run():
             #signal = 'VENTA'
             #signal = 'COMPRA'
             
-            execRes = botClass.execute(exchange = exch, 
+            execRes = botClass.execute_live(exchange = exch, 
                                        signal=signal, 
                                        price=price, 
                                        wallet=wallet, 

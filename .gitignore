@@ -3,8 +3,6 @@ www/venv
 www/local__*
 */migrations/*.py
 *.log
-www/scripts/Bot*.py
-www/scripts/bots/*
 *.DataFrame
 www/backtest/results/*.json
 db_postgres/

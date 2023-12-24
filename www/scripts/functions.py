@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from math import floor
 
 def get_intervals(i='ALL',c='ALL'):
@@ -62,3 +63,9 @@ def round_down(num, decs):
     num = floor(num)
     num = num / pot
     return num
+
+def pendiente(y):
+    qty = len(y)
+    x = np.arange(qty)
+    p = np.polyfit(x, y, 1)
+    return round(p[0],2)

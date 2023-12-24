@@ -353,12 +353,12 @@ class Position:
         """True if the position is short (position size is negative)."""
         return self.size < 0
 
-    def close(self, portion: float = 1.):
+    def close(self, portion: float = 1.,tag=None):
         """
         Close portion of position by closing `portion` of each active trade. See `Trade.close`.
         """
         for trade in self.__broker.trades:
-            trade.close(portion)
+            trade.close(portion,tag)
 
     def __repr__(self):
         return f'<Position: {self.size} ({len(self.__broker.trades)} trades)>'
@@ -553,7 +553,8 @@ class Trade:
     def _copy(self, **kwargs):
         return copy(self)._replace(**kwargs)
 
-    def close(self, portion: float = 1.):
+    def close(self, portion: float = 1., tag=None):
+        self.__tag = tag
         """Place new `Order` to close `portion` of the trade at next market price."""
         assert 0 < portion <= 1, "portion must be a fraction between 0 and 1"
         size = copysign(max(1, round(abs(self.__size) * portion)), -self.__size)

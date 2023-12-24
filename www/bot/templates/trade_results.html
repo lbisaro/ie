@@ -21,7 +21,7 @@
         root = am5.Root.new("chardiv-tab-pane");
     });
 
-    function chartDraw(data, symbol, timeUnit) {
+    function chartDraw(data, events, symbol, timeUnit) {
 
         root.dispose();
         root = am5.Root.new("chardiv-tab-pane");
@@ -300,7 +300,10 @@
             newSerie.bullets.push(function () {
                 return triangle(color,dir)
             });
-            newSerie.data.setAll(data);
+            if (events.length > 0)
+                newSerie.data.setAll(events);
+            else
+                newSerie.data.setAll(data);
             
             return newSerie;
         }
@@ -398,43 +401,25 @@
             div.find('#'+items[0]).append(html);
         } 
 
-        var tbody = $('#ordenes-tab-pane table tbody');
-        tbody.html('')
         qd_price = bt.qd_price;
         qd_qty = bt.qd_qty;
-        for (const order of bt.orders) {
-            var cls = (order[2]==0?'green':'red');
-            var tr = '<tr class="'+cls+'">';
-            tr += '<td>'+order[0]+'</td>';
-            tr += '<td>'+order[1]+'</td>';
-            var side = bt.order_side[order[2]]
-            if (order[5] != 0)
-                side += ' '+bt.order_flag[order[5]]
-            tr += '<td>'+side+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[3],qd_qty)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[4],qd_price)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[3]*order[4],2)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[6],4)+'</td>';
-            tr += '</tr>';
-            tbody.append(tr);
-        } 
 
         var tbody = $('#trades-tab-pane table tbody');
         tbody.html('')
-        for (const order of bt.trades) {
-            var cls = (order[7]>0?'green':'red');
+        for (const trade of bt.trades) {
+            var cls = (trade[7]>0?'green':'red');
             var tr = '<tr class="'+cls+'">';
-            tr += '<td>'+order[0]+'</td>';
-            tr += '<td>'+order[3]+'</td>';
-            tr += '<td>'+to_dec(order[6],2)+'</td>';
-            tr += '<td>'+(order[5]>0?bt.order_flag[order[5]]:'')+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[2],qd_qty)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[1],qd_price)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[4],qd_price)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[7],2)+'</td>';
-            tr += '<td class="text-end">'+to_dec(order[8],2)+'</td>';
-            tr += '<td class="text-end">'+(order[9]!=null ? order[9] : '')+'</td>';
-            tr += '<td class="text-end">'+(order[10]!=null ? order[10] : '')+'</td>';
+            tr += '<td>'+trade[0]+'</td>';
+            tr += '<td>'+trade[3]+'</td>';
+            tr += '<td>'+to_dec(trade[6],2)+'</td>';
+            tr += '<td>'+(trade[5]>0?bt.order_flag[trade[5]]:'')+'</td>';
+            tr += '<td class="text-end">'+to_dec(trade[2],qd_qty)+'</td>';
+            tr += '<td class="text-end">'+to_dec(trade[1],qd_price)+'</td>';
+            tr += '<td class="text-end">'+to_dec(trade[4],qd_price)+'</td>';
+            tr += '<td class="text-end">'+to_dec(trade[7],2)+'</td>';
+            tr += '<td class="text-end">'+to_dec(trade[8],2)+'</td>';
+            tr += '<td class="text-end">'+(trade[9]!=null ? trade[9] : '')+'</td>';
+            tr += '<td class="text-end">'+(trade[10]!=null ? trade[10] : '')+'</td>';
             tr += '</tr>';
             tbody.append(tr);
         } 
@@ -452,9 +437,6 @@
         <li class="nav-item" role="chardiv">
           <button class="nav-link" id="chardiv-tab" data-bs-toggle="tab" data-bs-target="#chardiv-tab-pane" type="button" role="tab" aria-controls="chardiv-tab-pane" aria-selected="false">Grafico</button>
         </li>
-        <li class="nav-item" role="ordenes">
-          <button class="nav-link" id="ordenes-tab" data-bs-toggle="tab" data-bs-target="#ordenes-tab-pane" type="button" role="tab" aria-controls="ordenes-tab-pane" aria-selected="false">Ordenes</button>
-        </li>
         <li class="nav-item" role="trades">
             <button class="nav-link" id="trades-tab" data-bs-toggle="tab" data-bs-target="#trades-tab-pane" type="button" role="tab" aria-controls="trades-tab-pane" aria-selected="false">Operaciones</button>
           </li>
@@ -469,24 +451,6 @@
             
         </div>
         <div class="tab-pane fade" id="chardiv-tab-pane" role="tabpanel" aria-labelledby="chardiv-tab" tabindex="1"></div>
-        <div class="tab-pane fade" id="ordenes-tab-pane" role="tabpanel" aria-labelledby="ordenes-tab" tabindex="2">
-            <table class="table-dg table-trade-info">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Par</th>
-                        <th>Operacion</th>
-                        <th class="text-end">Cantidad</th>
-                        <th class="text-end">Precio</th>
-                        <th class="text-end">USD</th>
-                        <th class="text-end">Comision</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    
-                </tbody>
-            </table>
-        </div>
         <div class="tab-pane fade" id="trades-tab-pane" role="tabpanel" aria-labelledby="trades-tab" tabindex="3">
             <table class="table-dg table-trade-info">
                 <thead>
