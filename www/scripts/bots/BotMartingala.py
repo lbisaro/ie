@@ -14,8 +14,6 @@ class BotMartingala(Bot_Core):
     stop_loss = 0.0
     take_profit = 0.0
 
-    VELAS_PREVIAS = 100
-
     descripcion = 'Bot Core v2 \n'\
                   'Bot de Martingala.'
         
@@ -101,93 +99,10 @@ class BotMartingala(Bot_Core):
             quote -= pos_amount
         return pos[::-1]  # Invierte la lista
     
-    def signal(self,df):
-        #Se debe crear una funcion que agregue al dataframe la columna 'signal' con valores: COMPRA, VENTA o NEUTRO
+    def start(self,df):
         df['signal'] = 'NEUTRO'
         return df
-    """
-    def execute(self,exchange,signal,price,wallet,pos_orders):
-        self.backtesting = False
-        json_rsp = {}
-        symbol_info = exchange.get_symbol_info(self.symbol)
-        self.base_asset = symbol_info['base_asset']
-        self.quote_asset = symbol_info['quote_asset']
-        self.qd_price = symbol_info['qty_decs_price']
-        self.qd_qty = symbol_info['qty_decs_qty']
-        self.qd_quote = symbol_info['qty_decs_quote']
-
-        #Calculo del estado de la posicion actual
-        base_qty = 0
-        base_in_usd = 0
-        quote_qty = 0
-        for order in pos_orders:
-            if order.completed == 0:
-                json_rsp['error'] = 'Existen ordenes incompletas'
-                return json_rsp
-            
-            order_quote = round( round(order.qty,self.qd_qty) * round(order.price,self.qd_price) , self.qd_quote)
-            if order.side == self.SIDE_BUY:
-                
-                quote_qty -= order_quote
-                base_qty += order.qty
-                base_in_usd += order_quote
-            else:
-                quote_qty += order_quote 
-                base_qty -= order.qty
-                base_in_usd -= order_quote
-        
-        base_qty    = round(base_qty,self.qd_qty)
-        base_in_usd = round(base_in_usd,self.qd_quote)
-        quote_qty   = round(quote_qty,self.qd_quote)
-
-        if base_qty > 0:
-            price_calculated = base_in_usd / base_qty
-            stop_loss_price = round( price_calculated - (price_calculated * ( self.stop_loss/100) ) , self.qd_price )
-            take_profit_price = round( price_calculated + (price_calculated * ( self.take_profit/100) ) , self.qd_price )
-
-        venta_por_SLTP = False
-        if base_qty > 0:
-            if self.stop_loss > 0 and stop_loss_price > price:
-                if wallet[self.base_asset]['free'] >= base_qty:
-                    qty = base_qty
-                    if self.market_sell(exchange,self.symbol,qty,self.FLAG_STOPLOSS):
-                        venta_por_SLTP = True
-                        json_rsp['execute'] = 'CLOSE'
-                    else:
-                        json_rsp['error'] = 'ORDER_NOT_PLACED'
-                
-            if not venta_por_SLTP and self.take_profit > 0 and take_profit_price < price:
-                if wallet[self.base_asset]['free'] >= base_qty:
-                    qty = base_qty
-                    if self.market_sell(exchange,self.symbol,qty,self.FLAG_TAKEPROFIT):
-                        json_rsp['execute'] = 'CLOSE'
-                    else:
-                        json_rsp['error'] = 'ORDER_NOT_PLACED'
     
-        if not venta_por_SLTP and signal == 'COMPRA' and quote_qty == 0:
-            if self.interes == 's': #Interes Simple
-                quote_to_sell = round( self.quote_qty*(self.quote_perc/100) , self.qd_quote )
-            else: #Interes Compuesto
-                quote_to_sell = round( self.quote_qty*(self.quote_perc/100) , self.qd_quote )   
-            if wallet[self.quote_asset]['free'] >= quote_to_sell:
-                qty = round( ( quote_to_sell / price ) , self.qd_qty )            
-                if self.market_buy(exchange,self.symbol,qty,self.FLAG_SIGNAL):
-                    json_rsp['execute'] = 'OPEN'
-                else:
-                    json_rsp['error'] = 'ORDER_NOT_PLACED'
-
-        elif not venta_por_SLTP and signal == 'VENTA' and base_qty > 0:
-            if wallet[self.base_asset]['free'] >= base_qty:
-                qty = base_qty
-                if self.market_sell(exchange,self.symbol,qty,self.FLAG_SIGNAL):
-                    json_rsp['execute'] = 'CLOSE'
-                else:
-                    json_rsp['error'] = 'ORDER_NOT_PLACED'
-
-        
-        return json_rsp
-    """
-
     def reset_pos(self):
         self.buy_orderid = 0
         self.sell_tp_orderid = 0
@@ -195,169 +110,6 @@ class BotMartingala(Bot_Core):
         self.qty_compras = 0
         self.stop_loss_over_quote = 0
         self.pos_buy_history = []
-
-    def backtest(self,klines,from_date,to_date,to_get='completed'):
-        self.reset_pos()
-        self.backtesting = True
-        self.data = []
-        
-        exch = Exchange(type='info',exchange='bnc',prms=None)
-        symbol_info = exch.get_symbol_info(self.symbol)
-        self.base_asset = symbol_info['base_asset']
-        self.quote_asset = symbol_info['quote_asset']
-        self.qd_price = symbol_info['qty_decs_price']
-        self.qd_qty = symbol_info['qty_decs_qty']
-        self.qd_quote = symbol_info['qty_decs_quote']
-
-        self.wallet_base = 0.0
-        self.wallet_quote = self.quote_qty
-
-        self.klines = klines
-        #Aplicar la señal de compra/venta
-        self.klines = self.signal(self.klines)
-        
-        #quitando las velas previas a la fecha de start
-        self.klines = self.klines[self.klines['datetime'] >= pd.to_datetime(from_date)]
-        self.klines = self.klines.reset_index(drop=True)
-
-        velas = int(self.klines['datetime'].count())
-        if velas<50:
-            res = {
-                'OK': False,
-                'error': 'El intervalo y rango de fechas solicitado genera un total de '+str(velas)+' velas'+\
-                    '<br>Se requiere un minimo de '+str(self.VELAS_PREVIAS)+' velas para poder realizar el Backtesting',
-                }
-            return res
-            
-
-        #Calculando HOLD para comparar contra la operacion
-        # El hold es la compra del capital a invertir al precio open al inicio + el saldo que queda en USD
-        price_to_hold = self.klines.loc[0]['open'] 
-        quote_to_hold = round( self.quote_qty , self.qd_quote )
-        qty_to_hold = round( ( quote_to_hold / price_to_hold ) , self.qd_qty ) 
-        usd_in_hold = round( self.quote_qty - quote_to_hold , self.qd_quote )
-        self.klines['base_qty'] = 0.0
-        self.klines['quote_qty'] = 0.0
-        self.klines['usd_hold'] = round( self.klines['open'] * qty_to_hold + usd_in_hold, self.qd_quote )
-
-        self.klines['unix_dt'] = (self.klines['datetime'] - datetime(1970, 1, 1)).dt.total_seconds() * 1000 +  10800000
-        
-        #Eventos para el grafico
-        self.klines['sB'] = None
-        self.klines['sS'] = None
-        self.klines['by'] = None
-        self.klines['sls'] = None
-        self.klines['slsl'] = None
-        self.klines['sltp'] = None
-        self.klines['SL'] = None
-        self.klines['TP'] = None
-        self.klines['BY'] = None
-
-        #Se ejecuta la funcion next para cada registro del dataframe
-        proc_start = dt.datetime.now()
-        for i,kline in self.klines.iterrows():
-            print(f'                                                                                         Procesando {i+1}/{velas} velas',end="\r")
-            self.signal = self.klines.iloc[i-1]['signal']
-            self.kline = kline
-            self.price = float(kline['open'])
-            self.unix_dt = self.kline['unix_dt']
-
-            self.klines.loc[i] = self.next()
-            self.update_pos_limits()
-
-            #prepara los datos para graficar solo en Backtest Simple
-            if to_get=='completed':
-                data = {'dt': self.unix_dt,
-                        'o': self.kline['open'],
-                        'h': self.kline['high'],
-                        'l': self.kline['low'],
-                        'c': self.kline['close'],
-                        'v': self.kline['volume'],
-                        'uH': self.kline['usd_hold'],
-                        'uW': round( self.kline['close'] * self.kline['base_qty'] + self.kline['quote_qty'], self.qd_quote ),
-                        'sB': self.kline['sB'],
-                        'sS': self.kline['sS'],
-                        'by': self.kline['by'],
-                        'sls': self.kline['sls'],
-                        'slsl': self.kline['slsl'],
-                        'sltp': self.kline['sltp'],
-                        'SL': self.kline['SL'],
-                        'TP': self.kline['TP'],
-                        'BY': self.kline['BY'],
-                    }
-                self.data.append(data)
-        
-            self.klines['usd_strat'] = round( self.klines['close'] * self.klines['base_qty'] + self.klines['quote_qty'], self.qd_quote )
-        
-        print('')
-        proc_end = dt.datetime.now()
-        proc_diff = proc_end-proc_start
-        print('Microseconds: ',proc_diff.microseconds)
-        ms_x_kline = proc_diff.microseconds/velas
-        print('Microseconds/Velas: ',ms_x_kline)
-        self.cancel_open_orders()
-
-        #print(self.klines[self.klines['signal'] != 'NEUTRO'])
-        #print(self.klines.tail(10))
-        #print(self.orders)
-        #print(self.trades)
-
-    
-        if to_get=='ind':
-            return self.get_resultados()
-        
-        elif to_get=='completed':
-            res = {'ok': True,
-                'error': False,
-                'order_side': { 
-                        self.ORD_SIDE_BUY:'BUY',
-                        self.ORD_SIDE_SELL:'SELL',
-                        },
-                'order_flag': { 
-                        self.ORD_FLAG_SIGNAL:'SIGNAL',
-                        self.ORD_FLAG_STOPLOSS:'STOP-LOSS',
-                        self.ORD_FLAG_TAKEPROFIT:'TAKE-PROFIT',
-                        },
-                'qd_price': self.qd_price, 
-                'qd_qty': self.qd_qty, 
-                'qd_quote': self.qd_quote, 
-                'data': self.data, 
-                'orders': [], 
-                'trades': [], 
-                }
-
-            for i,trade in self.trades.iterrows():
-                trd = [
-                    trade['start'],
-                    trade['buy_price'],
-                    trade['qty'],
-                    trade['end'],
-                    trade['sell_price'],
-                    trade['flag'],
-                    trade['days'],
-                    trade['result_usd'],
-                    trade['result_perc'],
-                    trade['mef'],
-                    trade['mea'],
-                    ]
-                res['trades'].append(trd)
-
-            for i,order in self.orders.iterrows():
-                ord = [
-                        order['datetime'],
-                        self.symbol,
-                        order['side'],
-                        order['qty'],
-                        order['price'],
-                        order['flag'],
-                        round(order['comision'],4),
-                    ]
-                res['orders'].append(ord)
-            
-            res['brief'] = self.get_brief()
-                            
-            return res
-    
 
     def next(self):
          
@@ -368,7 +120,7 @@ class BotMartingala(Bot_Core):
             
             quote_to_sell = round(self.quote_pos[0] , self.qd_quote ) 
             base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
-            buy_orderid = self.order_market_buy(base_to_buy,self.ORD_FLAG_SIGNAL)
+            buy_orderid = self.buy(base_to_buy,self.ORD_FLAG_SIGNAL)
             if buy_orderid>0:
                 self.pos_buy_history.append({'base': base_to_buy,
                                              'price': self.price,
@@ -441,10 +193,6 @@ class BotMartingala(Bot_Core):
                     
                     self.qty_compras += 1
                     
-        
-        self.kline['base_qty'] = self.wallet_base
-        self.kline['quote_qty'] = self.wallet_quote
-
-        return self.kline
+        return round(self.wallet_base*price + self.wallet_quote,2)
 
 

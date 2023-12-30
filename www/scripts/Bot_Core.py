@@ -4,29 +4,26 @@ import pandas as pd
 import numpy as np
 from scripts.Exchange import Exchange
 import datetime as dt
+from scripts.Bot_Core_utils import *
+from scripts.functions import round_down
 
 
 class Bot_Core():
         
-    ORD_SIDE_BUY = 0
-    ORD_SIDE_SELL = 1
-
-    ORD_TYPE_MARKET = 0
-    ORD_TYPE_LIMIT = 1
-    ORD_TYPE_TRAILING = 2
-
-    ORD_FLAG_SIGNAL = 0
-    ORD_FLAG_STOPLOSS = 1
-    ORD_FLAG_TAKEPROFIT = 2
-    ORD_FLAG_TRAILING = 3
-    
     DIAS_X_MES = 30.4375 #Resulta de tomar 3 años de 365 dias + 1 de 366 / 4 años / 12 meses
-
     exch_comision_perc = 0.2 #0.4% - Comision por operacion de compra o venta
 
     signal = 'NEUTRO'
+    order_id = 0
 
-    orderid = 0
+    #Trades para gestion de resultados
+    orders = {}
+    trade = {}
+    df_trades_columns = ['start','buy_price','qty','end','sell_price','flag','type','days','result_usd','result_perc'] 
+    df_trades = pd.DataFrame(columns=df_trades_columns)
+    trades = {}
+    executed_order = False
+    print_orders = False #Muestra las ordenes ejecutadas por consola
 
     quote_qty = 0
     interval_id = ''
@@ -37,251 +34,77 @@ class Bot_Core():
     qd_price = 0
     qd_qty = 0
     qd_quote = 0
-
-        
-    #Registro de ordenes
-    order_columns = ['datetime','unix_dt','orderid','qty', 'price', 'side', 'flag', 'type','completed','limit_price','delta_perc','activation_price','comision']
-    orders = pd.DataFrame(columns=order_columns)
-    #Trade en curso
-    trade = {}
-    #Registro de trades
-    trades_columns = ['start','buy_price','qty','end','sell_price','flag','days','result_usd','result_perc']
-    trades = pd.DataFrame(columns=trades_columns)
     
     backtesting = True
     exchange = None
-    bt_index = None #Almacena el datetime de la siguiente vela en el loop de backtesting 
     wallet_base = 0.0
     wallet_quote = 0.0
 
-    unix_dt = None
+    row = pd.DataFrame()
 
-    klines = None
-    price = None
-    k_high = None
-    k_low = None
+    #Gestion de data sobre ordenes buy_limit, stoploss y takeprofit 
+    sl_price_data = []
+    tp_price_data = []
+    buy_price_data = []
+
+
+    def __init__(self):
+        self.signal = 'NEUTRO'
+        self.order_id = 0
+
+        #Trades y Orders para gestion de resultados
+        self.orders = {}
+        self.trade = {}
+        self.df_trades = pd.DataFrame(columns=self.df_trades_columns)
+        self.trades = {}
+        self.executed_order = False
+
+        self.quote_qty = 0
+        self.interval_id = ''
+        self.bot_id = None
+
+        self.base_asset = ''
+        self.quote_asset = ''
+        self.qd_price = 0
+        self.qd_qty = 0
+        self.qd_quote = 0
+        
+        self.backtesting = True
+        self.exchange = None
+        self.wallet_base = 0.0
+        self.wallet_quote = 0.0
+
+        self.row = pd.DataFrame()
+
 
     def set(self, parametros):
         for v in parametros:
             self.__setattr__(parametros[v]['c'], parametros[v]['v'])
-
+    
     def __setattr__(self, prm, val):
+            
         type = 'str'
-
         if prm in self.parametros:
-
             type = self.parametros[prm]['t']
             if type == 'perc' or type == 'float':
                 self.__dict__[prm] = float(val)
             elif type == 'int':
                 self.__dict__[prm] = int(val)
+            elif type == 'bin': #Binario
+                self.__dict__[prm] = 1 if int(val)>0 else 0
             else:
                 self.__dict__[prm] = str(val)
-        
         else:
             self.__dict__[prm] = val
 
     def valid(self):
         raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo valid()')
-    
     def get_symbols(self):
         raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo get_symbols()')
-    
-    def signal(self,df):
-        raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo signal(df)')
-
-    def add_order(self,qty, side, flag, type, limit_price, delta_perc, activation_price):
-        price = 0.0
-        completed = False
-        self.orderid += 1
-        orderid = self.orderid
-        comision = 0.0
-        new_order = pd.DataFrame([[self.datetime, self.unix_dt, orderid, qty, price, side, flag, type, completed, limit_price, delta_perc, activation_price,comision]], columns=self.order_columns)
-        self.orders = pd.concat([self.orders, new_order], ignore_index=True) 
-                
-        if type == self.ORD_TYPE_MARKET:
-            if self.execute_order(orderid):
-                return orderid
-            else:
-                return 0
-            
-        return orderid
-    
-    def check_open_orders(self):
-        open_orders = self.get_open_orders()
-
-        executed = False
-
-        for i,order in open_orders.iterrows():
-
-            if order['type'] == self.ORD_TYPE_LIMIT:
-                
-                if order['side'] == self.ORD_SIDE_BUY:
-                    if self.k_low <= order['limit_price']:
-                        if self.execute_order(order['orderid']):
-                            executed = True
-                        
-                if order['side'] == self.ORD_SIDE_SELL and order['flag'] == self.ORD_FLAG_TAKEPROFIT:
-                    if self.k_high >= order['limit_price']:
-                        if self.execute_order(order['orderid']):
-                            executed = True
-                        
-                if order['side'] == self.ORD_SIDE_SELL and order['flag'] == self.ORD_FLAG_STOPLOSS:
-                    if self.k_low <= order['limit_price']:
-                        if self.execute_order(order['orderid']):
-                            executed = True
-                        
-            #if order['type'] == self.ORD_TYPE_TRAILING:
-            #    #verificar que el minimo no haya agarrado el stop por trailing
-            #    #Actualizar limit_price si es que el maximo/minimo es mayor/menor al anterior con referencia al delta y el high/low
-            #    if order['side'] == self.ORD_SIDE_BUY:
-            #        pass
-            #    if order['side'] == self.ORD_SIDE_SELL:
-            #        pass
-
-        return executed
-
-    def get_open_orders(self):
-        return self.orders[self.orders['completed'] == False]
-    
-    def is_order(self,orderid):
-        order = self.orders[self.orders['orderid'] == orderid]
-        if not order.empty:
-            return True
-        return False
-
-    def get_order(self,orderid):
-        order = self.orders[self.orders['orderid'] == orderid]
-        return order.iloc[0]
-
-    def is_order_completed(self,orderid):
-        order = self.orders[self.orders['orderid'] == orderid]
-        return order['completed'].iloc[0]
-    
-    def open_orders_qty(self):
-        return self.get_open_orders['datetime'].count()
-    
-    def delete_order(self,orderid):
-        self.orders = self.orders.drop(self.orders[self.orders['orderid'] == orderid].index)
-    
-    def cancel_open_orders(self):
-        self.orders = self.orders.drop(self.orders[self.orders['completed'] == False].index)
-    
-    #Si se intenta ejecutar una orden de venta con qty = 0, lo que hace es liquidar todas las unidades definidas en self.wallet_base
-    def execute_order(self,orderid):
-        order = self.orders.loc[self.orders['orderid'] == orderid]
-        i = order.iloc[0].name
-        side = order.iloc[0]['side']
-        qty = order.iloc[0]['qty'] 
-        type = order.iloc[0]['type']
-        flag = order.iloc[0]['flag']
-        if type == self.ORD_TYPE_MARKET:
-            price = self.price
-        else:
-            price = order.iloc[0]['limit_price']
-        comision = (price*qty) * (self.exch_comision_perc/100)
-        
-        if side == self.ORD_SIDE_BUY:
-            quote_to_sell = qty*price
-            new_wallet_base = round(self.wallet_base + qty,self.qd_qty)
-            new_wallet_quote = round(self.wallet_quote - quote_to_sell,self.qd_quote)
-            if new_wallet_base >= 0 and new_wallet_quote >= 0:
-                self.wallet_base = new_wallet_base 
-                self.wallet_quote = new_wallet_quote - comision
-                self.orders.loc[self.orders['orderid'] == orderid, ['datetime', 'price', 'completed','comision']] = [self.datetime, price, True, comision]
-                return True
-            else:
-                self.delete_order(orderid)
-        
-        elif side == self.ORD_SIDE_SELL:
-            
-            if qty == 0:
-                qty = self.wallet_base
-            quote_to_buy = qty*price
-            new_wallet_base = round(self.wallet_base - qty,self.qd_qty)
-            new_wallet_quote = round(self.wallet_quote + quote_to_buy,self.qd_quote)
-            if new_wallet_base >= 0 and new_wallet_quote >= 0:
-                self.wallet_base = new_wallet_base 
-                self.wallet_quote = new_wallet_quote - comision
-                self.orders.loc[self.orders['orderid'] == orderid, ['datetime', 'price', 'completed','comision','qty']] = [self.datetime, price, True, comision, qty]
-
-                return True
-            else:
-                self.delete_order(orderid)
-        
-        return False
-
-    def order_market(self,side,qty,flag):
-        limit_price = None
-        delta_perc = None
-        activation_price = None
-        return self.add_order(qty, side, flag, self.ORD_TYPE_MARKET, limit_price, delta_perc, activation_price)
-
-    def order_market_buy(self,qty,flag):
-        return self.order_market(self.ORD_SIDE_BUY,qty,flag)
-	
-    def order_market_sell(self,qty,flag):
-        return self.order_market(self.ORD_SIDE_SELL,qty,flag)
-    
-
-    def order_limit(self,side,qty,limit_price,flag):
-        delta_perc = None
-        activation_price = None
-        return self.add_order(qty, side, flag, self.ORD_TYPE_LIMIT, limit_price, delta_perc, activation_price)
-
-    def order_limit_buy(self,qty,limit_price,flag):
-        return self.order_limit(self.ORD_SIDE_BUY,qty,limit_price,flag)
-	
-    def order_limit_sell(self,qty,limit_price,flag):
-        if flag != self.ORD_FLAG_STOPLOSS and flag != self.ORD_FLAG_TAKEPROFIT:
-            return False
-        return self.order_limit(self.ORD_SIDE_SELL,qty,limit_price,flag)
-    
-    def make_trades(self):
-        for i, order in self.orders.iterrows():
-            if self.trade == {}: # Open Trade
-                self.trade['start'] = order['datetime']
-                self.trade['flag'] = order['flag']
-                self.trade['comision'] = order['comision']
-                if order['side'] == self.ORD_SIDE_BUY:
-                    self.trade['buy_qty'] = order['qty']
-                    self.trade['buy_quote'] = round(order['qty']*order['price'],self.qd_quote)
-                    self.trade['sell_qty'] = 0.0
-                    self.trade['sell_quote'] = 0.0
-                elif order['side'] == self.ORD_SIDE_SELL:
-                    self.trade['buy_qty'] = 0.0
-                    self.trade['buy_quote'] = 0.0
-                    self.trade['sell_qty'] = order['qty']
-                    self.trade['sell_quote'] = round(order['qty']*order['price'],self.qd_quote)
-                self.trade['price_start'] = order['price']
-
-            else:
-                self.trade['end'] = order['datetime']
-                self.trade['flag'] = order['flag']
-                self.trade['comision'] = self.trade['comision']+order['comision']
-                if order['side'] == self.ORD_SIDE_BUY:
-                    self.trade['buy_qty'] = self.trade['buy_qty']+order['qty']
-                    self.trade['buy_quote'] = self.trade['buy_quote']+round(order['qty']*order['price'],self.qd_quote)
-                elif order['side'] == self.ORD_SIDE_SELL:
-                    self.trade['sell_qty'] = self.trade['sell_qty']+order['qty']
-                    self.trade['sell_quote'] = self.trade['sell_quote']+round(order['qty']*order['price'],self.qd_quote)            
-            
-            if (self.trade['buy_qty'] == self.trade['sell_qty']) or (self.trade['buy_quote'] == self.trade['sell_quote']):
-                start = self.trade['start']
-                buy_price = round(self.trade['buy_quote']/self.trade['buy_qty'],self.qd_price)
-                qty = self.trade['buy_qty']
-                end = self.trade['end']
-                sell_price = round(self.trade['sell_quote']/self.trade['sell_qty'],self.qd_price)
-                flag = self.trade['flag']
-                dif = self.trade['end'].to_pydatetime() - self.trade['start'].to_pydatetime()
-                days = dif.total_seconds() / 60 / 60 / 24
-                result_usd = self.trade['sell_quote'] - self.trade['buy_quote'] - self.trade['comision']
-                result_perc = round((((sell_price/buy_price)-1)*100) - ((self.exch_comision_perc) * 2) , 2)
-                trade = pd.DataFrame([[start,buy_price,qty,end,sell_price,flag,days,result_usd,result_perc]], columns=self.trades_columns)
-                self.trades = pd.concat([self.trades, trade], ignore_index=True)
-                
-                self.trade = {}
-
+    def start(self):
+        raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo start(df)')
+    def next(self):
+        raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo next(df)')
 
     def backtest(self,klines,from_date,to_date,to_get='completed'):
 
@@ -297,13 +120,14 @@ class Bot_Core():
 
         self.wallet_base = 0.0
         self.wallet_quote = self.quote_qty
-
         
         #Aplicar la señal de compra/venta
-        klines = self.signal(klines)
+    
+        self.klines = klines.copy()
+        self.start()
         
         #quitando las velas previas a la fecha de start
-        self.klines = klines[klines['datetime'] >= pd.to_datetime(from_date)]
+        self.klines = self.klines[self.klines['datetime'] >= pd.to_datetime(from_date)]
         self.klines = self.klines.reset_index(drop=True)
 
         velas = int(self.klines['datetime'].count())
@@ -314,33 +138,22 @@ class Bot_Core():
                     '<br>Se requiere un minimo de '+str(self.VELAS_PREVIAS)+' velas para poder realizar el Backtesting',
                 }
             return res
-            
+        
+        
+        #Se ejecuta la funcion next para cada registro del dataframe
+        proc_start = dt.datetime.now()
+        self.klines['usd_strat'] = self.klines.apply(self._next, axis=1)
+        proc_end = dt.datetime.now()
+        proc_diff = proc_end-proc_start
+        print('Duracion: ',f"Proceso demoro {proc_diff.total_seconds():.4f} segundos.")
 
         #Calculando HOLD para comparar contra la operacion
         # El hold es la compra del capital a invertir al precio open al inicio + el saldo que queda en USD
         price_to_hold = self.klines.loc[0]['open'] 
-        quote_to_hold = round( self.quote_qty*(self.quote_perc/100) , self.qd_quote )
+        quote_to_hold = round( self.quote_qty, self.qd_quote )
         qty_to_hold = round( ( quote_to_hold / price_to_hold ) , self.qd_qty ) 
-        usd_in_hold = round( self.quote_qty - quote_to_hold , self.qd_quote )
-        self.klines['base_qty'] = 0.0
-        self.klines['quote_qty'] = 0.0
-        self.klines['usd_hold'] = round( self.klines['open'] * qty_to_hold + usd_in_hold, self.qd_quote )
-
+        self.klines['usd_hold'] = round( self.klines['open'] * qty_to_hold , self.qd_quote )
         self.klines['unix_dt'] = (self.klines['datetime'] - dt.datetime(1970, 1, 1)).dt.total_seconds() * 1000 +  10800000
-
-        #Se ejecuta la funcion next para cada registro del dataframe
-        proc_start = dt.datetime.now()
-        self.klines['usd_strat'] = self.klines.apply(self._next, axis=1)
-             
-        
-        print('')
-        proc_end = dt.datetime.now()
-        proc_diff = proc_end-proc_start
-        print('Duracion: ',f"Proceso demoro {proc_diff.total_seconds() / 60:.4f} minutos.")
-
-        ms_x_kline = (proc_diff.total_seconds()*1000)/(velas*1000)
-        print('Milisegundos x Vela: ',ms_x_kline*1000)
-        self.cancel_open_orders()
 
         #Procesando eventos de Señanes de compra/venta y ordenes
         if self.interval_id < '2d01':
@@ -358,7 +171,7 @@ class Bot_Core():
         else:
             new_df = self.klines[['datetime','unix_dt','open','high','low','close','volume','usd_hold','usd_strat']]
 
-        rename_columns = {'unix_dt': 'dt', 
+        rename_columns = {'datetime': 'dt', 
                           'open': 'o', 
                           'high': 'h', 
                           'low': 'l', 
@@ -366,105 +179,314 @@ class Bot_Core():
                           'volume': 'v', 
                           'usd_hold': 'uH', 
                           'usd_strat': 'uW'}
-        ohlc = new_df[['unix_dt','open','high','low','close','volume','usd_hold','usd_strat']].rename(columns=rename_columns).to_dict(orient='records')
+        ohlc = new_df[['datetime','open','high','low','close','volume','usd_hold','usd_strat']].rename(columns=rename_columns).to_dict(orient='records')
     
-        new_df = self.klines[['unix_dt','signal','low','high']]
-        sB = self.klines[self.klines['signal']=='COMPRA'][['unix_dt','low']].rename(columns={'unix_dt':'dt','low':'sB'}).to_dict(orient='records')
-        sS = self.klines[self.klines['signal']=='VENTA'][['unix_dt','high']].rename(columns={'unix_dt':'dt','high':'sS'}).to_dict(orient='records')
+        new_df = self.klines[['datetime','signal','low','high']]
+        sB = self.klines[self.klines['signal']=='COMPRA'][['datetime','low']].rename(columns={'datetime':'dt','low':'sB'}).to_dict(orient='records')
+        sS = self.klines[self.klines['signal']=='VENTA'][['datetime','high']].rename(columns={'datetime':'dt','high':'sS'}).to_dict(orient='records')
         events = sB+sS
-
+        events += self.sl_price_data+self.tp_price_data+self.buy_price_data
         if to_get=='ind':
             return self.get_resultados()
         
         elif to_get=='completed':
-
             self.make_trades()
             res = {'ok': True,
                 'error': False,
                 'order_side': { 
-                        self.ORD_SIDE_BUY:'BUY',
-                        self.ORD_SIDE_SELL:'SELL',
+                        Order.SIDE_BUY:'BUY',
+                        Order.SIDE_SELL:'SELL',
                         },
                 'order_flag': { 
-                        self.ORD_FLAG_SIGNAL:'SIGNAL',
-                        self.ORD_FLAG_STOPLOSS:'STOP-LOSS',
-                        self.ORD_FLAG_TAKEPROFIT:'TAKE-PROFIT',
+                        Order.FLAG_SIGNAL:'SIGNAL',
+                        Order.FLAG_STOPLOSS:'STOP-LOSS',
+                        Order.FLAG_TAKEPROFIT:'TAKE-PROFIT',
+                        },
+                'order_type': { 
+                        Order.TYPE_MARKET:'',
+                        Order.TYPE_LIMIT:'LIMIT',
+                        Order.TYPE_TRAILING:'TRAIL',
                         },
                 'qd_price': self.qd_price, 
                 'qd_qty': self.qd_qty, 
                 'qd_quote': self.qd_quote, 
                 'data': [], 
                 'events': [],
-                'orders': [], 
                 'trades': [], 
                 }
-
-            for i,trade in self.trades.iterrows():
+            
+            #Trades (Lista de trades y Events)
+            by = []
+            sls = []
+            slsl = []
+            sltp = []
+            for i,trade in self.df_trades.iterrows():
+                
                 trd = [
-                    trade['start'],
+                    trade['start'].strftime('%d/%m/%Y %H:%M'),
                     trade['buy_price'],
                     trade['qty'],
-                    trade['end'],
+                    trade['end'].strftime('%d/%m/%Y %H:%M'),
                     trade['sell_price'],
                     trade['flag'],
                     trade['days'],
                     trade['result_usd'],
                     trade['result_perc'],
-                    '',
-                    '',
+                    trade['type'],
                     ]
                 res['trades'].append(trd)
 
-            for i,order in self.orders.iterrows():
-                ord = [
-                        order['datetime'],
-                        self.symbol,
-                        order['side'],
-                        order['qty'],
-                        order['price'],
-                        order['flag'],
-                        round(order['comision'],4),
-                    ]
-                res['orders'].append(ord)
-
-            #Ordenes ejecutadas a Events
-            by = self.orders[self.orders['side']==self.ORD_SIDE_BUY][['unix_dt','price']].rename(columns={'unix_dt':'dt','price':'by'}).to_dict(orient='records')
-            ventas = self.orders['side']==self.ORD_SIDE_SELL
-            signal = self.orders['flag']==self.ORD_FLAG_SIGNAL
-            sls = self.orders[ventas & signal][['unix_dt','price']].rename(columns={'unix_dt':'dt','price':'sls'}).to_dict(orient='records')
-            signal = self.orders['flag']==self.ORD_FLAG_STOPLOSS
-            slsl = self.orders[ventas & signal][['unix_dt','price']].rename(columns={'unix_dt':'dt','price':'slsl'}).to_dict(orient='records')
-            signal = self.orders['flag']==self.ORD_FLAG_TAKEPROFIT
-            sltp = self.orders[ventas & signal][['unix_dt','price']].rename(columns={'unix_dt':'dt','price':'sltp'}).to_dict(orient='records')
-
+            
+            for i in self.trades:
+                order = self.trades[i]
+                #unix_dt = order.datetime.timestamp() * 1000 +  10800000
+                
+                if order.side==Order.SIDE_BUY:
+                    by.append({'dt':order.datetime,'by':order.price})
+                if order.side==Order.SIDE_SELL and order.flag == Order.FLAG_SIGNAL:
+                    sls.append({'dt':order.datetime,'sls':order.price})
+                if order.side==Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
+                    slsl.append({'dt':order.datetime,'slsl':order.price})
+                if order.side==Order.SIDE_SELL and order.flag == Order.FLAG_TAKEPROFIT:
+                    sltp.append({'dt':order.datetime,'sltp':order.price})
             events += by+sls+slsl+sltp
+            
 
             res['data'] = ohlc
             res['events'] = events
             
             res['brief'] = self.get_brief()
-                            
             return res
     
     def _next(self,row):
             
-        self.k_high = row['high']
-        self.k_low = row['low']
-        self.price = row['open']
-        self.unix_dt = row['unix_dt']
-        self.datetime = row['datetime']
+        self.row = row
+        self.price = self.row['open']
+        self.datetime = self.row['datetime']
+        self.executed_order = self.check_orders()
+        self.next()
 
-        #self.update_pos_limits()
+        #Gestion de stoploss y takeprofit price
+        for i in self.orders: #Ordenes abiertas
+            order = self.orders[i]
+            if order.flag == Order.FLAG_STOPLOSS:
+                self.sl_price_data.append({'dt': self.datetime,'SL':order.limit_price})
+            elif order.flag == Order.FLAG_TAKEPROFIT:
+                self.tp_price_data.append({'dt': self.datetime,'TP':order.limit_price})
+            elif order.side == Order.SIDE_BUY:
+                self.buy_price_data.append({'dt': self.datetime,'BY':order.limit_price})
 
-        if self.check_open_orders(): #Devuelve True si se ejecuto alguna orden abierta (Limit o Trail)
-            self.cancel_open_orders()
-        else:
-            self.next()
+
+        if row.name == self.klines.iloc[-1].name: #Se esta ejecutando la ultima vela
+            if self.wallet_base > 0:
+                self.close(Order.FLAG_SIGNAL)
+            self.cancel_orders()
 
         usd_strat = round( self.price * self.wallet_base + self.wallet_quote, self.qd_quote )
         
-        self.signal = row['signal']
+        self.signal = self.row['signal']
         return usd_strat
+
+    def buy(self,qty,flag):
+        if self.wallet_quote >= qty*self.price and qty*self.price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+            self.order_id += 1
+            qty = round_down(qty,self.qd_qty)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_BUY,qty,self.price,flag)
+            self.orders[order.id] = order
+            if self.execute_order(order.id):
+                return order.id
+
+        return 0
+
+    def sell(self,qty,flag):
+        if self.wallet_base >= qty and qty*self.price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+            self.order_id += 1
+            qty = round(qty,self.qd_qty)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
+            self.orders[order.id] = order
+            if self.execute_order(order.id): 
+                return order.id
+        return 0
+        
+    def sell_limit(self,qty,flag,limit_price):
+        if self.wallet_base >= qty and qty*limit_price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+            self.order_id += 1
+            qty = round_down(qty,self.qd_qty)
+            limit_price = round(limit_price,self.qd_price)
+            order = Order(self.order_id,Order.TYPE_LIMIT,self.row['datetime'],Order.SIDE_SELL,qty,limit_price,flag)
+            self.orders[order.id] = order
+            return order.id
+        return 0  
+    
+    def buy_limit(self,qty,flag,limit_price):
+        if self.wallet_quote >= qty*self.price and qty*limit_price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+            self.order_id += 1
+            qty = round_down(qty,self.qd_qty)
+            limit_price = round(limit_price,self.qd_price)
+            order = Order(self.order_id,Order.TYPE_LIMIT,self.row['datetime'],Order.SIDE_BUY,qty,limit_price,flag)
+            self.orders[order.id] = order
+            return order.id
+        return 0    
+    
+    def sell_trail(self,qty,flag,limit_price,activation_price,trail_perc):
+        if self.wallet_base >= qty and qty*limit_price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+            self.order_id += 1
+            qty = round(qty,self.qd_qty)
+            order = Order(self.order_id,Order.TYPE_TRAILING,self.row['datetime'],Order.SIDE_SELL,qty,limit_price,flag)
+            order.activation_price = activation_price
+            order.trail_perc = trail_perc
+            self.orders[order.id] = order
+            return order.id
+        return 0    
+          
+    def close(self,flag): #Vende el total existente en self.wallet_base
+        self.order_id += 1
+        qty = self.wallet_base
+        order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
+        self.orders[order.id] = order
+        if self.execute_order(order.id):
+            return order.id
+        return 0
+        
+    def cancel_orders(self):
+        self.orders = {}
+    
+    def check_orders(self):
+        
+        executed = False
+        orders = self.orders.copy() #Se hace una copia porque si se ejecuta alguna orden, se modifica el tamaño del diccionario y eso afecta al bucle for
+        for i in orders:
+            order  = self.orders[i]
+            if order.type == Order.TYPE_LIMIT or order.type == Order.TYPE_TRAILING:
+                
+                if order.side == Order.SIDE_BUY:
+                    if self.row['low'] <= order.limit_price:
+                        executed =  self.execute_order(order.id)
+                        
+                if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_TAKEPROFIT:
+                    if self.row['high'] >= order.limit_price:
+                        executed = self.execute_order(order.id)
+                        
+                if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
+                    if self.row['low'] <= order.limit_price:
+                        executed = self.execute_order(order.id)
+            
+            #Actualizando limit_price en caso que aplique
+            if not executed and order.type == Order.TYPE_TRAILING:
+                #Verifica si se activa el trailing
+                if order.side == Order.SIDE_SELL and self.row['high'] > order.activation_price:
+                    order.active = True
+
+                #Venta por Stop-Loss
+                if order.active and order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
+                    if order.limit_price < self.row['high']*(1-(order.trail_perc/100)):
+                        order.limit_price = self.row['high']*(1-(order.trail_perc/100))
+                
+                #Venta por Take-Profit
+                if order.active and order.side == Order.SIDE_SELL and order.flag == Order.FLAG_TAKEPROFIT:
+                    if order.limit_price < self.row['high']*(1+(order.trail_perc/100)):
+                        order.limit_price = self.row['high']*(1+(order.trail_perc/100))
+
+        return executed
+    
+    def execute_order(self,orderid):
+        
+        order = self.orders[orderid]
+        order.price = order.limit_price
+        order.datetime = self.row['datetime']  
+        if order.type == Order.TYPE_TRAILING and not order.active:
+            order.type = Order.TYPE_LIMIT
+        
+        if self.print_orders:
+            if order.side == Order.SIDE_SELL:
+                print(f'\033[31m{order}\033[0m',end=' -> ')
+            else:
+                print(f'\033[32m{order}\033[0m',end=' -> ')
+
+        execute = False
+        if order.side == Order.SIDE_BUY:
+            quote_to_sell = round(order.qty*order.price,self.qd_quote)
+            comision = round(quote_to_sell*(self.exch_comision_perc/100),4)
+            new_wallet_base = round(self.wallet_base + order.qty,self.qd_qty)
+            new_wallet_quote = round(self.wallet_quote - quote_to_sell ,self.qd_quote)
+            if new_wallet_base >= 0 and new_wallet_quote >= 0:
+                self.wallet_base = new_wallet_base 
+                self.wallet_quote = new_wallet_quote - comision
+                execute = True
+
+        elif order.side == Order.SIDE_SELL:
+            quote_to_buy = round(order.qty*order.price,self.qd_quote)
+            comision = round(quote_to_buy*(self.exch_comision_perc/100),4)
+            new_wallet_base = round(self.wallet_base - order.qty,self.qd_qty)
+            new_wallet_quote = round(self.wallet_quote + quote_to_buy,self.qd_quote)
+            if new_wallet_base >= 0 and new_wallet_quote >= 0:
+                self.wallet_base = new_wallet_base 
+                self.wallet_quote = new_wallet_quote - comision
+                execute = True
+
+        del self.orders[orderid] 
+        if execute:
+            self.trades[order.id] = order
+            if self.print_orders:
+                print(f'\033[32mOK\033[0m')
+        else:
+            if self.print_orders:
+                print(f'\033[31mCANCELED\033[0m')
+
+        return execute
+        
+    def make_trades(self):
+        
+        for i in self.trades:
+            order = self.trades[i]
+            
+            order.comision = round((order.price*order.qty)*(self.exch_comision_perc/100),4)
+            self.trades[i].comision = order.comision
+            if self.trade == {}: # Open Trade
+                self.trade['start'] = order.datetime
+                self.trade['flag'] = order.flag
+                self.trade['type'] = order.type
+                self.trade['comision'] = order.comision
+                if order.side == Order.SIDE_BUY:
+                    self.trade['buy_qty'] = order.qty
+                    self.trade['buy_quote'] = round(order.qty*order.price,self.qd_quote)
+                    self.trade['sell_qty'] = 0.0
+                    self.trade['sell_quote'] = 0.0
+                elif order.side == Order.SIDE_SELL:
+                    self.trade['buy_qty'] = 0.0
+                    self.trade['buy_quote'] = 0.0
+                    self.trade['sell_qty'] = order.qty
+                    self.trade['sell_quote'] = round(order.qty*order.price,self.qd_quote)
+                self.trade['price_start'] = order.price
+
+            else:
+                
+                self.trade['end'] = order.datetime
+                self.trade['flag'] = order.flag
+                self.trade['type'] = order.type
+                self.trade['comision'] = self.trade['comision']+order.comision
+                if order.side == Order.SIDE_BUY:
+                    self.trade['buy_qty'] = self.trade['buy_qty']+order.qty
+                    self.trade['buy_quote'] = self.trade['buy_quote']+round(order.qty*order.price,self.qd_quote)
+                elif order.side == Order.SIDE_SELL:
+                    self.trade['sell_qty'] = self.trade['sell_qty']+order.qty
+                    self.trade['sell_quote'] = self.trade['sell_quote']+round(order.qty*order.price,self.qd_quote)            
+            
+            if (round(self.trade['buy_qty'] - self.trade['sell_qty'],self.qd_qty) == 0) or (round(self.trade['buy_quote'] - self.trade['sell_quote'],self.qd_quote) == 0):
+                start = self.trade['start']
+                buy_price = round(self.trade['buy_quote']/self.trade['buy_qty'],self.qd_price)
+                qty = self.trade['buy_qty']
+                end = self.trade['end']
+                sell_price = round(self.trade['sell_quote']/self.trade['sell_qty'],self.qd_price)
+                flag = self.trade['flag']
+                type = self.trade['type']
+                dif = self.trade['end'].to_pydatetime() - self.trade['start'].to_pydatetime()
+                days = dif.total_seconds() / 60 / 60 / 24
+                result_usd = self.trade['sell_quote'] - self.trade['buy_quote'] - self.trade['comision']
+                result_perc = round((((sell_price/buy_price)-1)*100) - ((self.exch_comision_perc) * 2) , 2)
+                trade = pd.DataFrame([[start,buy_price,qty,end,sell_price,flag,type,days,result_usd,result_perc]], columns=self.df_trades_columns) 
+                self.df_trades = pd.concat([self.df_trades, trade], ignore_index=True) 
+                self.trade = {}
 
     def get_brief(self):
         kline_ini = self.klines.loc[self.klines.index[0]]
@@ -483,7 +505,7 @@ class Bot_Core():
         dif_days = kline_end['datetime'] - kline_ini['datetime']
         dias_operando = round(dif_days.total_seconds() / 3600 / 24,1)
         resultado_mensual = (resultado_perc/dias_operando)*self.DIAS_X_MES
-        dias_trades = self.trades['days'].sum()
+        dias_trades = self.df_trades['days'].sum()
         dias_sin_operar = dias_operando - dias_trades
 
         
@@ -517,19 +539,19 @@ class Bot_Core():
 
         
         #operaciones
-        trades_desc = self.trades.describe()
-        trades_tot = self.trades['start'].count()
+        trades_desc = self.df_trades.describe()
+        trades_tot = self.df_trades['start'].count()
         
         if trades_tot > 0:
 
-            trades_pos = np.where(self.trades['result_perc'] > 0, 1, 0).sum()
+            trades_pos = np.where(self.df_trades['result_perc'] > 0, 1, 0).sum()
             ratio_trade_pos = (trades_pos/trades_tot)*100 
             max_ganancia = trades_desc.loc['max', 'result_perc']
             max_perdida = trades_desc.loc['min', 'result_perc']
-            ratio_perdida_ganancia = self.ind_ratio_ganancia_perdida(self.trades)
+            ratio_perdida_ganancia = self.ind_ratio_ganancia_perdida(self.df_trades)
             ratio_max_perdida_ganancia = ((-max_ganancia) / max_perdida) if max_ganancia != 0 else float('inf')
             trades_x_mes = trades_tot / ( dias_operando / self.DIAS_X_MES)
-            maximo_operaciones_negativas_consecutivas = self.ind_maximo_operaciones_negativas_consecutivas(self.trades)
+            maximo_operaciones_negativas_consecutivas = self.ind_maximo_operaciones_negativas_consecutivas(self.df_trades)
 
             brief.append(['operaciones', 'Total de operaciones',    
                         f'{trades_tot}'])    
@@ -568,7 +590,7 @@ class Bot_Core():
             ratio_calmar = self.ind_ratio_calmar(self.klines)
             modificacion_sharpe = self.ind_indice_modificacion_sharpe(self.klines)
             umbral_objetivo_riesgo = 0.02  # Umbral objetivo de riesgo: 2%
-            ratio_sortino_modificado = self.ind_ratio_sortino_modificado(self.trades,umbral_objetivo_riesgo)
+            ratio_sortino_modificado = self.ind_ratio_sortino_modificado(self.df_trades,umbral_objetivo_riesgo)
 
 
             brief.append(['indicadores', 'Volatilidad del capital',    
@@ -605,7 +627,7 @@ class Bot_Core():
         kline_ini = self.klines.loc[self.klines.index[0]]
         kline_end = self.klines.loc[self.klines.index[-1]]
 
-        df_trades = self.trades
+        df_trades = self.df_trades
         df_data = self.klines
 
         dif_days = kline_end['datetime'] - kline_ini['datetime']
@@ -764,3 +786,18 @@ class Bot_Core():
             ratio_sortino_modificado = (retorno_total - umbral_objetivo_riesgo) / desviacion_negativa
             return ratio_sortino_modificado
         return 0.0
+    
+    def is_order(self,orderid):
+        if orderid in self.orders:
+            return True
+        return False
+
+    def get_order(self,orderid):
+        if orderid in self.orders:
+            return self.orders[orderid]
+        return None
+
+    def is_order_completed(self,orderid):
+        if orderid in self.trades:
+            return True
+        return False

@@ -98,6 +98,15 @@
                     '</select>'+
                     '</div></td>';
         }
+        else if (type == 'bin')
+        {
+            html += '<td><div class="input-group ">'+
+                    '<select class="form-control value" id="'+parametro+'_v">'+
+                    '<option value="1" '+(value=='1'?'SELECTED':'')+' >Si</option>'+
+                    '<option value="0" '+(value=='0'?'SELECTED':'')+' >No</option>'+
+                    '</select>'+
+                    '</div></td>';
+        }
         else
         {
             html += '<input class="form-control value " id="'+parametro+'_v"  value="'+value+'">';

@@ -10,18 +10,19 @@ class BotADX(Bot_CoreLong):
                   'o cuando recibe una señal de Venta.'
     
     
-    def signal(self,df):
+    def start(self):
         fast = 7
         slow = 14
-        df['fast'] = df['close'].ewm(span=fast, adjust=False).mean()
-        df['slow'] = df['close'].ewm(span=slow, adjust=False).mean()
-        df['cross'] = ((df['fast']/df['slow'])-1)*100
+        self.klines['fast'] = self.klines['close'].ewm(span=fast, adjust=False).mean()
+        self.klines['slow'] = self.klines['close'].ewm(span=slow, adjust=False).mean()
+        self.klines['cross'] = ((self.klines['fast']/self.klines['slow'])-1)*100
 
-        df['Posicion'] = np.where(df['cross'] > 0, 'COMPRA',None)
-        df['Posicion'] = np.where(df['cross'] < 0, 'VENTA',df['Posicion'])
+        self.klines['Posicion'] = np.where(self.klines['cross'] > 0, 'COMPRA',None) 
+        self.klines['Posicion'] = np.where(self.klines['cross'] < 0, 'VENTA',self.klines['Posicion'])
 
-        df['Alternancia'] = np.logical_and( (df[['Posicion']] != df[['Posicion']].shift() ).any(axis=1), (df['cross'].shift() != 0) )
-        df['signal'] = np.where(df['Alternancia'], df['Posicion'], 'NEUTRO')
-        df['signal'] = np.where(df['cross']==0, 'NEUTRO',df['signal'] )
-        df.drop(columns = ['fast','slow','cross','Posicion','Alternancia'],inplace=True) 
-        return df
+        self.klines['Alternancia'] = np.logical_and( (self.klines[['Posicion']] != self.klines[['Posicion']].shift() ).any(axis=1), (self.klines['cross'].shift() != 0) )
+        self.klines['signal'] = np.where(self.klines['Alternancia'], self.klines['Posicion'], 'NEUTRO')
+        self.klines['signal'] = np.where(self.klines['cross']==0, 'NEUTRO',self.klines['signal'] )
+        self.klines.drop(columns = ['fast','slow','cross','Posicion','Alternancia'],inplace=True) 
+
+        self.print_orders = False 

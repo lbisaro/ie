@@ -203,6 +203,7 @@ class BotBaseLong(BotBase):
         self.klines = self.klines[self.klines['datetime'] >= pd.to_datetime(from_date)]
         self.klines = self.klines.reset_index(drop=True)
         
+        
         end = time.time()
         duration = end-start
         self.res['duration_klines'] = round(duration,2)
@@ -248,6 +249,7 @@ class BotBaseLong(BotBase):
             timestamp = pd.Timestamp(kline['datetime']).timestamp()
             unix_dt = int( (timestamp*1000) +  10800000 ) #Convierte a milisegundos y agrega 3 horas 
             data = {'dt': unix_dt,
+                    'dt_': kline['datetime'],
                     'o': kline['open'],
                     'h': kline['high'],
                     'l': kline['low'],
@@ -264,8 +266,8 @@ class BotBaseLong(BotBase):
                 data['sS'] = k_sig_sell
             
             self.bt_index = pd.to_datetime(self.klines.iloc[i]['datetime']).strftime('%Y-%m-%d %H:%M')
-             
-            signal = self.klines.iloc[i-1]['signal']
+            
+            signal = self.klines.iloc[i-1]['signal'] if i>0 else 'NEUTRO'
 
             venta_por_SLTP = False
             if self.stop_loss_price:
@@ -292,7 +294,6 @@ class BotBaseLong(BotBase):
                         self.take_profit_price = None 
 
             if not venta_por_SLTP and signal == 'COMPRA' and self.wallet_base == 0:
-                
                 if self.interes == 's': #Interes Simple
                     quote_qty = self.quote_qty if self.wallet_quote >= self.quote_qty else self.wallet_quote
                     quote_to_sell = round( quote_qty*(self.quote_perc/100) , self.qd_quote )

@@ -71,6 +71,9 @@
         //{% for k,prm in parametros.items %}
             addParametro('{{prm.c}}', '{{prm.d}}', '{{prm.v}}', '{{prm.t}}');
         //{% endfor %} 
+        $('#periodo').val('BTCUSDT 1d Alcista desde el 2020-09-07 al 2021-05-03');
+        //$('#periodo').val('BTCUSDT 1d Completo desde el 2021-01-01 al 2023-07-31');
+        //$('#periodo').val('BTCUSDT 1h Completo desde el 2021-01-01 al 2023-07-31');
     })
 
 
@@ -102,6 +105,15 @@
                     '<select class="form-control value" id="'+parametro+'_v">'+
                     '<option value="c" '+(value=='c'?'SELECTED':'')+' >Compuesto</option>'+
                     '<option value="s" '+(value=='s'?'SELECTED':'')+' >Simple</option>'+
+                    '</select>'+
+                    '</div></td>';
+        }
+        else if (type == 'bin')
+        {
+            html += '<td><div class="input-group ">'+
+                    '<select class="form-control value" id="'+parametro+'_v">'+
+                    '<option value="1" '+(value=='1'?'SELECTED':'')+' >Si</option>'+
+                    '<option value="0" '+(value=='0'?'SELECTED':'')+' >No</option>'+
                     '</select>'+
                     '</div></td>';
         }
@@ -160,13 +172,19 @@
                 {
                     $('#add_resultado_title').html('BOT {{bot_class_name}}');
                     data = rsp.bt.data
+                    /*
                     timeUnit = 'minute';
                     if (rsp.parametros.interval_id.substring(1, 2) == 'd')
                         timeUnit = 'day';
                     else if (rsp.parametros.interval_id.substring(1, 2) == 'h')
                         timeUnit = 'hour';
-                    
-                    chartDraw(data, rsp.parametros.symbol, timeUnit )
+                    */
+                    timeUnit = 'day';
+                    if (rsp.bt.events)
+                        evnts = rsp.bt.events;
+                    else
+                        evnts = [];
+                    chartDraw(data, evnts, rsp.parametros.symbol, timeUnit )
                     infoDraw(rsp.bt);
                                        
                     showRun()

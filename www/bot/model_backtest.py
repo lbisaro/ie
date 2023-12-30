@@ -367,6 +367,12 @@ class Backtest(models.Model):
                     elif parametros[v]['v'] == 'c':
                         parametros[v]['str'] = 'Compuesto'
 
+                if parametros[v]['t'] == 'bin':
+                    if int(parametros[v]['v']) > 0:
+                        parametros[v]['str'] = 'Si'
+                    else:
+                        parametros[v]['str'] = 'No'
+                    
         return parametros
 
     def str_parametros(self):
@@ -376,7 +382,7 @@ class Backtest(models.Model):
             if (p != 'symbol') or (p == 'symbol' and values['v'] != 'BACKTEST'):
                 if str != '':
                     str += ', '
-                v = values['v']
+                v = values['str']
                 sn = values['sn']
                 str += f'{sn}: {v}'
         return str

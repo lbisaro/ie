@@ -2,6 +2,7 @@ from bot.model_kline import *
 import pandas as pd
 from scripts.Bot_Core import Bot_Core
 from scripts.functions import round_down
+from scripts.Bot_Core_utils import *
 
 class Bot_CoreLong(Bot_Core):
 
@@ -10,13 +11,20 @@ class Bot_CoreLong(Bot_Core):
     stop_loss = 0.0
     take_profit = 0.0
     interes = ''
+    trail = 1
+
+    #Gestion de ordenes y posicion tomada
+    position = False #Define si existe una posicion abierta
+    orderid_sl = 0 #id de la orden de Stop-Loss
+    orderid_tp = 0 #id de la orden de Take-Profit
 
     def __init__(self):
         self.symbol = ''
         self.quote_perc = 0.0
         self.stop_loss = 0.0
         self.take_profit = 0.0
-        self.interes = ''        
+        self.interes = '' 
+        self.trail = 0       
 
     descripcion = 'Bot Core v2 \n'\
                   'Ejecuta la compra al recibir una señal de Compra, '\
@@ -40,14 +48,14 @@ class Bot_CoreLong(Bot_Core):
                 'stop_loss': {
                         'c' :'stop_loss',
                         'd' :'Stop Loss',
-                        'v' :'2',
+                        'v' :'3',
                         't' :'perc',
                         'pub': True,
                         'sn':'SL', },
                 'take_profit': {
                         'c' :'take_profit',
                         'd' :'Take Profit',
-                        'v' :'0',
+                        'v' :'10',
                         't' :'perc',
                         'pub': True,
                         'sn':'TP', },
@@ -58,6 +66,13 @@ class Bot_CoreLong(Bot_Core):
                         't' :'t_int',
                         'pub': True,
                         'sn':'Int', },
+                'trail': {
+                        'c' :'trail',
+                        'd' :'Trail',
+                        'v' : 1,
+                        't' :'bin',
+                        'pub': True,
+                        'sn':'Trail', },
                 }
 
     def valid(self):
@@ -79,128 +94,56 @@ class Bot_CoreLong(Bot_Core):
     def get_symbols(self):
         return [self.symbol]
 
-    def execute(self,exchange,signal,price,wallet,pos_orders):
-        self.backtesting = False
-        json_rsp = {}
-        symbol_info = exchange.get_symbol_info(self.symbol)
-        self.base_asset = symbol_info['base_asset']
-        self.quote_asset = symbol_info['quote_asset']
-        self.qd_price = symbol_info['qty_decs_price']
-        self.qd_qty = symbol_info['qty_decs_qty']
-        self.qd_quote = symbol_info['qty_decs_quote']
-
-        #Calculo del estado de la posicion actual
-        base_qty = 0
-        base_in_usd = 0
-        quote_qty = 0
-        for order in pos_orders:
-            if order.completed == 0:
-                json_rsp['error'] = 'Existen ordenes incompletas'
-                return json_rsp
-            
-            order_quote = round( round(order.qty,self.qd_qty) * round(order.price,self.qd_price) , self.qd_quote)
-            if order.side == self.SIDE_BUY:
-                
-                quote_qty -= order_quote
-                base_qty += order.qty
-                base_in_usd += order_quote
-            else:
-                quote_qty += order_quote 
-                base_qty -= order.qty
-                base_in_usd -= order_quote
-        
-        base_qty    = round(base_qty,self.qd_qty)
-        base_in_usd = round(base_in_usd,self.qd_quote)
-        quote_qty   = round(quote_qty,self.qd_quote)
-
-        if base_qty > 0:
-            price_calculated = base_in_usd / base_qty
-            stop_loss_price = round( price_calculated - (price_calculated * ( self.stop_loss/100) ) , self.qd_price )
-            take_profit_price = round( price_calculated + (price_calculated * ( self.take_profit/100) ) , self.qd_price )
-
-        venta_por_SLTP = False
-        if base_qty > 0:
-            if self.stop_loss > 0 and stop_loss_price > price:
-                if wallet[self.base_asset]['free'] >= base_qty:
-                    qty = base_qty
-                    if self.market_sell(exchange,self.symbol,qty,self.FLAG_STOPLOSS):
-                        venta_por_SLTP = True
-                        json_rsp['execute'] = 'CLOSE'
-                    else:
-                        json_rsp['error'] = 'ORDER_NOT_PLACED'
-                
-            if not venta_por_SLTP and self.take_profit > 0 and take_profit_price < price:
-                if wallet[self.base_asset]['free'] >= base_qty:
-                    qty = base_qty
-                    if self.market_sell(exchange,self.symbol,qty,self.FLAG_TAKEPROFIT):
-                        json_rsp['execute'] = 'CLOSE'
-                    else:
-                        json_rsp['error'] = 'ORDER_NOT_PLACED'
-    
-        if not venta_por_SLTP and signal == 'COMPRA' and quote_qty == 0:
-            if self.interes == 's': #Interes Simple
-                quote_to_sell = round( self.quote_qty*(self.quote_perc/100) , self.qd_quote )
-            else: #Interes Compuesto
-                quote_to_sell = round( self.quote_qty*(self.quote_perc/100) , self.qd_quote )   
-            if wallet[self.quote_asset]['free'] >= quote_to_sell:
-                qty = round( ( quote_to_sell / price ) , self.qd_qty )            
-                if self.market_buy(exchange,self.symbol,qty,self.FLAG_SIGNAL):
-                    json_rsp['execute'] = 'OPEN'
-                else:
-                    json_rsp['error'] = 'ORDER_NOT_PLACED'
-
-        elif not venta_por_SLTP and signal == 'VENTA' and base_qty > 0:
-            if wallet[self.base_asset]['free'] >= base_qty:
-                qty = base_qty
-                if self.market_sell(exchange,self.symbol,qty,self.FLAG_SIGNAL):
-                    json_rsp['execute'] = 'CLOSE'
-                else:
-                    json_rsp['error'] = 'ORDER_NOT_PLACED'
-
-        
-        return json_rsp
-
-
-
     def next(self):
         signal = self.signal
-        
         price = self.price
-            
-        if signal == 'COMPRA' and self.wallet_quote > 0:
-            #self.kline['sB'] = self.price
-            if self.interes == 's': #Interes Simple
-                quote_qty = self.quote_qty if self.wallet_quote >= self.quote_qty else self.wallet_quote
-                quote_to_sell = round(quote_qty*(self.quote_perc/100) , self.qd_quote )
-            elif self.interes == 'c': #Interes Compuesto
-                quote_to_sell = round(self.wallet_quote*(self.quote_perc/100) , self.qd_quote ) 
-            
-            quote_to_sell = round(quote_to_sell , self.qd_quote ) 
-            
-            base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
-            
-            orderid_buy = self.order_market_buy(base_to_buy,self.ORD_FLAG_SIGNAL)
-            if orderid_buy>0:
-                if self.stop_loss:
-                    stop_loss_price = round(self.price - self.price*(self.stop_loss/100) , self.qd_price)
-                    orderid_sl = self.order_limit_sell(base_to_buy,stop_loss_price,self.ORD_FLAG_STOPLOSS)
-                if self.take_profit:
-                    take_profit_price = round(self.price + self.price*(self.take_profit/100) , self.qd_price)
-                    orderid_sl = self.order_limit_sell(base_to_buy,take_profit_price,self.ORD_FLAG_TAKEPROFIT)                
-            else:
-                print(self.kline['datetime'],'BUY price',self.price,'USD',quote_to_sell,self.wallet_quote)
-                print('ERROR')
-            
 
-        elif signal == 'VENTA' and self.wallet_base > 0:
-            #self.kline['sS'] = self.price
-            base_to_sell = self.wallet_base
-            orderid_sell = self.order_market_sell(base_to_sell,self.ORD_FLAG_SIGNAL)
-            if orderid_sell > 0:
-                self.cancel_open_orders()
-            else:
-                print(self.kline['datetime'],'SELL price',self.price,'USD',base_to_sell*self.price)
-                print('ERROR')
+        #Si no existe la orden de SL o TP es porque se ejecuto, entonces se cancelan las ordenes abiertas y se resetea la posicion
+        if (self.orderid_sl > 0 and self.orderid_sl not in self.orders) or (self.orderid_tp > 0 and self.orderid_tp not in self.orders) :
+            self.cancel_orders()
+            self.position = False
+            
+        if not self.position:
+            if signal == 'COMPRA':
+
+                if self.interes == 's': #Interes Simple
+                    quote_qty = self.quote_qty if self.wallet_quote >= self.quote_qty else self.wallet_quote
+                    quote_to_sell = round_down(quote_qty*(self.quote_perc/100) , self.qd_quote )
+                elif self.interes == 'c': #Interes Compuesto
+                    quote_to_sell = round_down(self.wallet_quote*(self.quote_perc/100) , self.qd_quote ) 
+                
+                quote_to_sell = round_down(quote_to_sell , self.qd_quote ) 
+                
+                base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
+                
+                orderid_buy = self.buy(base_to_buy,Order.FLAG_SIGNAL)
+                if orderid_buy>0:
+                    self.position = True
+                    if self.stop_loss:
+                        stop_loss_price = round(self.price - self.price*(self.stop_loss/100) , self.qd_price)
+                        if self.trail > 0:
+                            self.orderid_sl = self.sell_trail(base_to_buy,Order.FLAG_STOPLOSS,stop_loss_price,self.price,self.stop_loss)
+                        else:
+                            self.orderid_sl = self.sell_limit(base_to_buy,Order.FLAG_STOPLOSS,stop_loss_price)
+                    if self.take_profit:
+                        take_profit_price = round(self.price + self.price*(self.take_profit/100) , self.qd_price)
+                        if self.trail > 0:
+                            self.orderid_tp = self.sell_trail(base_to_buy,Order.FLAG_TAKEPROFIT,take_profit_price,self.price,self.take_profit)                
+                        else:
+                            self.orderid_tp = self.sell_limit(base_to_buy,Order.FLAG_TAKEPROFIT,take_profit_price) 
+                else:
+                    print('\033[31mERROR\033[0m',self.row['datetime'],'BUY price',self.price,'USD',quote_to_sell,self.wallet_quote)
+            
+        #else:
+        #    if signal == 'VENTA':
+        #        base_to_sell = self.wallet_base
+        #        orderid_sell = self.close(Order.FLAG_SIGNAL)
+        #        if orderid_sell > 0:
+        #            self.cancel_orders()
+        #            self.position = False
+        #        else:
+        #            print(self.row['datetime'],'SELL price',self.price,'USD',base_to_sell*self.price)
+        #            print('ERROR')
 
 
 

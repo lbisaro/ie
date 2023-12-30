@@ -89,6 +89,13 @@ class Estrategia(models.Model):
                         parametros[v]['str'] = 'Simple'
                     elif parametros[v]['v'] == 'c':
                         parametros[v]['str'] = 'Compuesto'
+
+                if parametros[v]['t'] == 'bin':
+                    if int(parametros[v]['v']) > 0:
+                        parametros[v]['str'] = 'Si'
+                    else:
+                        parametros[v]['str'] = 'No'
+                    
                 
                     
         return parametros
