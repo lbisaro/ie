@@ -1,18 +1,26 @@
 from bot.model_kline import *
 import pandas as pd
-from scripts.Exchange import Exchange
+import numpy as np
 from scripts.Bot_Core import Bot_Core
+from scripts.Bot_Core_utils import *
 import datetime as dt
 from scripts.functions import round_down
+from scripts.indicators import find_pivots
 
 class BotMartingala(Bot_Core):
 
     symbol = ''
-    qty_pos = 0.0
+    qty_pos = 0
     mult_pos = 0.0
     mult_perc = 0.0
     stop_loss = 0.0
     take_profit = 0.0
+
+    sell_bt_orderid = 0
+    sell_tp_orderid = 0
+    stop_loss_over_quote = 0
+    block_by_stop_loss = False
+
 
     descripcion = 'Bot Core v2 \n'\
                   'Bot de Martingala.'
@@ -62,14 +70,6 @@ class BotMartingala(Bot_Core):
 
                 }
     
-    #Datos correspondientes a la posicion
-    qty_compras = 0
-    buy_orderid = 0
-    sell_bt_orderid = 0
-    sell_tp_orderid = 0
-    stop_loss_over_quote = 0
-    pos_buy_history = []
-
     def valid(self):
         err = []
         if len(self.symbol) < 1:
@@ -99,100 +99,101 @@ class BotMartingala(Bot_Core):
             quote -= pos_amount
         return pos[::-1]  # Invierte la lista
     
-    def start(self,df):
-        df['signal'] = 'NEUTRO'
-        return df
+    def start(self):
+        self.klines = find_pivots(self.klines)
+        self.klines['signal'] = np.where(self.klines['max_pivots']>0,'VENTA','NEUTRO')
+        self.klines['signal'] = np.where(self.klines['min_pivots']>0,'COMPRA',self.klines['signal'])
+        self.print_orders = False
+        self.block_by_stop_loss = False
+        self.graph_open_orders = False
+        self.graph_signals = True
+        
+        self.reset_pos()
+
     
     def reset_pos(self):
-        self.buy_orderid = 0
+        self.cancel_orders()
         self.sell_tp_orderid = 0
         self.sell_sl_orderid = 0
-        self.qty_compras = 0
+        self.compras = {}
         self.stop_loss_over_quote = 0
-        self.pos_buy_history = []
 
     def next(self):
          
         price = self.price
 
-        if self.qty_compras == 0:  #Inicia la posicion
-            self.quote_pos = self.calculate_pos((self.wallet_quote*0.99), self.qty_pos, self.mult_pos)
-            
-            quote_to_sell = round(self.quote_pos[0] , self.qd_quote ) 
-            base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
-            buy_orderid = self.buy(base_to_buy,self.ORD_FLAG_SIGNAL)
-            if buy_orderid>0:
-                self.pos_buy_history.append({'base': base_to_buy,
-                                             'price': self.price,
-                                             'quote': base_to_buy*self.price,})
-                self.qty_compras = 1
-                
-                if self.stop_loss:
-                    self.stop_loss_over_quote = self.wallet_quote * (self.stop_loss/100)
-                    if self.stop_loss_over_quote < quote_to_sell:
-                        stop_loss_quote = quote_to_sell-self.stop_loss_over_quote
-                        stop_loss_price = round(stop_loss_quote/base_to_buy , self.qd_price)
-                        self.sell_sl_orderid = self.order_limit_sell(base_to_buy,stop_loss_price,self.ORD_FLAG_STOPLOSS)
-                
-                take_profit_price = round(self.price + self.price*(self.take_profit/100) , self.qd_price)
-                self.sell_tp_orderid = self.order_limit_sell(base_to_buy,take_profit_price,self.ORD_FLAG_TAKEPROFIT)                
-
-                palanca_price = round(self.price - self.price*(self.mult_perc/100),self.qd_price)
-                quote_to_sell = round(self.quote_pos[1] , self.qd_quote ) 
+        if len(self.compras) == 0 and self.row['min_trend'] > 0:  #Inicia la posicion
+            if not self.block_by_stop_loss:
+                self.quote_pos = self.calculate_pos((self.quote_qty*0.7), self.qty_pos, self.mult_pos)
+                            
+                quote_to_sell = round_down(self.quote_pos[0] , self.qd_quote ) 
                 base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
-                self.buy_orderid = self.order_limit_buy(base_to_buy,palanca_price,self.ORD_FLAG_SIGNAL) 
+                buy_orderid = self.buy(base_to_buy,Order.FLAG_SIGNAL)
+                if buy_orderid>0:
+                    self.compras[0] = {'orderid':buy_orderid}
+                    order = self.get_order(buy_orderid)
+                    buyed_qty = order.qty
+                    
+                    if self.stop_loss>0:
+                        self.stop_loss_over_quote = self.wallet_quote * (self.stop_loss/100)
+                        if self.stop_loss_over_quote < quote_to_sell:
+                            stop_loss_quote = quote_to_sell-self.stop_loss_over_quote
+                            stop_loss_price = round(stop_loss_quote/base_to_buy , self.qd_price)
+                            self.sell_sl_orderid = self.sell_limit(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price)
+                            
+                    
+                    take_profit_price = round(self.price + self.price*(self.take_profit/100) , self.qd_price)
+                    self.sell_tp_orderid = self.sell_limit(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price)                
+
+                    o_price = self.price
+                    for compra in range(1, self.qty_pos):
+                        o_price = o_price - self.price*((self.mult_perc*compra)/100)
+                        palanca_price = round(o_price,self.qd_price)
+                        quote_to_sell = round(self.quote_pos[compra] , self.qd_quote ) 
+                        base_to_buy = round_down((quote_to_sell/palanca_price) , self.qd_qty) 
+                        buy_orderid = self.buy_limit(base_to_buy,Order.FLAG_SIGNAL,palanca_price) 
+                        self.compras[compra] = {'orderid':buy_orderid}
                 
-        if self.check_open_orders(): #Devuelve True si se ejecuto alguna orden abierta (Limit o Trail)
-                
-            #Venta por stop-loss
-            if self.is_order(self.sell_sl_orderid):
-                if self.is_order_completed(self.sell_sl_orderid):
-                    self.cancel_open_orders()
-                    self.reset_pos()
+        elif len(self.compras) > 0 and self.signal == 'VENTA':
+            self.close(Order.FLAG_SIGNAL)
             
-            #Venta por take-profit
-            if self.is_order(self.sell_tp_orderid):
-                if self.is_order_completed(self.sell_tp_orderid):
-                    self.cancel_open_orders()
-                    self.reset_pos()
-            
-            #Compra
-            if self.is_order(self.buy_orderid):
-                if self.is_order_completed(self.buy_orderid):
-                    self.cancel_open_orders()
 
-                    last_buy_order = self.get_order(self.buy_orderid)
-
-                    self.pos_buy_history.append({'base': last_buy_order['qty'],
-                                'price': last_buy_order['price'],
-                                'quote': last_buy_order['qty']*last_buy_order['price'],})
-                    
-                    base_buyed = 0
-                    quote_buyed = 0
-                    for buy in self.pos_buy_history:
-                        base_buyed += buy['base']
-                        quote_buyed += buy['quote']
-
-                    if base_buyed>0:
-                        
-                        take_profit_quote = round(quote_buyed+quote_buyed*(self.take_profit/100), self.qd_quote)
-                        take_profit_price = round(take_profit_quote/base_buyed , self.qd_price)
-                        self.sell_tp_orderid = self.order_limit_sell(base_buyed,take_profit_price,self.ORD_FLAG_TAKEPROFIT)                
-                    
-                    if self.stop_loss:
-                        if self.stop_loss_over_quote < quote_buyed:
-                            stop_loss_quote = quote_buyed-self.stop_loss_over_quote
-                            stop_loss_price = round(stop_loss_quote/base_buyed , self.qd_price)
-                            self.sell_sl_orderid = self.order_limit_sell(base_buyed,stop_loss_price,self.ORD_FLAG_STOPLOSS)
-
-                    palanca_price = round(last_buy_order['price']*(1-((self.mult_perc*self.qty_compras)/100)),self.qd_price)
-                    if self.qty_compras<self.qty_pos:
-                        quote_to_sell = round(self.quote_pos[self.qty_compras] , self.qd_quote ) 
-                        base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
-                        self.buy_orderid = self.order_limit_buy(base_to_buy,palanca_price,self.ORD_FLAG_SIGNAL) 
-                    
-                    self.qty_compras += 1
-                    
         return round(self.wallet_base*price + self.wallet_quote,2)
 
 
+    def on_order_execute(self):
+        #Venta por stop-loss
+        if self.stop_loss>0 and self.order_status(self.sell_sl_orderid) == Order.STATE_COMPLETE:
+            self.block_by_stop_loss = True
+            self.reset_pos()
+        
+        #Venta por take-profit
+        elif self.take_profit>0 and self.order_status(self.sell_tp_orderid) == Order.STATE_COMPLETE:
+            self.reset_pos()
+        
+        #Ejecuto una compra
+        else:
+            tot_quote = 0
+            tot_base = 0
+            for i in self.compras:
+                orderid = self.compras[i]['orderid']
+                if self.order_status(orderid) == Order.STATE_COMPLETE:
+                    order = self.get_order(orderid)
+                    tot_quote += (order.qty * order.price)
+                    tot_base += order.qty
+            
+            if tot_base>0:
+                
+                avg_price = tot_quote/tot_base
+                #Recalcular STOP-LOSS y TAKE-PROFIT
+                quote_to_sell = round_down(tot_quote , self.qd_quote ) 
+                if self.stop_loss:
+                    if self.stop_loss_over_quote < quote_to_sell:
+                        stop_loss_quote = quote_to_sell-self.stop_loss_over_quote
+                        stop_loss_price = round(stop_loss_quote/tot_base , self.qd_price)
+                        self.cancel_order(self.sell_sl_orderid)
+                        self.sell_sl_orderid = self.sell_limit(tot_base,Order.FLAG_STOPLOSS,stop_loss_price)
+
+                take_profit_price = round(avg_price + avg_price*(self.take_profit/100) , self.qd_price)
+                self.cancel_order(self.sell_tp_orderid)
+                self.sell_tp_orderid = self.sell_limit(tot_base,Order.FLAG_TAKEPROFIT,take_profit_price) 

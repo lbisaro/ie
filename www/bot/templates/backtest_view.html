@@ -5,7 +5,8 @@
 {% load static %}
 
 {% block action_bar %}
-    <span class="btn btn-danger btn-sm" onclick="eliminar('{{backtest.id}}')">Eliminar</span>
+<span class="btn btn-primary btn-sm" onclick="clonar('{{backtest.id}}')">Clonar</span>
+<span class="btn btn-danger btn-sm" onclick="eliminar('{{backtest.id}}')">Eliminar</span>
 {% endblock %}
 
 {% block css %}
@@ -144,6 +145,11 @@
     {
         if (confirm('Desea eliminar el BackTest {{backtest.name}}?'))
             window.location = '{% url "backtest_delete" backtest.id %}';
+    }
+
+    function clonar()
+    {
+        window.location = '{% url "backtest_clone" backtest.clase backtest.id %}';
     }
     
 

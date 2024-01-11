@@ -24,7 +24,7 @@
             <select id="interval_id" class="form-control">
                 <option value="0" >Seleccionar</option>
             {% for i in intervals %}
-                <option value="{{i.interval_id}}" >{{i.name}}</option>
+                <option value="{{i.interval_id}}" > {{i.name}}</option>
             {% endfor %}
             </select>
         </div>
@@ -65,7 +65,9 @@
         //{% for k,prm in parametros.items %}
             addParametro('{{prm.c}}', '{{prm.d}}', '{{prm.v}}', '{{prm.t}}');
         //{% endfor %} 
-        $('#interval_id').val("2d01").change()
+        interval_id = "{% if interval_id %}{{interval_id}}{% else %}2d01{% endif %}";
+        console.log(interval_id);
+        $('#interval_id').val(interval_id).change()
     })
 
     function addParametro(parametro,descripcion,value,type)
@@ -119,7 +121,7 @@
     }
 
     function ejecutar(rewrite=false) {
-        makeWait()
+        
         url = '{% url "backtest_create" %}';
         
         data = {
@@ -139,9 +141,12 @@
            err += 'Se deben completar todos los parametros para el BackTesting<br>';
         
         if (err)
+        {
             html_alert('Errores detectados',err,'text-danger');
+        }
         else
         {
+            makeWait()
             $('#btn_ejecutar').attr('disabled',true);
             get_ajax(url,data).done( function (rsp) {
                 if (rsp.error)

@@ -237,14 +237,16 @@ class BotBaseLong(BotBase):
         qty_to_hold = round( ( quote_to_hold / price_to_hold ) , self.qd_qty ) 
         usd_in_hold = round( self.quote_qty - quote_to_hold , self.qd_quote )
 
+        self.row_signal = 'NEUTRO'
+
         for i,kline in self.klines.iterrows():
             k_open = float(kline['open'])
             k_high = float(kline['high'])
             k_low = float(kline['low'])
             k_close = float(kline['close'])
 
-            k_sig_buy = k_low if kline['signal'] == 'COMPRA' else None
-            k_sig_sell = k_high if kline['signal'] == 'VENTA' else None
+            k_sig_buy = k_low if self.row_signal == 'COMPRA' else None
+            k_sig_sell = k_high if self.row_signal == 'VENTA' else None
             
             timestamp = pd.Timestamp(kline['datetime']).timestamp()
             unix_dt = int( (timestamp*1000) +  10800000 ) #Convierte a milisegundos y agrega 3 horas 
@@ -267,8 +269,6 @@ class BotBaseLong(BotBase):
             
             self.bt_index = pd.to_datetime(self.klines.iloc[i]['datetime']).strftime('%Y-%m-%d %H:%M')
             
-            signal = self.klines.iloc[i-1]['signal'] if i>0 else 'NEUTRO'
-
             venta_por_SLTP = False
             if self.stop_loss_price:
                 if k_low < self.stop_loss_price:
@@ -293,7 +293,7 @@ class BotBaseLong(BotBase):
                         self.stop_loss_price = None
                         self.take_profit_price = None 
 
-            if not venta_por_SLTP and signal == 'COMPRA' and self.wallet_base == 0:
+            if not venta_por_SLTP and self.row_signal == 'COMPRA' and self.wallet_base == 0:
                 if self.interes == 's': #Interes Simple
                     quote_qty = self.quote_qty if self.wallet_quote >= self.quote_qty else self.wallet_quote
                     quote_to_sell = round( quote_qty*(self.quote_perc/100) , self.qd_quote )
@@ -312,7 +312,7 @@ class BotBaseLong(BotBase):
                     if self.take_profit > 0:
                         self.take_profit_price = round( price + (price * ( self.take_profit/100) ) , self.qd_price )
                
-            elif not venta_por_SLTP and signal == 'VENTA' and self.wallet_base > 0:
+            elif not venta_por_SLTP and self.row_signal == 'VENTA' and self.wallet_base > 0:
                 qty = self.wallet_base
                 price = k_open
 
@@ -331,6 +331,7 @@ class BotBaseLong(BotBase):
             
             self.update_pos(k_low,k_high)
             self.res['data'].append(data)
+            self.row_signal = kline['signal']
 
         end = time.time()
         duration = end-start

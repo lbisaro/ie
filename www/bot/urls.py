@@ -34,6 +34,7 @@ urlpatterns = [
 
     path('backtest/',vbt.backtest,name='backtest'),
     path('backtest/config/<str:bot_class_name>/',vbt.config,name='backtest_config'),
+    path('backtest/config/<str:bot_class_name>/clone/<int:backtest_id_to_clone>/',vbt.config,name='backtest_clone'),
     path('backtest/create/',vbt.create,name='backtest_create'),
     path('backtest/view/<int:backtest_id>/',vbt.view,name='backtest_view'),
     path('backtest/execute/<int:backtest_id>/',vbt.execute,name='backtest_execute'),

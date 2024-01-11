@@ -67,7 +67,7 @@ def run(request):
         json_rsp['parametros'] = {}
         for attr in atributos:
             val = atributos[attr]
-            if attr != '_strategy':
+            if attr != 'row':
                 json_rsp['parametros'][attr] = val
 
         #try:
@@ -86,6 +86,7 @@ def run(request):
         #except Exception as e:
         #    json_rsp['ok'] = False
         #    json_rsp['error'] = str(e)
+            
         return JsonResponse(json_rsp)
     
 

@@ -3,7 +3,7 @@ import numpy as np
 from ..Bot_CoreLong import Bot_CoreLong
 from ta.trend import ADXIndicator
 
-class BotADX(Bot_CoreLong):
+class BotADXplus(Bot_CoreLong):
 
     descripcion = 'Bot Core v2 \n'\
                   'Ejecuta la compra al recibir una señal de Compra, '\
@@ -17,14 +17,15 @@ class BotADX(Bot_CoreLong):
 
         iADX = ADXIndicator(self.klines['high'], self.klines['low'],self.klines['close'],ADX_PERIODO, False)
         
+        self.klines['sma'] = self.klines['close'].rolling(50).mean()
         self.klines['ADX'] = iADX.adx()
         self.klines['ADX+'] = iADX.adx_pos()
         self.klines['ADX-'] = iADX.adx_neg()
-        self.klines['Posicion'] = np.where(np.logical_and(self.klines['ADX-'] < self.klines['ADX+'], (self.klines['ADX+'] - self.klines['ADX-']) > 1), 'COMPRA', 'VENTA')
+        self.klines['Posicion'] = np.where(np.logical_and(self.klines['close'] > self.klines['sma'], self.klines['ADX'] > 20), 'COMPRA', 'NEUTRO')
         self.klines['Alternancia'] = (self.klines[['Posicion']] != self.klines[['Posicion']].shift()).any(axis=1)
 
         self.klines['signal'] = np.where(self.klines['Alternancia'], self.klines['Posicion'], 'NEUTRO')
-        self.klines.drop(['ADX','ADX+','ADX-','Posicion','Alternancia','Alternancia'], axis = 1)
+        self.klines.drop(['sma','ADX','ADX+','ADX-','Posicion','Alternancia','Alternancia'], axis = 1)
         
         warnings.filterwarnings("default") 
 

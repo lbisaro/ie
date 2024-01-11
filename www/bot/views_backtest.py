@@ -28,16 +28,31 @@ def backtest(request):
         })
 
 @login_required
-def config(request,bot_class_name):
-    gen_bot = GenericBotClass()
-    obj = gen_bot.get_instance(bot_class_name)
+def config(request,bot_class_name,backtest_id_to_clone=0):
+
     intervals = bt_config.intervals.to_dict('records')
+
+    if backtest_id_to_clone==0:
+        gen_bot = GenericBotClass()
+        obj = gen_bot.get_instance(bot_class_name)
+        parametros = obj.parametros
+        interval_id = None
+
+    else:
+        backtest = get_object_or_404(Backtest, pk=backtest_id_to_clone)
+        bot_class_name = backtest.clase
+        gen_bot = GenericBotClass()
+        obj = gen_bot.get_instance(bot_class_name)
+        parametros = backtest.parse_parametros()
+        interval_id = backtest.interval_id
+        
             
     if request.method == 'GET':
         return render(request, 'backtest_create.html',{
             'bot_class_name': bot_class_name,
             'intervals': intervals,
-            'parametros': obj.parametros,
+            'parametros': parametros,
+            'interval_id': interval_id,
         })
 
 @login_required

@@ -24,7 +24,7 @@
             <input class="form-control" list="datalistOptionsPeriodo" id="periodo" placeholder="Type to search...">
             <datalist id="datalistOptionsPeriodo">
                 {% for p in periodos %}
-                <option onclick="console.log($(this).attr('data-symbol'))" value="{{p.str}}" data-file="{{p.file}}" data-start="{{p.start}}" data-end="{{p.end}}" data-symbol="{{p.symbol}}" data-interval_id="{{p.interval_id}}">
+                <option value="{{p.str}}" data-file="{{p.file}}" data-start="{{p.start}}" data-end="{{p.end}}" data-symbol="{{p.symbol}}" data-interval_id="{{p.interval_id}}">
                 {% endfor %}
             </datalist>
         </div>
@@ -144,7 +144,6 @@
         err = ''
         if (!data.interval_id || !data.symbol || !data.from_date || !data.to_date || !data.file)
         {
-            console.log(data);
             err += 'Se deben seleccionar un Periodo valido<br>';
         }
         if (parseFloat(data.quote_qty*1) <= 0)
@@ -172,14 +171,13 @@
                 {
                     $('#add_resultado_title').html('BOT {{bot_class_name}}');
                     data = rsp.bt.data
-                    /*
+                    
                     timeUnit = 'minute';
                     if (rsp.parametros.interval_id.substring(1, 2) == 'd')
                         timeUnit = 'day';
                     else if (rsp.parametros.interval_id.substring(1, 2) == 'h')
                         timeUnit = 'hour';
-                    */
-                    timeUnit = 'day';
+                    
                     if (rsp.bt.events)
                         evnts = rsp.bt.events;
                     else
@@ -235,6 +233,9 @@
 
         $('#config').show();
         $('#run').hide();
+        if (root)
+            root.dispose();
+        $('#chardiv-tab-pane').html('');
     }
     function showRun()
     {

@@ -1,15 +1,14 @@
 from bot.model_kline import *
-import pandas as pd
+import numpy as np
 from scripts.Bot_Core import Bot_Core
+from scripts.indicators import Fibonacci
 from scripts.functions import round_down
 from scripts.Bot_Core_utils import *
 
-class Bot_CoreLong(Bot_Core):
+class BotFibonacci(Bot_Core):
 
     symbol = ''
     quote_perc = 0.0
-    stop_loss = 0.0
-    take_profit = 0.0
     interes = ''
     trail = 1
 
@@ -32,9 +31,9 @@ class Bot_CoreLong(Bot_Core):
         self.orderid_tp = 0 #id de la orden de Take-Profit
 
     descripcion = 'Bot Core v2 \n'\
-                  'Ejecuta la compra al recibir una señal de Compra, '\
-                  'y cierra la operación por Stop Loss o Take Profit (Si se definen con un % mayor a cero) '\
-                  'o cuando recibe una señal de Venta.'
+                  'Ejecuta la compra al recibir una señal de Compra por nivel de Fibonacci, con stoploss en nivel 0.0 y take-profit en nivel 0.1, '\
+                  'Cierra la operación por Stop Loss o Take Profit (Si se definen con un % mayor a cero) '\
+                  'Opcionalmente opera con trailing para SL y TP '
     
     parametros = {'symbol':  {  
                         'c' :'symbol',
@@ -46,25 +45,11 @@ class Bot_CoreLong(Bot_Core):
                  'quote_perc': {
                         'c' :'quote_perc',
                         'd' :'Operacion sobre capital',
-                        'v' :'100',
+                        'v' :'95',
                         't' :'perc',
                         'pub': True,
                         'sn':'Quote', },
-                'stop_loss': {
-                        'c' :'stop_loss',
-                        'd' :'Stop Loss',
-                        'v' :'3',
-                        't' :'perc',
-                        'pub': True,
-                        'sn':'SL', },
-                'take_profit': {
-                        'c' :'take_profit',
-                        'd' :'Take Profit',
-                        'v' :'6',
-                        't' :'perc',
-                        'pub': True,
-                        'sn':'TP', },
-                'interes': {
+                 'interes': {
                         'c' :'interes',
                         'd' :'Tipo de interes',
                         'v' :'c',
@@ -86,10 +71,6 @@ class Bot_CoreLong(Bot_Core):
             err.append("Se debe especificar el Par")
         if self.quote_perc <= 0 or self.quote_perc > 100:
             err.append("El Porcentaje de capital por operacion debe ser un valor entre 0.01 y 100")
-        if self.stop_loss < 0 or self.stop_loss > 100:
-            err.append("El Stop Loss debe ser un valor entre 0 y 100")
-        if self.take_profit < 0 or self.take_profit > 100:
-            err.append("El Take Profit debe ser un valor entre 0 y 100")
         if self.interes != 'c' and self.interes != 's':
             err.append("Se debe establecer el tipo de interes. (Simple o Compuesto)")
 
@@ -98,6 +79,13 @@ class Bot_CoreLong(Bot_Core):
     
     def get_symbols(self):
         return [self.symbol]
+        
+    def start(self):
+        
+        self.klines = Fibonacci().long(self.klines)
+        self.klines['signal'] = np.where(self.klines['fibo']==1,'COMPRA','NEUTRO')
+        self.print_orders = False
+
 
     def next(self):
         signal = self.signal
@@ -110,53 +98,55 @@ class Bot_CoreLong(Bot_Core):
             
         if not self.position:
             if signal == 'COMPRA':
+                #Analisis del riesgo a tomar
 
-                if self.interes == 's': #Interes Simple
-                    quote_qty = self.quote_qty if self.wallet_quote >= self.quote_qty else self.wallet_quote
-                    quote_to_sell = round_down(quote_qty*(self.quote_perc/100) , self.qd_quote )
-                elif self.interes == 'c': #Interes Compuesto
-                    quote_to_sell = round_down(self.wallet_quote*(self.quote_perc/100) , self.qd_quote ) 
-                
-                quote_to_sell = round_down(quote_to_sell , self.qd_quote ) 
-                base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
-                
-                orderid_buy = self.buy(base_to_buy,Order.FLAG_SIGNAL)
-                if orderid_buy > 0:
+                stop_loss_price = round(self.row['fibo_1.000'] , self.qd_price)
+                self.stop_loss = round((1-(stop_loss_price/self.price))*100,2)
 
-                    buyed_qty = self._trades[orderid_buy].qty
+                take_profit_price = round(self.row['fibo_0.000'] , self.qd_price)
+                self.take_profit = round(((take_profit_price/self.price)-1)*100,2)
+
+                quote_perc = self.quote_perc
+                if self.stop_loss > 3:
+                    quote_perc = self.quote_perc/2
+                elif self.stop_loss > 8:
+                    quote_perc = self.quote_perc/3
+
+                if self.take_profit/self.stop_loss > 1.5:
+                
+                    if self.interes == 's': #Interes Simple
+                        quote_qty = self.quote_qty if self.wallet_quote >= self.quote_qty else self.wallet_quote
+                        quote_to_sell = round_down(quote_qty*(quote_perc/100) , self.qd_quote )
+                    elif self.interes == 'c': #Interes Compuesto
+                        quote_to_sell = round_down(self.wallet_quote*(quote_perc/100) , self.qd_quote ) 
                     
-                    self.position = True
-                    if self.stop_loss:
-                        stop_loss_price = round(self.price - self.price*(self.stop_loss/100) , self.qd_price)
+                    quote_to_sell = round_down(quote_to_sell , self.qd_quote ) 
+                    base_to_buy = round_down((quote_to_sell/price) , self.qd_qty) 
+                
+                    orderid_buy = self.buy(base_to_buy,Order.FLAG_SIGNAL)
+                    if orderid_buy > 0:
+
+                        buyed_qty = self._trades[orderid_buy].qty
+                        
+                        self.position = True
                         if self.trail > 0:
-                            self.orderid_sl = self.sell_trail(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price,self.price,self.stop_loss)
+                            trail_stop = self.stop_loss if self.stop_loss <= 2 else 2 
+                            self.orderid_sl = self.sell_trail(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price,self.price,trail_stop)
                         else:
                             self.orderid_sl = self.sell_limit(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price)
                         if self.orderid_sl == 0:
                             print('\033[31mERROR\033[0m',self.row['datetime'],'STOP-LOSS',buyed_qty,' ',quote_to_sell,self.wallet_quote)  
 
-                    if self.take_profit:
-                        take_profit_price = round(self.price + self.price*(self.take_profit/100) , self.qd_price)
+                        
                         if self.trail > 0:
                             self.orderid_tp = self.sell_trail(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price,self.price,self.take_profit)                
                         else:
                             self.orderid_tp = self.sell_limit(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price) 
                         if self.orderid_tp == 0:
                             print('\033[31mERROR\033[0m',self.row['datetime'],'TAKE-PROFIT',buyed_qty,' ',quote_to_sell,self.wallet_quote) 
-                else:
-                    print('\033[31mERROR\033[0m',self.row['datetime'],'BUY price',self.price,'USD',quote_to_sell,self.wallet_quote)
+                
+                        #print('price: ',self.price,' SL: ',self.stop_loss,' SL price: ',stop_loss_price,' TP: ',self.take_profit,' TP price: ',take_profit_price)
+                    
+                    else:
+                        print('\033[31mERROR\033[0m',self.row['datetime'],'BUY price',self.price,'USD',quote_to_sell,self.wallet_quote)
             
-        else:
-            if signal == 'VENTA':
-                base_to_sell = self.wallet_base
-                orderid_sell = self.close(Order.FLAG_SIGNAL)
-                if orderid_sell > 0:
-                    self.cancel_orders()
-                    self.position = False
-                else:
-                    print(self.row['datetime'],'SELL price',self.price,'USD',base_to_sell*self.price)
-                    print('ERROR')
-
-
-
-

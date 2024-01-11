@@ -29,6 +29,8 @@ class BotBase():
     wallet_quote = 0.0
     exch_comision_perc = 0.2 #0.4% - Comision por operacion de compra o venta
 
+    row_signal = 'NEUTRO'
+
     res = {
         'error': None,
         'symbol': '',
@@ -119,8 +121,7 @@ class BotBase():
         self.pos['days'] =  days
         self.pos['result_usd'] = round( sell - buy - comision, 2)
         self.pos['result_perc'] = round((((self.pos['sell_price']/self.pos['buy_price'])-1)*100) - ((self.exch_comision_perc) * 2) , 2)
-        self.pos['mea'] = round(((self.pos['min'] / self.pos['buy_price'])-1)*100 , 2)
-        self.pos['mef'] = round(((self.pos['max'] / self.pos['buy_price'])-1)*100 , 2)
+        
         
         trade = [
                 self.pos['start'],
@@ -132,8 +133,8 @@ class BotBase():
                 self.pos['days'],
                 self.pos['result_usd'],
                 self.pos['result_perc'],
-                self.pos['mef'],
-                self.pos['mea'],
+                0,
+                2,
                 ]
         self.res['trades'].append(trade)
         self.reset_pos()

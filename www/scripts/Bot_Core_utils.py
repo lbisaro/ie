@@ -12,6 +12,10 @@ class Order:
     FLAG_TAKEPROFIT = 2
     FLAG_TRAILING = 3
 
+    STATE_NEW = 0
+    STATE_COMPLETE = 1
+    STATE_CANCEL = -1
+
     id = 0
     type = 0
     datetime = None

@@ -88,17 +88,20 @@ class BotSmartWallet(Bot_Core):
         self.klines['sma'] = self.klines['close'].rolling(self.ma).mean()  
         self.klines['signal'] = 'NEUTRO'   
 
-        self.print_orders = True 
+        self.print_orders = False 
     
     def next(self):
         price = self.price
         avg_price = (self.row['high']+self.row['low'])/2
         sma = self.row['sma']
         
-        #Compra inicial para estockearse de Monedas
+        #Ajusta la billetera inicial para estockearse de Monedas
+        #No hace operacion de Buy para que se puedan interpretar las ordenes
         if not self.pre_start:
             qty = round_down((self.wallet_quote * (self.quote_perc/100)) / price , self.qd_qty)
-            self.buy(qty,Order.FLAG_SIGNAL)
+            self.wallet_base = qty
+            self.wallet_quote = round(self.wallet_quote - price*qty,self.qd_quote)
+            
             self.start_cash = round(price*qty,self.qd_quote)
             self.pre_start = True 
 
@@ -108,13 +111,14 @@ class BotSmartWallet(Bot_Core):
 
             if avg_price > sma and hold > self.start_cash*(1+(self.lot_to_safe/100)):
                 qty = round_down((hold - self.start_cash)/price, self.qd_qty)
-                limit_price = price*(1-(self.re_buy_perc/100))
+                limit_price = price*(1-(self.re_buy_perc*2/100))
                 self.sell(qty,Order.FLAG_TAKEPROFIT)
                 self.buy_limit(qty,Order.FLAG_SIGNAL,limit_price)
+                #self.buy_limit(qty,Order.FLAG_SIGNAL,limit_price*(1-(self.re_buy_perc/100)))
 
 
             elif avg_price < sma and hold < self.start_cash*(1-(self.lot_to_safe/100)):
-                qty = self.wallet_base*(self.lot_to_safe/100)
+                qty = self.wallet_base*(self.lot_to_safe*2/100)
                 if qty*price > 12 : #Intenta recomprar solo si la compra es por las de 12 dolares
                     self.op_last_price = avg_price
                     limit_price = price*(1-(self.re_buy_perc/100))

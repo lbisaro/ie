@@ -111,7 +111,7 @@ class Backtest(models.Model):
             else:
                 json_rsp['Media'][col_media_tendencia] = json_rsp[tendencia]['Media']
 
-            json_rsp['Media'][col_scoring_tendencia] = json_rsp['Media'].apply(lambda row: self.calcular_scoring_columna(row['ind'], row[col_media_tendencia]), axis=1)
+            json_rsp['Media'][col_scoring_tendencia] = json_rsp['Media'].apply(lambda row: self.calcular_scoring_columna(row['ind'], row[col_media_tendencia],col_media_tendencia), axis=1)
         
         #Formateando los dataframes generados
         ind_names = []
@@ -155,14 +155,23 @@ class Backtest(models.Model):
 
         return json_rsp
 
-    def calcular_scoring_columna(self,ind,col_media):
-    
+    def calcular_scoring_columna(self,ind,col_media,col_media_tendencia):
+        tendencia = col_media_tendencia[6:]
+        
+        niveles = [6,10,20]
+        if tendencia == 'Alcista':
+            niveles = [10,15,30]
+        if tendencia == 'Bajista':
+            niveles = [-15,0,6]
+        if tendencia == 'Lateral':
+            niveles = [3,6,12]
+
         if ind == 'cagr':
-            if col_media <= 6:
+            if col_media <= niveles[0]:
                 return 0
-            elif col_media <= 10:
+            elif col_media <= niveles[1]:
                 return 1
-            elif col_media <= 20:
+            elif col_media <= niveles[2]:
                 return 2
             else:
                 return 3
@@ -382,7 +391,7 @@ class Backtest(models.Model):
             if (p != 'symbol') or (p == 'symbol' and values['v'] != 'BACKTEST'):
                 if str != '':
                     str += ', '
-                v = values['str']
+                v = values['v']
                 sn = values['sn']
                 str += f'{sn}: {v}'
         return str

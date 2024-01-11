@@ -25,9 +25,7 @@ class BotLongADX(BotBaseLong):
         df['ADX-'] = iADX.adx_neg()
         df['Posicion'] = np.where(np.logical_and(df['ADX-'] < df['ADX+'], (df['ADX+'] - df['ADX-']) > 1), 'COMPRA', 'VENTA')
         df['Alternancia'] = (df[['Posicion']] != df[['Posicion']].shift()).any(axis=1)
-        df['Orden'] = np.where(df['Alternancia'], df['Posicion'], '')
-        
-        df['Orden_Precio'] = df['open']
+
         df['signal'] = np.where(df['Alternancia'], df['Posicion'], 'NEUTRO')
         
         warnings.filterwarnings("default")
