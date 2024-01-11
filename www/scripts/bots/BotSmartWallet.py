@@ -114,7 +114,6 @@ class BotSmartWallet(Bot_Core):
                 limit_price = price*(1-(self.re_buy_perc*2/100))
                 self.sell(qty,Order.FLAG_TAKEPROFIT)
                 self.buy_limit(qty,Order.FLAG_SIGNAL,limit_price)
-                #self.buy_limit(qty,Order.FLAG_SIGNAL,limit_price*(1-(self.re_buy_perc/100)))
 
 
             elif avg_price < sma and hold < self.start_cash*(1-(self.lot_to_safe/100)):
