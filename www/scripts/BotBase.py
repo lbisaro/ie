@@ -12,7 +12,6 @@ class BotBase():
     FLAG_SIGNAL = 0
     FLAG_STOPLOSS = 1
     FLAG_TAKEPROFIT = 2
-    FLAG_TRAILING = 3
 
     method = 'LONG' # 'SHORT
 

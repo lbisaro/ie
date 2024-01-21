@@ -10,7 +10,6 @@ class Order:
     FLAG_SIGNAL = 0
     FLAG_STOPLOSS = 1
     FLAG_TAKEPROFIT = 2
-    FLAG_TRAILING = 3
 
     STATE_NEW = 0
     STATE_COMPLETE = 1
@@ -23,6 +22,7 @@ class Order:
     qty = 0
     price = 0
     comision = 0
+    tag = ''
 
     #Trail parameters
     activation_price = 0
@@ -43,6 +43,7 @@ class Order:
             self.limit_price = price
         self.flag = flag
         self.comision = 0
+        self.tag = ''
 
         self.activation_price = 0
         self.active = False
@@ -56,7 +57,11 @@ class Order:
         if self.type != self.TYPE_MARKET:
             params += f'Limit Price {self.limit_price} '
         if self.type == self.TYPE_TRAILING:
-            params += f'Trl {self.trail_perc}% '        
+            params += f'Trl {self.trail_perc}% '     
+            if self.active:
+                params += ' ACT'   
+        if len(self.tag):
+            params += f' {self.tag}% '        
         return f'{params}'
     
     def str_flag(self):

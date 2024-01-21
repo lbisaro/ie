@@ -244,7 +244,10 @@ var root
             valueXField: "dt",
             valueField: "BY",
         }));
-        bySeries.data.setAll(data);
+        if (events.length>0)
+            bySeries.data.setAll(events);
+        else
+            bySeries.data.setAll(data);
 
         addWalletPanel()
         
