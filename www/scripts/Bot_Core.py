@@ -283,13 +283,14 @@ class Bot_Core():
         if self.graph_open_orders:
             for i in self._orders: #Ordenes abiertas
                 order = self._orders[i]
-                unix_dt = self.datetime.timestamp() * 1000 +  10800000
-                if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
-                    self.sl_price_data.append({'dt': unix_dt,'SL':order.limit_price})
-                elif order.side == Order.SIDE_SELL and order.flag == Order.FLAG_TAKEPROFIT:
-                    self.tp_price_data.append({'dt': unix_dt,'TP':order.limit_price})
-                elif order.side == Order.SIDE_BUY:
-                    self.buy_price_data.append({'dt': unix_dt,'BY':order.limit_price})
+                if ( order.type == Order.TYPE_LIMIT ) or ( order.type == Order.TYPE_TRAILING and order.active ):
+                    unix_dt = self.datetime.timestamp() * 1000 +  10800000
+                    if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
+                        self.sl_price_data.append({'dt': unix_dt,'SL':order.limit_price})
+                    elif order.side == Order.SIDE_SELL and order.flag == Order.FLAG_TAKEPROFIT:
+                        self.tp_price_data.append({'dt': unix_dt,'TP':order.limit_price})
+                    elif order.side == Order.SIDE_BUY:
+                        self.buy_price_data.append({'dt': unix_dt,'BY':order.limit_price})
 
 
         if row.name == self.klines.iloc[-1].name: #Se esta ejecutando la ultima vela
@@ -432,7 +433,7 @@ class Bot_Core():
                         #        executed = self.execute_order(order.id)
 
                         #Verifica si se activa el trailing
-                        if self.row['high'] > order.activation_price and not order.active:
+                        if not order.active and self.row['high'] >= order.activation_price:
                             new_limit_price = round(self.row['high'] * (1-(order.trail_perc/100)),self.qd_price)
                             if new_limit_price >= order.limit_price:
                                 order.active = True
@@ -455,7 +456,7 @@ class Bot_Core():
                         #        executed = self.execute_order(order.id)
                                 
                         #Verifica si se activa el trailing
-                        if self.row['low'] < order.activation_price and not order.active:
+                        if not order.active and self.row['low'] < order.activation_price:
                             new_limit_price = round(self.row['low'] * (1+(order.trail_perc/100)),self.qd_price)
                             if new_limit_price <= order.limit_price:
                                 order.active = True

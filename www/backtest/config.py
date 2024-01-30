@@ -24,7 +24,9 @@ symbols = {
     'DOTUSDT', 
     'ETHUSDT', 
     'XRPUSDT', 
-    'TRXUSDT', 
+    'TRXUSDT',
+    'EURUSDT',
+    'LUNAUSDT'
 }
 
 #Periodos definidos por Tipo, Fecha de inicio y fin y Pares para backtesting
@@ -48,11 +50,6 @@ periodos = [{'tipo':'Completo',
             'end':'2021-07-12',
             'symbols': symbols
             },
-            #{'tipo':'LUNA-TEST',
-            #'start':'2021-01-01',
-            #'end':'2023-07-31',
-            #'symbols': {'LUNAUSDT'}
-            #},
             ]
 
 
