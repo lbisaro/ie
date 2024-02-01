@@ -68,7 +68,7 @@ def create(request):
         else:
             rewrite = False
 
-        #Creando instancia del proceso de Bactest
+        #Creando instancia del proceso de Backtest
         
         existentes = Backtest.objects.filter(interval_id=interval_id,
                                      clase=botClass,
