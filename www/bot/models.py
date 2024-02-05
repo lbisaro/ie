@@ -6,7 +6,6 @@ from django.utils import timezone
 import scripts.functions as fn
 import os, fnmatch
 import importlib
-from scripts.BotBase import BotBase
 from scripts.Exchange import Exchange
 from bot.model_kline import Kline, Symbol
 import pandas as pd

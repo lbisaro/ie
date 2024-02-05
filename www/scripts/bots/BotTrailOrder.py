@@ -9,17 +9,10 @@ class BotTrailOrder(Bot_Core):
     symbol = ''
     ma = 0          #Periodos para Media movil simple 
     quote_perc =  0 #% de compra inicial, para stock
-    re_buy_perc = 0 #% para recompra luego de una venta
-    lot_to_safe = 0 #% a resguardar si supera start_cash
 
-    op_last_price = 0
+
+    last_order_id = 0
     
-    start_cash = 0.0  #Cash correspondiente a la compra inicial
-    start_base = 0.0  #Base correspondiente a la compra inicial 
-    pre_start = False #Controla que en la primera vela se compren la sunidades para stock 
-    quote_up = 0.0
-    quote_down = 0.0
-
     def __init__(self):
         self.symbol = ''
         self.ma = 0
@@ -43,29 +36,28 @@ class BotTrailOrder(Bot_Core):
                         'v' :'BTCUSDT',
                         't' :'symbol',
                         'pub': True,
-                        'sn':'Par',},
-                'quote_perc': {
+                        'sn':'Par', },
+                  'quote_perc': {
                         'c' :'quote_perc',
                         'd' :'Compra inicial para stock',
                         'v' :'50',
                         't' :'perc',
                         'pub': True,
                         'sn':'Inicio', },
-                'lot_to_safe': {
-                        'c' :'lot_to_safe',
-                        'd' :'Resguardo si supera la compra inicial',
-                        'v' :'4',
+                  'trail_b': {
+                        'c' :'trail_b',
+                        'd' :'Trail Compra',
+                        'v' :'20',
                         't' :'perc',
                         'pub': True,
-                        'sn':'Resguardo', },
-                're_buy_perc': {
-                        'c' :'re_buy_perc',
-                        'd' :'Recompra luego de una venta',
-                        'v' :'8',
+                        'sn':'Trl C', },
+                  'trail_s': {
+                        'c' :'trail_s',
+                        'd' :'Trail Venta',
+                        'v' :'30',
                         't' :'perc',
                         'pub': True,
-                        'sn':'Recompra', },
-
+                        'sn':'Trl V', },
                 }
 
     def valid(self):
@@ -74,10 +66,7 @@ class BotTrailOrder(Bot_Core):
             err.append("Se debe especificar el Par")
         if self.quote_perc <= 0:
             err.append("El Porcentaje de capital por operacion debe ser mayor a 0")
-        if self.re_buy_perc <= 0 or self.re_buy_perc > 100:
-            err.append("La recompra debe ser un valor mayor a 0 y menor o igual a 100")
-        if self.lot_to_safe <= 0 or self.lot_to_safe > 100:
-            err.append("El Resguardo debe ser un valor mayor a 0 y menor o igual a 100")
+
 
         
         if len(err):
@@ -85,47 +74,32 @@ class BotTrailOrder(Bot_Core):
         
     def start(self):
         self.klines['signal'] = 'NEUTRO'   
-        self.print_orders = False
+        self.print_orders = True
         self.graph_open_orders = True
+        self.last_order_id = -1
     
     def next(self):
-        price = self.price
-        
-        
-        #Ajusta la billetera inicial para estockearse de Monedas
-        #No hace operacion de Buy para que se puedan interpretar las ordenes
-        if not self.pre_start:
-            qty = round_down((self.wallet_quote * (self.quote_perc/100)) / price , self.qd_qty)
-            self.wallet_base = qty
-            self.wallet_quote = round(self.wallet_quote - price*qty,self.qd_quote)
+        if self.last_order_id == -1:
+            self.actuar()
+    
+    def on_order_execute(self):
+        self.actuar()
+    
+    def actuar(self):
+
+        if self.wallet_base == 0:
+            qty = round_down((self.wallet_quote * (self.quote_perc/100)) / self.price , self.qd_qty)
+            self.last_order_id = self.buy_trail(qty=qty,
+                                                flag=Order.FLAG_TAKEPROFIT,
+                                                limit_price=self.price * (1+(self.trail_b/2/100)),
+                                                activation_price=0,
+                                                trail_perc = self.trail_b)
+        else:
+            qty = self.wallet_base
+            self.last_order_id = self.sell_trail(qty=qty,
+                                                flag=Order.FLAG_TAKEPROFIT,
+                                                limit_price=self.price * (1-(self.trail_s/2/100)),
+                                                activation_price=0,
+                                                trail_perc = self.trail_s)
             
-            self.start_cash = round(price*qty , self.qd_quote)
-            self.start_base = qty
-            self.quote_up   = round_down(self.start_cash * (self.lot_to_safe/100) , self.qd_quote)
-            self.quote_down = round_down(self.start_cash * (self.re_buy_perc/100) , self.qd_quote)
-            if self.quote_up<12:
-                raise "La orden debe ser mayor o igual a 12 USD. Incrementar el parametro [Resguardo si supera la compra inicial]"
-            if self.quote_down<12:
-                raise "La orden debe ser mayor o igual a 12 USD. Incrementar el parametro [Recompra luego de una venta]"
-            self.pre_start = True 
-
-            #Probar VENTA TRAIL con periodo:
-            #BTCUSDT 1d Alcista desde el 2020-09-07 al 2021-05-03
-            qty = self.quote_up/self.price
-            self.sell_trail(qty=qty,
-                        flag=Order.FLAG_TAKEPROFIT,
-                        limit_price=15000.0,
-                        activation_price=self.price,
-                        trail_perc = 20)
-
-            #Probar COMPRA TRAIL con periodo:
-            #BTCUSDT 1d Bajista desde el 2021-04-12 al 2021-07-12
-            qty = self.quote_up/self.price
-            self.buy_trail(qty=qty,
-                        flag=Order.FLAG_TAKEPROFIT,
-                        limit_price=78000.0,
-                        activation_price=self.price,
-                        trail_perc = 30)
-
-                
             

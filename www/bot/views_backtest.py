@@ -228,50 +228,51 @@ def execute(request,backtest_id):
         run_bot.quote_qty = 1000.0
         run_bot.symbol = periodo['symbol']
 
-        """try:"""
-        run_bot.valid()
-        
-        klines = backtest.get_df_from_file(periodo['file'])
-        bt = run_bot.backtest(klines,periodo['start'],periodo['end'],'ind')
-        json_rsp['bt'] = bt
-        json_rsp['ok'] = True
-                
-        
-
-
-        #Actualizar resultados
-        resultados['periodos'][key]['procesado'] = 'YES'
-        resultados['periodos'][key]['bt'] = bt
-        resultados = backtest.set_resultados(resultados)
-        periodos_q = len(resultados['periodos'])
-        periodos_completos = 0
-        for i in range(0,periodos_q):
-            if resultados['periodos'][i]['procesado'] == 'YES':
-                periodos_completos += 1
-        backtest.completo = int((periodos_completos/periodos_q)*100)
-        if backtest.completo < 100:
-            backtest.estado = backtest.ESTADO_ENCURSO
-        else:
-            backtest.estado = backtest.ESTADO_COMPLETO
-        backtest.save()
-
-        json_rsp['completo'] = backtest.completo
-        json_rsp['str_estado'] = backtest.str_estado()
-        
-        plantilla = get_template('backtest_view_periodos.html')
-        contexto = {'periodos': resultados['periodos']}
-        json_rsp['html_periodos'] = plantilla.render(contexto)
-
-        #Preparando el proceso en caso que exista
-        next_key = key+1
-        if next_key < len(resultados['periodos']):
-            json_rsp['next_key'] = resultados['periodos'][next_key]['key']
-            json_rsp['next_str'] = resultados['periodos'][next_key]['str']
+        try:
+            run_bot.valid()
             
-        """except Exception as e:
+            klines = backtest.get_df_from_file(periodo['file'])
+            sub_klines = backtest.get_sub_df_from_file(periodo['file'])
+            bt = run_bot.backtest(klines,periodo['start'],periodo['end'],'ind',sub_klines)
+            json_rsp['bt'] = bt
+            json_rsp['ok'] = True
+                    
+            
+
+
+            #Actualizar resultados
+            resultados['periodos'][key]['procesado'] = 'YES'
+            resultados['periodos'][key]['bt'] = bt
+            resultados = backtest.set_resultados(resultados)
+            periodos_q = len(resultados['periodos'])
+            periodos_completos = 0
+            for i in range(0,periodos_q):
+                if resultados['periodos'][i]['procesado'] == 'YES':
+                    periodos_completos += 1
+            backtest.completo = int((periodos_completos/periodos_q)*100)
+            if backtest.completo < 100:
+                backtest.estado = backtest.ESTADO_ENCURSO
+            else:
+                backtest.estado = backtest.ESTADO_COMPLETO
+            backtest.save()
+
+            json_rsp['completo'] = backtest.completo
+            json_rsp['str_estado'] = backtest.str_estado()
+            
+            plantilla = get_template('backtest_view_periodos.html')
+            contexto = {'periodos': resultados['periodos']}
+            json_rsp['html_periodos'] = plantilla.render(contexto)
+
+            #Preparando el proceso en caso que exista
+            next_key = key+1
+            if next_key < len(resultados['periodos']):
+                json_rsp['next_key'] = resultados['periodos'][next_key]['key']
+                json_rsp['next_str'] = resultados['periodos'][next_key]['str']
+            
+        except Exception as e:
             json_rsp['error'] = 'No fue posible procesar el BackTest'
             json_rsp['error'] += '<br>'+str(e)
-            json_rsp['ok'] = False"""
+            json_rsp['ok'] = False
         
         return JsonResponse(json_rsp)
 

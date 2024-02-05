@@ -85,6 +85,7 @@ class BotFibonacci(Bot_Core):
         self.klines = Fibonacci().long(self.klines)
         self.klines['signal'] = np.where(self.klines['fibo']==1,'COMPRA','NEUTRO')
         self.print_orders = False
+        self.graph_open_orders = True
 
 
     def next(self):
@@ -130,22 +131,18 @@ class BotFibonacci(Bot_Core):
                         
                         self.position = True
                         if self.trail > 0:
-                            trail_stop = self.stop_loss if self.stop_loss <= 2 else 2 
-                            self.orderid_sl = self.sell_trail(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price,self.price,trail_stop)
+                            trail_stop = self.stop_loss# if self.stop_loss <= 2 else 2 
+                            self.orderid_sl = self.sell_trail(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price,0,trail_stop)
+                            #self.orderid_tp = self.sell_trail(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price,self.price,self.take_profit) 
+                       
                         else:
                             self.orderid_sl = self.sell_limit(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price)
+                            self.orderid_tp = self.sell_limit(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price) 
+                        
                         if self.orderid_sl == 0:
                             print('\033[31mERROR\033[0m',self.row['datetime'],'STOP-LOSS',buyed_qty,' ',quote_to_sell,self.wallet_quote)  
-
-                        
-                        if self.trail > 0:
-                            self.orderid_tp = self.sell_trail(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price,self.price,self.take_profit)                
-                        else:
-                            self.orderid_tp = self.sell_limit(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price) 
-                        if self.orderid_tp == 0:
+                        if self.trail == 0 and self.orderid_tp == 0:
                             print('\033[31mERROR\033[0m',self.row['datetime'],'TAKE-PROFIT',buyed_qty,' ',quote_to_sell,self.wallet_quote) 
-                
-                        #print('price: ',self.price,' SL: ',self.stop_loss,' SL price: ',stop_loss_price,' TP: ',self.take_profit,' TP price: ',take_profit_price)
                     
                     else:
                         print('\033[31mERROR\033[0m',self.row['datetime'],'BUY price',self.price,'USD',quote_to_sell,self.wallet_quote)

@@ -407,3 +407,26 @@ class Backtest(models.Model):
         with open(file, 'rb') as f:
             df = pickle.load(f)
         return df
+    
+    def get_sub_df_from_file(self,file):
+        aux = file.split('_')
+        timeframe = aux[2]
+
+        if timeframe == '0m01':
+            file = file.replace(timeframe, '0m01')
+        elif timeframe == '0m05':
+            file = file.replace(timeframe, '0m01')
+        elif timeframe == '0m15':
+            file = file.replace(timeframe, '0m01')
+        elif timeframe == '0m30':
+            file = file.replace(timeframe, '0m05')
+        elif timeframe == '1h01':
+            file = file.replace(timeframe, '0m15')
+        elif timeframe == '1h04':
+            file = file.replace(timeframe, '1h01')
+        elif timeframe == '2d01':
+            file = file.replace(timeframe, '1h04')
+
+        with open(file, 'rb') as f:
+            df = pickle.load(f)
+        return df

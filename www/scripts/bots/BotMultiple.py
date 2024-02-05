@@ -77,31 +77,21 @@ class BotMultiple(Bot_CoreLong):
                 return 'COMPRA'
             
         elif self.desicion==3:
-            """
-            Error en label y vol_sma10
-            """
             if row['ma21_open_ratio'] < self.klines['ma21_open_ratio'].quantile(1/3) and \
-                row['label'] == 0 and \
                 row['williams_r'] > self.klines['williams_r'].quantile(2/3) and \
-                row['ao'] > self.klines['ao'].quantile(2/3) and \
-                row['vol_sma10'] < self.klines['vol_sma10'].quantile(1/3):
+                row['ao'] > self.klines['ao'].quantile(2/3):
                 return 'COMPRA'
         
         elif self.desicion==4:
-            """
-            Error en obv_cat
-            """
-            if (row['obv_cat'] == 'obv_low') and (row['ma21_open_ratio_cat'] == 'ma21_open_ratio_medium') and \
-                (row['rsi_2_sma_cat'] == 'rsi_2_sma_medium') and (row['williams_r_cat'] == 'williams_r_low') and \
-                (row['stoch_d_cat'] == 'stoch_d_low'):
-                return 'COMPRA'
+            
+                return 'NEUTRO'
             
         elif self.desicion==5:
             if row['rsi_2'] <= 20.976684 and row['rsi_14_sma'] <= 36.490307 and row['stoch_k'] <= 38.221718:
                 return 'COMPRA'
 
         elif self.desicion==6:
-            if row['rsi_2'] <= 20.976684 and row['rsi_2'] <= 77.089401 and row['adx_neg'] <= 37.914232 and row['rsi_2_sma'] <= 84.663757:
+            if row['rsi_2'] <= 20.976684 and row['adx_neg'] <= 37.914232 and row['rsi_2_sma'] <= 84.663757:
                 return 'COMPRA'
 
         elif self.desicion==7:
@@ -133,7 +123,7 @@ class BotMultiple(Bot_CoreLong):
                 return 'COMPRA'
 
         elif self.desicion==13:
-            if row['rsi_2'] <= 80.201191   and row['rsi_2']  > 36.969124 and row['ma10_open_ratio']  <= 1.018904 and row['atr']  <= 314.899307:
+            if row['rsi_2'] <= 80.201191   and row['rsi_2']  > 36.969124 and row['ma10_open_ratio']  <= 1.018904 : #and row['atr']  <= 314.899307
                 return 'COMPRA'
 
         elif self.desicion==14:

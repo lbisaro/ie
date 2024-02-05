@@ -92,6 +92,8 @@ class Bot_CoreLong(Bot_Core):
             err.append("El Take Profit debe ser un valor entre 0 y 100")
         if self.interes != 'c' and self.interes != 's':
             err.append("Se debe establecer el tipo de interes. (Simple o Compuesto)")
+        if self.trail > 0 and self.take_profit > 0:
+            err.append("No es posible establecer take-profit para ordenes de venta Trail")
 
         if len(err):
             raise Exception("\n".join(err))
@@ -129,7 +131,7 @@ class Bot_CoreLong(Bot_Core):
                     if self.stop_loss:
                         stop_loss_price = round(self.price - self.price*(self.stop_loss/100) , self.qd_price)
                         if self.trail > 0:
-                            self.orderid_sl = self.sell_trail(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price,self.price,self.stop_loss)
+                            self.orderid_sl = self.sell_trail(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price,0,self.stop_loss)
                         else:
                             self.orderid_sl = self.sell_limit(buyed_qty,Order.FLAG_STOPLOSS,stop_loss_price)
                         if self.orderid_sl == 0:
@@ -137,12 +139,10 @@ class Bot_CoreLong(Bot_Core):
 
                     if self.take_profit:
                         take_profit_price = round(self.price + self.price*(self.take_profit/100) , self.qd_price)
-                        if self.trail > 0:
-                            self.orderid_tp = self.sell_trail(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price,self.price,self.take_profit)                
-                        else:
+                        if self.trail == 0:
                             self.orderid_tp = self.sell_limit(buyed_qty,Order.FLAG_TAKEPROFIT,take_profit_price) 
-                        if self.orderid_tp == 0:
-                            print('\033[31mERROR\033[0m',self.row['datetime'],'TAKE-PROFIT',buyed_qty,' ',quote_to_sell,self.wallet_quote) 
+                            if self.orderid_tp == 0:
+                                print('\033[31mERROR\033[0m',self.row['datetime'],'TAKE-PROFIT',buyed_qty,' ',quote_to_sell,self.wallet_quote) 
                 else:
                     print('\033[31mERROR\033[0m',self.row['datetime'],'BUY price',self.price,'USD',quote_to_sell,self.wallet_quote)
             

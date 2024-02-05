@@ -17,6 +17,8 @@ class Bot_Core():
     signal = 'NEUTRO'
     order_id = 0
 
+    parametros = {}
+
     #Trades para gestion de resultados
     _orders = {}
     df_trades_columns = ['start','buy_price','qty','end','sell_price','flag','type','days','result_usd','result_perc','orders'] 
@@ -100,8 +102,8 @@ class Bot_Core():
     def next(self):
         raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo next(df)')
 
-    def backtest(self,klines,from_date,to_date,to_get='completed'):
-
+    def backtest(self,klines,from_date,to_date,rsp_mode,sub_klines):
+        
         self.backtesting = True
         self.order_id = 0
         self.graph_open_orders = True
@@ -131,11 +133,17 @@ class Bot_Core():
     
         self.klines = klines
         self.signal = 'NEUTRO'
+        self.sub_klines = sub_klines
         self.start()
         
         #quitando las velas previas a la fecha de start
         self.klines = self.klines[self.klines['datetime'] >= pd.to_datetime(from_date)]
         self.klines = self.klines.reset_index(drop=True)
+
+        self.timeframe_length = self.klines['datetime'].iloc[1] - self.klines['datetime'].iloc[0]
+        
+        self.sub_klines = self.sub_klines[self.sub_klines['datetime'] >= pd.to_datetime(from_date)]
+        self.sub_klines = self.sub_klines.set_index('datetime')
 
         velas = int(self.klines['datetime'].count())
         if velas<50:
@@ -189,10 +197,11 @@ class Bot_Core():
         ohlc = new_df[['unix_dt','open','high','low','close','volume','usd_strat']].rename(columns=rename_columns).to_dict(orient='records')
         
         self.make_trades()
-        if to_get=='ind':
+        if rsp_mode=='ind':
             return self.get_resultados()
         
-        elif to_get=='completed':
+        elif rsp_mode=='completed':
+
             res = {'ok': True,
                 'error': False,
                 'order_side': { 
@@ -276,7 +285,6 @@ class Bot_Core():
         self.row = row
         self.price = self.row['open']
         self.datetime = self.row['datetime']
-        self.executed_order = self.check_orders()
         self.next()
 
         #Gestion de stoploss y takeprofit price
@@ -287,11 +295,12 @@ class Bot_Core():
                     unix_dt = self.datetime.timestamp() * 1000 +  10800000
                     if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
                         self.sl_price_data.append({'dt': unix_dt,'SL':order.limit_price})
-                    elif order.side == Order.SIDE_SELL and order.flag == Order.FLAG_TAKEPROFIT:
+                    if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_TAKEPROFIT:
                         self.tp_price_data.append({'dt': unix_dt,'TP':order.limit_price})
-                    elif order.side == Order.SIDE_BUY:
+                    if order.side == Order.SIDE_BUY:
                         self.buy_price_data.append({'dt': unix_dt,'BY':order.limit_price})
 
+        self.executed_order = self.check_orders()
 
         if row.name == self.klines.iloc[-1].name: #Se esta ejecutando la ultima vela
             if self.wallet_base > 0:
@@ -361,7 +370,7 @@ class Bot_Core():
     def buy_trail(self,qty,flag,limit_price,activation_price,trail_perc):
         
         qty = round(qty,self.qd_qty)
-        if self.wallet_base >= qty and qty*limit_price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+        if self.wallet_quote >= qty*limit_price and qty*limit_price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
             order = Order(self.order_id,Order.TYPE_TRAILING,self.row['datetime'],Order.SIDE_BUY,qty,limit_price,flag)
             order.activation_price = activation_price
@@ -390,92 +399,85 @@ class Bot_Core():
     def check_orders(self):
         
         executed = False
+        start_d = self.datetime 
+        end_d = self.datetime + self.timeframe_length 
         
-        vela_bajista = True if self.row['close'] > self.row['open'] else False
-        #Si la vela es Up ordena las ordenes por limit_price Ascendente
-        #Si la vela es Down ordena las ordenes por limit_price Descendente
-        sorted_orders = sorted(self._orders.items(), key=lambda x: x[1].limit_price, reverse=vela_bajista)
-        
-        self.wallet_base_block = 0.0
-        self.wallet_quote_block = 0.0
-
-        for i,order in sorted_orders:
-            if i in self._orders: #Se consulta si esta o no porque puede que se ejecute mas de una orden en la misma vela
-                order  = self._orders[i]
-
-                if order.type == Order.TYPE_LIMIT:
-                    
-                    if order.side == Order.SIDE_BUY and order.flag != Order.FLAG_STOPLOSS:
-                        if self.row['low'] <= order.limit_price:
-                            executed =  self.execute_order(order.id)
-                            
-                    if order.side == Order.SIDE_BUY and order.flag == Order.FLAG_STOPLOSS:
-                        if self.row['high'] >= order.limit_price:
-                            executed =  self.execute_order(order.id)
-                            
-                    if order.side == Order.SIDE_SELL and order.flag != Order.FLAG_STOPLOSS:
-                        if self.row['high'] >= order.limit_price:
-                            executed = self.execute_order(order.id)
-                            
-                    if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
-                        if self.row['low'] <= order.limit_price:
-                            executed = self.execute_order(order.id)
-
-                #Actualizando limit_price por trailing
-                if order.type == Order.TYPE_TRAILING:
-
-                    if order.side == Order.SIDE_SELL:
-                        if order.active:
-                            if self.row['low'] < order.limit_price < self.row['high']:
-                                executed = self.execute_order(order.id)
-                        #else: #Cuando no esta activa, la orden trail opera como una orden limit
-                        #    if self.row['high'] >= order.limit_price:
-                        #        executed = self.execute_order(order.id)
-
-                        #Verifica si se activa el trailing
-                        if not order.active and self.row['high'] >= order.activation_price:
-                            new_limit_price = round(self.row['high'] * (1-(order.trail_perc/100)),self.qd_price)
-                            if new_limit_price >= order.limit_price:
-                                order.active = True
-                                order.tag = f'LP {order.limit_price}'
-                                order.limit_price = round(self.row['high'] * (1-(order.trail_perc/100)),self.qd_price)
-
-                        if order.active:
-                            new_limit_price = self.row['high'] * (1-(order.trail_perc/100))
-                            if new_limit_price >= order.limit_price: 
-                                order.limit_price = round(self.row['high']*(1-(order.trail_perc/100)),self.qd_price)
-
-
-                    if order.side == Order.SIDE_BUY:
-
-                        if order.active:
-                            if self.row['low'] < order.limit_price < self.row['high']:
-                                executed = self.execute_order(order.id)
-                        #else: #Cuando no esta activa, la orden trail opera como una orden limit
-                        #    if self.row['low'] <= order.limit_price:
-                        #        executed = self.execute_order(order.id)
-                                
-                        #Verifica si se activa el trailing
-                        if not order.active and self.row['low'] < order.activation_price:
-                            new_limit_price = round(self.row['low'] * (1+(order.trail_perc/100)),self.qd_price)
-                            if new_limit_price <= order.limit_price:
-                                order.active = True
-                                order.tag = f'LP {order.limit_price}'
-                                order.limit_price = round(self.row['low'] * (1+(order.trail_perc/100)),self.qd_price)
-                        
-                        if order.active:
-                            new_limit_price = self.row['low'] * (1+(order.trail_perc/100))
-                            if new_limit_price <= order.limit_price: 
-                                order.limit_price = round(self.row['low']*(1+(order.trail_perc/100)),self.qd_price)
+        if len(self._orders) > 0:
             
-                
-                #Establece la cantidad de Base y Quote bloqueadas en ordenes
-                if i in self._orders: #La orden no fue ejecutada
-                    if order.side == Order.SIDE_BUY:
-                        self.wallet_quote_block += round(order.qty*order.limit_price,self.qd_quote)
-                    if order.side == Order.SIDE_SELL:
-                        self.wallet_base_block += round(order.qty,self.qd_qty)
+            _orders = self._orders.copy().items()
 
+            self.wallet_base_block = 0.0
+            self.wallet_quote_block = 0.0
+
+            #Recorre las sub_velas correspondientes a la vela actual
+            #para optimizar la ejecucion de las ordenes
+            sub_k = self.sub_klines[(self.sub_klines.index>=start_d) & (self.sub_klines.index<end_d)] 
+            for sub_i,sub_row in sub_k.iterrows():
+                self.datetime = sub_row.name
+                for i,order in _orders:
+                    
+                    if i in self._orders: #Se consulta si esta o no porque puede que se ejecute mas de una orden en la misma vela
+                        order  = self._orders[i]
+
+                        if order.type == Order.TYPE_LIMIT:
+                            
+                            if order.side == Order.SIDE_BUY and order.flag != Order.FLAG_STOPLOSS:
+                                if sub_row['low'] <= order.limit_price:
+                                    executed =  self.execute_order(order.id)
+                                    
+                            if order.side == Order.SIDE_BUY and order.flag == Order.FLAG_STOPLOSS:
+                                if sub_row['high'] >= order.limit_price:
+                                    executed =  self.execute_order(order.id)
+                                    
+                            if order.side == Order.SIDE_SELL and order.flag != Order.FLAG_STOPLOSS:
+                                if sub_row['high'] >= order.limit_price:
+                                    executed = self.execute_order(order.id)
+                                    
+                            if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
+                                if sub_row['low'] <= order.limit_price < sub_row['high']:
+                                    executed = self.execute_order(order.id)
+
+                        if order.type == Order.TYPE_TRAILING:
+
+                            if order.side == Order.SIDE_SELL:
+                                if order.active:
+                                    if sub_row['low'] < order.limit_price < sub_row['high']:
+                                        executed = self.execute_order(order.id)
+
+                                if order.id in self._orders: #Verifica si la orden no se ejecuto
+                                    if not order.active and (sub_row['high'] >= order.activation_price or order.activation_price == 0):
+                                        order.active = True
+
+                                    if order.active:
+                                        new_limit_price = sub_row['high'] * (1-(order.trail_perc/100))
+                                        if new_limit_price >= order.limit_price: 
+                                            order.limit_price = round(new_limit_price,self.qd_price)
+                                        if sub_row['low'] < order.limit_price < sub_row['high']:
+                                            executed = self.execute_order(order.id)
+
+                            if order.side == Order.SIDE_BUY:
+                                if order.active:
+                                    if sub_row['low'] < order.limit_price < sub_row['high']:
+                                        executed = self.execute_order(order.id)
+                                        
+                                if order.id in self._orders: #Verifica si la orden no se ejecuto
+                                    if not order.active and (sub_row['low'] < order.activation_price or order.activation_price == 0):
+                                        order.active = True
+                                        
+                                    if order.active:
+                                        new_limit_price = self.row['low'] * (1+(order.trail_perc/100))
+                                        if new_limit_price <= order.limit_price: 
+                                            order.limit_price = round(new_limit_price,self.qd_price)
+                                        if sub_row['low'] < order.limit_price < sub_row['high']:
+                                            executed = self.execute_order(order.id)
+
+                        #Establece la cantidad de Base y Quote bloqueadas en ordenes
+                        if i in self._orders: #La orden no fue ejecutada
+                            if order.side == Order.SIDE_BUY:
+                                self.wallet_quote_block += round(order.qty*order.limit_price,self.qd_quote)
+                            if order.side == Order.SIDE_SELL:
+                                self.wallet_base_block += round(order.qty,self.qd_qty)
+            self.datetime = start_d
         return executed
     
     def on_order_execute(self):
@@ -489,7 +491,7 @@ class Bot_Core():
 
         order = self._orders[orderid]
         order.price = order.limit_price
-        order.datetime = self.row['datetime']  
+        order.datetime = self.datetime  
         if order.type == Order.TYPE_TRAILING and not order.active:
             order.type = Order.TYPE_LIMIT
         
@@ -652,17 +654,7 @@ class Bot_Core():
         
         brief.append(['general', 'Par',    
                       f'{symbol} {intervalo}' ])  
-        """          
-        brief.append(['general', 'Capital',    
-                      f'USD {self.quote_qty} - Posicion {self.quote_perc}%'   ])  
-        if self.interes == 'c':          
-            brief.append(['general', 'Tipo de interes','Compuesto'   ])            
-        elif self.interes == 's':          
-            brief.append(['general', 'Tipo de interes','Simple'   ])       
-           
-        brief.append(['general', 'Gestion de riesgo',    
-                      f'Stop-Loss {self.stop_loss}% - Take-Profit {self.take_profit}%'   ])            
-        """
+
         start = kline_ini['datetime'].strftime('%Y-%m-%d %H:%M')
         end = kline_end['datetime'].strftime('%Y-%m-%d %H:%M')
         brief.append(['general', 'Periodo',    
@@ -678,7 +670,21 @@ class Bot_Core():
                       f'{resultado_mensual:.2f}%' ,
                       ('text-success' if resultado_perc > 0 else 'text-danger')   ])            
 
-        
+        #Parametros
+        for prm in self.parametros:
+            if prm != 'symbol':
+                str_v = eval('self.'+prm)
+                str_d = self.parametros[prm]['d']
+                if self.parametros[prm]['t'] == 'perc':
+                    str_v = f'{str_v:.2f}%'
+                elif self.parametros[prm]['t'] == 'bin':
+                    str_v = 'Si' if str_v > 0 else 'No'
+                elif self.parametros[prm]['t'] == 't_int':
+                    str_v = 'Simple' if str_v == 's' else 'Compuesto'
+                else:
+                    str_v = f'{str_v}'
+                brief.append(['general', str_d, str_v ]) 
+
         #operaciones
         trades_desc = self.df_trades.describe()
         trades_tot = self.df_trades['start'].count()
@@ -724,14 +730,14 @@ class Bot_Core():
         max_drawup_sym = self.ind_maximo_drawup(self.klines,'usd_hold')
 
         cagr = self.ind_cagr(self.klines)
-        ratio_sharpe = self.ind_ratio_sharpe(self.klines)
+        ratio_sharpe = self.ind_ratio_sharpe(self.klines) if cagr != 0 else 0.0
         risk_free_rate=0.045
         ratio_sortino = self.ind_ratio_sortino(self.klines, risk_free_rate)
         ratio_ulcer = self.ind_ratio_ulcer(self.klines)
-        ratio_calmar = self.ind_ratio_calmar(self.klines)
-        modificacion_sharpe = self.ind_indice_modificacion_sharpe(self.klines)
-        umbral_objetivo_riesgo = 0.02  # Umbral objetivo de riesgo: 2%
+        ratio_calmar = self.ind_ratio_calmar(self.klines) if cagr != 0 else 0.0
+        modificacion_sharpe = self.ind_indice_modificacion_sharpe(self.klines) if volatilidad_cap > 0 else 0.0
         
+        umbral_objetivo_riesgo = 0.02  # Umbral objetivo de riesgo: 2%
         ratio_sortino_modificado = self.ind_ratio_sortino_modificado(self.df_trades,umbral_objetivo_riesgo) if trades_tot > 0 else 0.0
 
 

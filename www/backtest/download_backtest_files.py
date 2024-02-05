@@ -38,10 +38,7 @@ def get_klines(start,end,symbol,timeframe):
     df['low'] = df['low'].astype('float')
     df['close'] = df['close'].astype('float')
     df['volume'] = df['volume'].astype('float')
-    if timeframe == '1d':
-        df['datetime'] = pd.to_datetime(df['datetime'], unit='ms') 
-    else:
-        df['datetime'] = pd.to_datetime(df['datetime'], unit='ms') - pd.Timedelta('3 hr')
+    df['datetime'] = pd.to_datetime(df['datetime'], unit='ms') 
     #df=df.set_index('datetime')
     return df
 
@@ -62,9 +59,10 @@ for index, row in intervals.iterrows():
         start = p['start']
         end = p['end']
         real_start = (dt.datetime.strptime(start, "%Y-%m-%d") - dt.timedelta(minutes=minutes_back)).strftime("%Y-%m-%d")
-        utc_start = real_start+' 00:00:00-03:00'
-        utc_end = end+' 23:59:59-03:00'
-
+        real_end = (dt.datetime.strptime(end, "%Y-%m-%d") ).strftime("%Y-%m-%d")
+        utc_start = real_start+' 00:00:00'
+        utc_end = real_end+' 23:59:59'
+        
         for symbol in p['symbols']:
             file_dump = f'{folder}{tipo}_{symbol}_{interval_id}_{start}_{end}.DataFrame'
             print(file_dump,end=" ")
