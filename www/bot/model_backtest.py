@@ -421,7 +421,7 @@ class Backtest(models.Model):
         elif timeframe == '0m30':
             file = file.replace(timeframe, '0m05')
         elif timeframe == '1h01':
-            file = file.replace(timeframe, '0m05')
+            file = file.replace(timeframe, '0m15')
         elif timeframe == '1h04':
             file = file.replace(timeframe, '0m30')
         elif timeframe == '2d01':

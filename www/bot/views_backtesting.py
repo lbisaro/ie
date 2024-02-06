@@ -70,7 +70,7 @@ def run(request):
             if attr != 'row':
                 json_rsp['parametros'][attr] = val
 
-        if True: #try:
+        try:
             run_bot.valid()
 
             backtest = Backtest()
@@ -84,10 +84,10 @@ def run(request):
                 json_rsp['ok'] = False
             else:
                 json_rsp['ok'] = True
-        #except Exception as e:
-        #    json_rsp['ok'] = False
-        #    print(e)
-        #    json_rsp['error'] = str(e)
+        except Exception as e:
+            json_rsp['ok'] = False
+            print(e)
+            json_rsp['error'] = str(e)
             
         return JsonResponse(json_rsp)
     
