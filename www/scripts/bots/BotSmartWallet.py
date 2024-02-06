@@ -44,13 +44,6 @@ class BotSmartWallet(Bot_Core):
                         't' :'perc',
                         'pub': True,
                         'sn':'Inicio', },
-                're_buy_perc': {
-                        'c' :'re_buy_perc',
-                        'd' :'Recompra luego de una venta',
-                        'v' :'3',
-                        't' :'perc',
-                        'pub': True,
-                        'sn':'Recompra', },
                 'lot_to_safe': {
                         'c' :'lot_to_safe',
                         'd' :'Resguardo si supera la compra inicial',
@@ -58,6 +51,13 @@ class BotSmartWallet(Bot_Core):
                         't' :'perc',
                         'pub': True,
                         'sn':'Resguardo', },
+                're_buy_perc': {
+                        'c' :'re_buy_perc',
+                        'd' :'Recompra luego de una venta',
+                        'v' :'3',
+                        't' :'perc',
+                        'pub': True,
+                        'sn':'Recompra', },
                 'ma': {
                         'c' :'ma',
                         'd' :'Periodo de la Media Simple',

@@ -1,6 +1,8 @@
 from bot.model_kline import *
 import pandas as pd
+import pandas_ta as pta
 from scripts.functions import round_down
+from scripts.indicators import trend
 from scripts.Bot_Core import Bot_Core
 from scripts.Bot_Core_utils import *
 
@@ -16,23 +18,17 @@ class BotSmartWallet2(Bot_Core):
     
     start_cash = 0.0  #Cash correspondiente a la compra inicial
     pre_start = False #Controla que en la primera vela se compren la sunidades para stock 
-    quote_up = 0.0
-    quote_down = 0.0
 
     def __init__(self):
         self.symbol = ''
-        self.ma = 0
         self.quote_perc = 0.0
         self.re_buy_perc = 0.0
         self.lot_to_safe = 0.0  
-        self.quote_up = 0.0
-        self.quote_down = 0.0
     
     descripcion = 'Bot de Balanceo de Billetera \n'\
-                  'Realiza una compra al inicio, \n'\
-                  'Sobre la MA, Vende parcial para tomar ganancias cuando el capital es mayor a la compra inicial, \n'\
-                  'Bajo la MA, Vende parcial a medida que va perdiendo capital, \n'\
-                  'Luego de cada venta recompra a un valor mas bajo.'
+                  ' \n'\
+                  'Con tendencia alcista, Realiza una compra al inicio, y Vende parcial para tomar ganancias cuando el capital es mayor a la compra inicial, \n'\
+                  'Con tendencia bajista, Vende el total'
     
     parametros = {'symbol':  {  
                         'c' :'symbol',
@@ -51,24 +47,10 @@ class BotSmartWallet2(Bot_Core):
                 'lot_to_safe': {
                         'c' :'lot_to_safe',
                         'd' :'Resguardo si supera la compra inicial',
-                        'v' :'4',
+                        'v' :'3',
                         't' :'perc',
                         'pub': True,
                         'sn':'Resguardo', },
-                're_buy_perc': {
-                        'c' :'re_buy_perc',
-                        'd' :'Recompra luego de una venta',
-                        'v' :'8',
-                        't' :'perc',
-                        'pub': True,
-                        'sn':'Recompra', },
-                'trail': {
-                        'c' :'trail',
-                        'd' :'Trail',
-                        'v' : 1,
-                        't' :'bin',
-                        'pub': True,
-                        'sn':'Trail', },
 
                 }
 
@@ -78,73 +60,59 @@ class BotSmartWallet2(Bot_Core):
             err.append("Se debe especificar el Par")
         if self.quote_perc <= 0:
             err.append("El Porcentaje de capital por operacion debe ser mayor a 0")
-        if self.re_buy_perc <= 0 or self.re_buy_perc > 100:
-            err.append("La recompra debe ser un valor mayor a 0 y menor o igual a 100")
         if self.lot_to_safe <= 0 or self.lot_to_safe > 100:
             err.append("El Resguardo debe ser un valor mayor a 0 y menor o igual a 100")
-
         
         if len(err):
             raise Exception("\n".join(err))
         
     def start(self):
+        self.klines = trend(self.klines)  
         self.klines['signal'] = 'NEUTRO'   
-        self.print_orders = False
-        self.graph_open_orders = False
+
+        self.print_orders = True 
+        self.graph_open_orders = True
+        self.sl_order = 0
     
     def next(self):
         price = self.price
-        
+        trend_up = True if self.row['trend_up'] is not None else False
+        #trend_down = True if self.row['trend_down'] > 0 else False
         
         #Ajusta la billetera inicial para estockearse de Monedas
         #No hace operacion de Buy para que se puedan interpretar las ordenes
         if not self.pre_start:
-            qty = round_down((self.wallet_quote * (self.quote_perc/100)) / price , self.qd_qty)
-            self.wallet_base = qty
-            self.wallet_quote = round(self.wallet_quote - price*qty,self.qd_quote)
-            
-            self.start_cash = round(price*qty , self.qd_quote)
-            self.quote_up   = round_down(self.start_cash * (self.lot_to_safe/100) , self.qd_quote)
-            self.quote_down = round_down(self.start_cash * (self.re_buy_perc/100) , self.qd_quote)
-            if self.quote_up<12:
-                raise "La orden debe ser mayor o igual a 12 USD. Incrementar el parametro [Resguardo si supera la compra inicial]"
-            if self.quote_down<12:
-                raise "La orden debe ser mayor o igual a 12 USD. Incrementar el parametro [Recompra luego de una venta]"
+            self.start_cash = round(self.wallet_quote * (self.quote_perc/100),self.qd_quote)
             self.pre_start = True 
 
         #Estrategia
         else:
-            hold = round(self.wallet_base*price,self.qd_quote)
-            hold_free = hold - round(self.wallet_base_block*price,self.qd_quote)
-
-            if hold_free > self.start_cash+self.quote_up:
-                qty = round_down(self.quote_up/price, self.qd_qty)
-                limit_price = round(price*(1+(self.lot_to_safe/100)),self.qd_price)
-                if self.trail > 0:
-                    sell_order = self.sell_trail(qty,Order.FLAG_SIGNAL,limit_price,self.price,self.lot_to_safe)
-                else:
-                    sell_order = self.sell_limit(qty,Order.FLAG_SIGNAL,limit_price)
-                
-                if sell_order>0:
-                    limit_price = round(price*(1-(self.re_buy_perc/100)),self.qd_price)
-                    if self.trail > 0:
-                        self.buy_trail(qty,Order.FLAG_SIGNAL,limit_price,self.price,self.re_buy_perc)
-                    else:
-                        self.buy_limit(qty,Order.FLAG_SIGNAL,limit_price)
-                
-            elif hold < self.start_cash-self.quote_down:
-                qty = round_down(self.quote_down/price, self.qd_qty)
-                limit_price = round(price*(1+(self.re_buy_perc/100)),self.qd_price)
-                if self.trail > 0:
-                    buy_order = self.buy_trail(qty,Order.FLAG_SIGNAL,limit_price,self.price,self.re_buy_perc)
-                else:
-                    buy_order = self.buy_limit(qty,Order.FLAG_SIGNAL,limit_price)
-                
-                if buy_order>0:
-                    limit_price = round(price*(1+(self.re_buy_perc/100)),self.qd_price)
-                    if self.trail > 0:
-                        self.orderid_sl = self.sell_trail(qty,Order.FLAG_TAKEPROFIT,limit_price,self.price,self.re_buy_perc)
-                    else:
-                        self.orderid_sl = self.sell_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
-                
             
+
+            if trend_up:
+                hold = round(self.wallet_base*price,self.qd_quote)
+                if hold < 10: 
+                    qty = round_down(self.start_cash/self.price,self.qd_qty)
+                    self.buy(qty,Order.FLAG_SIGNAL)
+                    self.sl_order = 0
+                    self.cancel_orders()
+                elif hold > self.start_cash*(1+(self.lot_to_safe/100)):
+                    qty = round_down((hold - self.start_cash)/price, self.qd_qty)
+                    if (qty*self.price)< 11.0:
+                        qty = round_down(11.0/price, self.qd_qty)
+                    self.sell(qty,Order.FLAG_TAKEPROFIT)
+                    self.sl_order = 0
+                    self.cancel_orders()
+                
+                #Procesando stop_loss 
+                sl_cash = self.start_cash*(1-((self.lot_to_safe*2)/100))
+                sl_price = sl_cash/self.wallet_base
+                if self.sl_order == 0:
+                    self.sl_order = self.sell_limit(self.wallet_base,Order.FLAG_STOPLOSS,sl_price)
+
+                    
+            else:
+                if self.wallet_base > 0:
+                    self.sell(self.wallet_base,Order.FLAG_SIGNAL)
+                    self.cancel_orders()
+
