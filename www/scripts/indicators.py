@@ -1,29 +1,32 @@
 import pandas as pd
+import pandas_ta
 import numpy as np
 
+def supertrend(df):
+    """
+    Al dataframe le agrega las siguientes columnas
+    st_trend: Muestra la tendencia del precio
+    st_trigger: Indica el cambio de tendencia
 
-def trend(df):
-    window = 3
-    ema_fast = 7
-    ema_slow = 21
 
-    df['hl2'] = (df['high'] + df['low']) / 2
-    df['ema_f'] = df['hl2'].ewm(span=ema_fast, adjust=False).mean()
-    df['ema_s'] = df['hl2'].ewm(span=ema_slow, adjust=False).mean()
+    Los valores de las columnas pueden ser:
+    1  (Alcista)          -1 (Bajista)          0  (Neutro)      
+    
+    """
+    st_length = 7
+    st_multiplier=3
+    df.ta.supertrend(length=st_length, multiplier=st_multiplier, append=True)
+    signal_col = f'SUPERTd_{st_length}_{st_multiplier}.0'
+    up_col     = f'SUPERTl_{st_length}_{st_multiplier}.0'
+    down_col   = f'SUPERTs_{st_length}_{st_multiplier}.0'
+    price_col  = f'SUPERT_{st_length}_{st_multiplier}.0'
+    df['st_trend'] = df[signal_col]
+    df['st_trigger'] = np.where((df[signal_col]>0) & (df[signal_col].shift(1)<=0) ,1,0)
+    df['st_trigger'] = np.where((df[signal_col]<0) & (df[signal_col].shift(1)>=0) ,-1,df['st_trigger']) 
+    df = df.drop([signal_col,up_col,down_col,price_col], axis=1)
 
-    df['cross'] = np.where(df['ema_f']>df['ema_s'],1,-1)
-
-    # Contar las veces consecutivas que 'cross' es igual a 1 en las últimas 5 filas
-    df['ema_signal'] = np.where(df['cross'].rolling(window=window).sum() == window, 1, 0 )
-
-    # Contar las veces consecutivas que 'cross' es igual a -1 en las últimas 5 filas
-    df['ema_signal'] = np.where(df['cross'].rolling(window=window).sum() == -window , -1, df['ema_signal'] )
-
-    df['trend_up'] = np.where(df['ema_signal']>0,(df['ema_f']+df['ema_s'])/2,None)
-    df['trend_down'] = np.where(df['ema_signal']<0,(df['ema_f']+df['ema_s'])/2,None)
-    df[['high','low','trend_up','trend_down']].plot(figsize=(20,4),style=['#dddddd','#dddddd','g','r'])
-    df = df.drop(['hl2','ema_f','ema_s','cross','ema_signal'], axis=1)
     return df
+
 
 # Función para calcular los pivotes de máximos y mínimos
 def find_pivots(df,dev_threshold=0,dev_trend=0.33):

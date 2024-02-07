@@ -383,10 +383,11 @@ class Bot_Core():
     def close(self,flag): #Vende el total existente en self.wallet_base
         self.order_id += 1
         qty = self.wallet_base
-        order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
-        self._orders[order.id] = order
-        if self.execute_order(order.id):
-            return order.id
+        if qty > 0:
+            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
+            self._orders[order.id] = order
+            if self.execute_order(order.id):
+                return order.id
         return 0
         
     def cancel_order(self,orderid):

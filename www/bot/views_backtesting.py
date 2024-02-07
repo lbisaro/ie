@@ -72,22 +72,22 @@ def run(request):
 
         try:
             run_bot.valid()
-
-            backtest = Backtest()
-            klines = backtest.get_df_from_file(backtest_file)
-            sub_klines = backtest.get_sub_df_from_file(backtest_file)
-            bt = run_bot.backtest(klines,from_date,to_date,'completed',sub_klines)
-            json_rsp['bt'] = bt
-
-            if bt['error']:
-                json_rsp['error'] = bt['error']
-                json_rsp['ok'] = False
-            else:
-                json_rsp['ok'] = True
         except Exception as e:
             json_rsp['ok'] = False
-            print(e)
             json_rsp['error'] = str(e)
+            return JsonResponse(json_rsp)
+        
+        backtest = Backtest()
+        klines = backtest.get_df_from_file(backtest_file)
+        sub_klines = backtest.get_sub_df_from_file(backtest_file)
+        bt = run_bot.backtest(klines,from_date,to_date,'completed',sub_klines)
+        json_rsp['bt'] = bt
+
+        if bt['error']:
+            json_rsp['error'] = bt['error']
+            json_rsp['ok'] = False
+        else:
+            json_rsp['ok'] = True
             
         return JsonResponse(json_rsp)
     
