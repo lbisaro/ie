@@ -2,6 +2,7 @@ __pycache__
 www/venv
 www/local__*
 */migrations/*.py
+www/bot/migrations/*.py
 *.log
 *.DataFrame
 www/backtest/results/*.json
