@@ -14,6 +14,7 @@ class BotSWSupertrend(Bot_Core):
     re_buy_perc = 0 #% para recompra luego de una venta
     lot_to_safe = 0 #% a resguardar si supera start_cash
     re_buy_perc = 0 #% para recompra luego de una venta
+    interes = '' 
 
     op_last_price = 0
     
@@ -25,11 +26,14 @@ class BotSWSupertrend(Bot_Core):
         self.quote_perc = 0.0
         self.lot_to_safe = 0.0
         self.re_buy_perc = 0.0  
+        self.interes = '' 
     
     descripcion = 'Bot de Balanceo de Billetera \n'\
                   ' \n'\
                   'Con tendencia alcista, Realiza una compra al inicio, y Vende parcial para tomar ganancias cuando el capital es mayor a la compra inicial, \n'\
-                  'Con tendencia bajista, Vende el total'
+                  'Con tendencia bajista, Vende el total. \n'\
+                  'El parametro [Compra inicial] y porcentaje establecido en [Resguardo si supera la compra] se debe establecer de forma tal '\
+                  'que al generar el resguardo la venta se haga por un importe mayor a 11 USD, de acuerdo a las restricciones del exchange.'
     
     parametros = {'symbol':  {  
                         'c' :'symbol',
@@ -40,7 +44,7 @@ class BotSWSupertrend(Bot_Core):
                         'sn':'Par',},
                 'quote_perc': {
                         'c' :'quote_perc',
-                        'd' :'Compra inicial para stock',
+                        'd' :'Compra inicial',
                         'v' :'100',
                         't' :'perc',
                         'pub': True,
@@ -59,6 +63,13 @@ class BotSWSupertrend(Bot_Core):
                         't' :'perc',
                         'pub': True,
                         'sn':'Recompra', },
+                'interes': {
+                        'c' :'interes',
+                        'd' :'Tipo de interes',
+                        'v' :'c',
+                        't' :'t_int',
+                        'pub': True,
+                        'sn':'Int', },
 
                 }
 
@@ -92,10 +103,14 @@ class BotSWSupertrend(Bot_Core):
         hold = round(self.wallet_base*price,self.qd_quote)
         
         if hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
-            cash = self.start_cash if self.start_cash <= self.wallet_quote else self.wallet_quote
+
+            if self.interes == 's': #Interes Simple
+                cash = self.start_cash if self.start_cash <= self.wallet_quote else self.wallet_quote
+            else: #Interes Compuesto
+                cash = self.wallet_quote
+
             qty = round_down(cash/self.price,self.qd_qty)
             self.buy(qty,Order.FLAG_SIGNAL)
-            self.sl_order = 0
 
                 
         elif self.signal == 'VENTA':

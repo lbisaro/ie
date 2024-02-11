@@ -76,9 +76,6 @@ class BotFibonacci(Bot_Core):
 
         if len(err):
             raise Exception("\n".join(err))
-    
-    def get_symbols(self):
-        return [self.symbol]
         
     def start(self):
         
