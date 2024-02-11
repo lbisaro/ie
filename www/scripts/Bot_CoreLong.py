@@ -97,9 +97,6 @@ class Bot_CoreLong(Bot_Core):
 
         if len(err):
             raise Exception("\n".join(err))
-    
-    def get_symbols(self):
-        return [self.symbol]
 
     def next(self):
         signal = self.signal
@@ -112,7 +109,6 @@ class Bot_CoreLong(Bot_Core):
             
         if not self.position:
             if signal == 'COMPRA':
-
                 if self.interes == 's': #Interes Simple
                     quote_qty = self.quote_qty if self.wallet_quote >= self.quote_qty else self.wallet_quote
                     quote_to_sell = round_down(quote_qty*(self.quote_perc/100) , self.qd_quote )
