@@ -45,7 +45,7 @@ def estrategia_create(request):
     if request.method == 'GET':
         gen_bot = GenericBotClass()
         clases = gen_bot.get_clases()
-        symbols = Symbol.objects.filter(activo=1).order_by('symbol')
+        symbols = Symbol.objects.order_by('symbol')
         intervals = fn.get_intervals().to_dict('records')
         return render(request, 'estrategia_edit.html',{
             'title': 'Crear estrategia',
@@ -101,7 +101,7 @@ def estrategia_edit(request,estrategia_id):
     gen_bot = GenericBotClass()
     clases = gen_bot.get_clases()
     qtyBots = len(bots)
-    symbols = Symbol.objects.filter(activo=1).order_by('symbol')
+    symbols = Symbol.objects.order_by('symbol')
     intervals = fn.get_intervals().to_dict('records')
     if request.method == 'GET':
         return render(request, 'estrategia_edit.html',{

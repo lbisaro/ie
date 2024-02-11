@@ -25,7 +25,7 @@ symbols = {
     'ETHUSDT', 
     'XRPUSDT', 
     'TRXUSDT',
-    #'EURUSDT',
+    'EURUSDT',
     #'LUNAUSDT'
 }
 
