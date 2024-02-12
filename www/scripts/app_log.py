@@ -1,9 +1,10 @@
-# Configura el logging
-import logging
+# Configura el logging de la app
+import os
 from datetime import datetime
+from django.conf import settings
 
 class app_log:
-    filename = 'log/bot'
+    filename = os.path.join(settings.BASE_DIR,'log/bot')
     date_format = '%Y-%m-%d %H:%M:%S'
 
     def write(self,type,msg):

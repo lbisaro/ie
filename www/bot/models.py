@@ -11,6 +11,7 @@ from bot.model_kline import Kline, Symbol
 import pandas as pd
 import datetime as dt
 from django_pandas.io import read_frame
+from scripts.Bot_Core_utils import Order as BotUtilsOrder
 
 
 class GenericBotClass:
@@ -142,12 +143,15 @@ class Bot(models.Model):
     def __str__(self):
         str = f"Bot {self.estrategia.nombre}"
 
+        prms = self.parse_parametros()
+        symbol = prms['symbol']['v']
+
         strInterval = ''
         if self.estrategia.interval_id:
             strInterval = fn.get_intervals(self.estrategia.interval_id,'binance')
-        str += f" {strInterval}"
+            
+        str += f" [{symbol} {strInterval}] [{self.usuario.username}]"
 
-        str += f' [{self.usuario.username}]'
         
         return str
     
@@ -182,10 +186,10 @@ class Bot(models.Model):
         start_order_id = 0
 
         for order in orders:
-            if order.side == BotBase.SIDE_BUY:
+            if order.side == BotUtilsOrder.SIDE_BUY:
                 buy += 1
                 qty_base += order.qty
-            if order.side == BotBase.SIDE_SELL:
+            if order.side == BotUtilsOrder.SIDE_SELL:
                 sell += 1
                 qty_base -= order.qty
             if order.completed == 0:
@@ -262,7 +266,7 @@ class Bot(models.Model):
                     trade['result_perc'] = 0.0
                         
                     
-                if o.side == BotBase.SIDE_BUY:
+                if o.side == BotUtilsOrder.SIDE_BUY:
                     trade['buy_ops'] += 1
                     trade['buy_acum_quote'] += o.price * o.qty
                     trade['buy_acum_base'] += o.qty
@@ -276,21 +280,21 @@ class Bot(models.Model):
                     
 
                 #Calculos
-                trade['comision'] = round(trade['comision'] + o.price * o.qty * (BotBase.exch_comision_perc/100) ,4)
+                trade['comision'] = round(trade['comision'] + o.price * o.qty * (BotUtilsOrder.live_exch_comision_perc/100) ,4)
                 if trade['buy_acum_base'] != 0:
                     trade['buy_avg_price'] = round(trade['buy_acum_quote'] / trade['buy_acum_base'],o.symbol.qty_decs_price)
                 if trade['sell_acum_base'] != 0:
                     trade['sell_avg_price'] = round(trade['sell_acum_quote'] / trade['sell_acum_base'],o.symbol.qty_decs_price)
                 if trade['buy_avg_price'] != 0:
-                    trade['result_perc'] = round(((trade['sell_avg_price']/trade['buy_avg_price'])-1)*100 - BotBase.exch_comision_perc , 2)
+                    trade['result_perc'] = round(((trade['sell_avg_price']/trade['buy_avg_price'])-1)*100 - (BotUtilsOrder.live_exch_comision_perc*2) , 2)
                 
                 trade['result_quote'] = round(trade['sell_acum_quote']-trade['buy_acum_quote']-trade['comision'],o.symbol.qty_decs_quote)
                 
 
                 trade['end'] = o.datetime
-                if o.flag == BotBase.FLAG_STOPLOSS:
+                if o.flag == BotUtilsOrder.FLAG_STOPLOSS:
                    trade['flag'] += 'SL '
-                elif o.flag == BotBase.FLAG_TAKEPROFIT:
+                elif o.flag == BotUtilsOrder.FLAG_TAKEPROFIT:
                    trade['flag'] += 'TP '
                 
                 trades[key] = trade
@@ -460,7 +464,7 @@ class Bot(models.Model):
         order_columns = ['datetime','symbol','side','qty','price','flag','comision']
         last_posorder_id = 0
         for o in orders:
-            comision = round(o.price * o.qty * (BotBase.exch_comision_perc/100) ,4)
+            comision = round(o.price * o.qty * (BotUtilsOrder.live_exch_comision_perc/100) ,4)
             order_datetime = pd.to_datetime(o.datetime)
             order_datetime = order_datetime.floor(pandas_interval)
             
@@ -508,18 +512,18 @@ class Bot(models.Model):
             flag = None
             if k['datetime'] in df_orders.index:
                 o = df_orders.loc[k['datetime']]
-                if o.side == BotBase.SIDE_BUY:
+                if o.side == BotUtilsOrder.SIDE_BUY:
                     botClass.wallet_quote = botClass.wallet_quote - (o.qty * o.price)
                     botClass.wallet_base = botClass.wallet_base + o.qty
                     buy = float(o.price)
-                if o.side == BotBase.SIDE_SELL:
+                if o.side == BotUtilsOrder.SIDE_SELL:
                     botClass.wallet_quote = botClass.wallet_quote + (o.qty * o.price)
                     botClass.wallet_base = botClass.wallet_base - o.qty
-                    if o.flag == BotBase.FLAG_SIGNAL:
+                    if o.flag == BotUtilsOrder.FLAG_SIGNAL:
                         sell_s = float(o.price)
-                    if o.flag == BotBase.FLAG_STOPLOSS:
+                    if o.flag == BotUtilsOrder.FLAG_STOPLOSS:
                         sell_sl = float(o.price)
-                    if o.flag == BotBase.FLAG_TAKEPROFIT:
+                    if o.flag == BotUtilsOrder.FLAG_TAKEPROFIT:
                         sell_tp = float(o.price)
                 flag = int(o.flag)
 
@@ -594,13 +598,20 @@ class Order(models.Model):
     completed = models.IntegerField(default=0, null=False, blank=False, db_index=True)
     qty = models.FloatField(null=False, blank=False)
     price = models.FloatField(null=False, blank=False)
-    orderid = models.CharField(max_length = 20, null=False, unique = True, blank=False, db_index=True)
+    orderid = models.CharField(max_length = 20, null=False, blank=True, db_index=True)
     pos_order_id = models.IntegerField(default=0, null=False, blank=False, db_index=True)
     symbol = models.ForeignKey(Symbol, on_delete = models.CASCADE)
-    #Definido en BotBase: SIDE_BUY, SIDE_SELL
+    #Definido en BotUtilsOrder: SIDE_BUY, SIDE_SELL
     side = models.IntegerField(default=0, null=False, blank=False, db_index=True)
-    #Definido en BotBase: FLAG_SIGNAL, FLAG_STOPLOSS, FLAG_TAKEPROFIT
+    #Definido en BotUtilsOrder: FLAG_SIGNAL, FLAG_STOPLOSS, FLAG_TAKEPROFIT
     flag = models.IntegerField(default=0, null=False, blank=False)
+    #Definido en BotUtilsOrder: TYPE_MARKET, TYPE_LIMIT, FLAG_TRAIL
+    type = models.IntegerField(default=0, null=False, blank=False)
+    limit_price = models.FloatField(null=False, blank=True, default=0.0)
+    activation_price = models.FloatField(null=False, blank=True, default=0.0)
+    active = models.IntegerField(null=False, blank=False, default=0)
+    trail_perc = models.FloatField(null=False, blank=True, default=0.0)
+    tag = models.TextField(null=False, blank=True, default='')
     
     class Meta:
         verbose_name = "Bot Order"
@@ -616,16 +627,16 @@ class Order(models.Model):
         return str
     
     def str_side(self):
-        if self.side == BotBase.SIDE_BUY:
+        if self.side == BotUtilsOrder.SIDE_BUY:
             return 'Compra'
-        elif self.side == BotBase.SIDE_SELL:
+        elif self.side == BotUtilsOrder.SIDE_SELL:
             return 'Venta'
         return ''
     
     def str_flag(self):
-        if self.flag == BotBase.FLAG_STOPLOSS:
+        if self.flag == BotUtilsOrder.FLAG_STOPLOSS:
             return 'Stop-Loss'
-        elif self.flag == BotBase.FLAG_TAKEPROFIT:
+        elif self.flag == BotUtilsOrder.FLAG_TAKEPROFIT:
             return 'Take-Profit'
         return ''
     
@@ -633,7 +644,7 @@ class Order(models.Model):
         return round( self.price * self.qty , self.symbol.qty_decs_quote)
     
     def comision(self):
-        return round(self.quote_qty() * (BotBase.exch_comision_perc/100) , self.symbol.qty_decs_quote )
+        return round(self.quote_qty() * (BotUtilsOrder.live_exch_comision_perc/100) , self.symbol.qty_decs_quote )
 
 class BotLog(models.Model):
 
