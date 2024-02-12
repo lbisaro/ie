@@ -15,6 +15,8 @@ class Order:
     STATE_COMPLETE = 1
     STATE_CANCEL = -1
 
+    live_exch_comision_perc = 0.1
+
     id = 0
     type = 0
     datetime = None
