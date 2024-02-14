@@ -410,8 +410,7 @@ class Backtest(models.Model):
     
     def get_sub_df_from_file(self,file):
         aux = file.split('_')
-        timeframe = aux[2]
-
+        timeframe = aux[-3]
         if timeframe == '0m01':
             file = file.replace(timeframe, '0m01')
         elif timeframe == '0m05':
@@ -426,6 +425,8 @@ class Backtest(models.Model):
             file = file.replace(timeframe, '0m30')
         elif timeframe == '2d01':
             file = file.replace(timeframe, '1h01')
+        else:
+            raise Exception(f'\n{self.__class__.__name__} No se ha encontrado un time frame valido para las sub_velas')
 
         with open(file, 'rb') as f:
             df = pickle.load(f)

@@ -8,7 +8,6 @@ import scripts.functions as fn
 class Bot_Core_backtest:
 
     def backtest(self,klines,from_date,to_date,rsp_mode,sub_klines):
-        print('LAST')
         self.backtesting = True
         self.order_id = 0
         self.graph_open_orders = True
