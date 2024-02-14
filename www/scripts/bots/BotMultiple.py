@@ -134,7 +134,10 @@ class BotMultiple(Bot_CoreLong):
             if row['rsi_2'] > 80.201191   and row['obv']  > 2154016.500000 and row['macd']  <= 4349.813232 and row['stoch_d']  > 90.036484 :
                 return 'COMPRA'
 
-        
+        elif self.desicion==16:
+            if row['rsi_2'] <= 64.024189 and row['ma10_open_ratio'] > 1.051603  and row['williams_r'] > -92.832016 :
+                
+                return 'COMPRA'
         
         return 'NEUTRO'
     

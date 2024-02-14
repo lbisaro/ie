@@ -4,7 +4,7 @@ from bot.model_kline import *
 from user.models import UserProfile
 import scripts.functions as fn
 
-from app_log import app_log as Log
+from scripts.app_log import app_log as Log
 
 def run():
     log = Log()
@@ -18,6 +18,7 @@ def run():
     ### Establecer hora y minutos de start para definir que estrategias ejecutar de acuerdo al intervalo
     apply_intervals = fn.get_apply_intervals(startDt)
     json_rsp['apply_intervals'] = apply_intervals
+    print(f'apply_intervals: {apply_intervals}')
     
     ### Obtener estrategias activas (Activas y Con bots activos) con intervalos aplicables a la hora de ejecucion del script
     ### Crear una lista con los Symbol de las estrategias activas
@@ -25,59 +26,44 @@ def run():
     active_symbols = []
     for estr in estrategias:
         #log.info(f'Estrategia: {estr}')
+        print(f'Estrategia: {estr}')
         gen_bot = GenericBotClass().get_instance(estr.clase)
         gen_bot.set(estr.parse_parametros())
         try:
             gen_bot.valid()
-            bot_symbols = gen_bot.get_symbols()
-            for sym in bot_symbols:
-                active_symbols.append(sym)
+            symbol = gen_bot.symbol
+            active_symbols.append(symbol)
         except Exception as err:
             raise ValidationError(err)
-        
-
-    ### Actualizar velas de los Symbols
-    exchInfo = Exchange(type='info',exchange='bnc',prms=None)
-    try:
-        update_klines = exchInfo.update_klines()
-        json_rsp['klines'] = update_klines
-                
-    except Exception as err:
-        err = str(err)
-        msg_text = f'No fue posible encontrar velas\n{err}'
-        json_rsp['error'].append(msg_text)
     
+    print(f'active_symbols: {active_symbols}')
 
+    exchInfo = Exchange(type='info',exchange='bnc',prms=None)
+    
     ## Obtener precios de los symbols activos
     prices = exchInfo.get_all_prices()
-
-    ### Valida que los symbols de las estrategias se encuentren actualizados
-    actSymOk = True
-    for actSym in active_symbols:
-        if not json_rsp['klines'][actSym]['updated']:
-            actSymOk = False
    
 
-    ### Si el symbol se encuentra actualizado ejecuta la estrategia
-    signals = {}
-    if actSymOk:
-        print(f'actSymOk OK')
-        actions = []
+    ### Si hay estrategias activas
+    signal_rows = {}
+    if len(estrategias):
+        print(f'Procesando estrategias')
+        
         ### Buscar Señales
         for estr in estrategias:
             botClass = estr.get_instance()
-
-            signal_res = botClass.get_signal()
-            if not signal_res['ok']:
-                json_rsp['error'].append(signal_res['error'])
-            else:
-                signal = signal_res['signal']
-                signals[estr.id] = signal
+            klines = exchInfo.get_klines(botClass.symbol, estr.interval_id, limit=201)
+            signal_row = botClass.live_get_signal(klines)
+            print(estr, signal_row['signal'])
+            signal_rows[estr.id] = signal_row
         
         ### - Obtener lista de bots activos ordenados por usuario_id
         bots = Bot.get_bots_activos()
+        print(f'Bots activos: ',len(bots))
         usuario_id = 0
         for bot in bots:
+            print(f'Bot: {bot}')
+            
             botClass = bot.get_instance()
             botClass.bot_id = bot.id
 
@@ -97,15 +83,16 @@ def run():
 
             #log.info(f'Bot: {bot}')
             price = prices[botClass.symbol]
-            pos_orders = bot.get_pos_orders()
+            orders = bot.get_orders()
 
             ### - Disparar las señales a los bots activos
             ### - Cuando se dispare una señal a un Bot 
             ###     - Si el bot NO PUEDE EJECUTARLA por cuestiones relacionadas con el capital. Inactivar el Bot
             ###     - Si SE EJECUTA una compra/venta, registrar SL y TP en caso que aplique
             signal = 'NEUTRO'
-            if bot.estrategia_id in signals:
-                signal = signals[bot.estrategia_id]
+            if bot.estrategia_id in signal_rows:
+                signal_row = signal_rows[bot.estrategia_id]
+                signal = signal_row['signal']
             if signal != 'NEUTRO':
                 log.info(f'Signal: {signal}')
             
@@ -113,11 +100,11 @@ def run():
             #signal = 'VENTA'
             #signal = 'COMPRA'
             
-            execRes = botClass.execute_live(exchange = exch, 
-                                       signal=signal, 
+            execRes = botClass.live_execute(exchange = exch, 
+                                       signal_row=signal_row, 
                                        price=price, 
                                        wallet=wallet, 
-                                       pos_orders=pos_orders)
+                                       orders=orders)
             if len(execRes) > 0:
                 log.info(f'Execute: {execRes}')
             if 'execute' in execRes and execRes['execute'] == 'CLOSE':
@@ -144,10 +131,7 @@ def run():
         json_rsp['ok'] = True
     if not json_rsp['ok']:
         for k,v in json_rsp.items():
-            if k == 'klines':
-                for rk,rv in json_rsp['klines'].items():
-                    log.error(f'klines -> {rk}: {rv}')   
-            elif k == 'error':
+            if k == 'error':
                 for err in json_rsp['error']:
                     log.error(f"ERROR -> {err}")    
             else:
@@ -155,5 +139,25 @@ def run():
 
     print('Ready')
 
-    #endDt = datetime.now()
+    endDt = datetime.now()
     #log.info(f'END {endDt}')
+    durationDt = endDt-startDt
+    print('Duracion del proceso: ',durationDt)
+
+    """
+    ### Actualizar velas de los Symbols
+    try:
+        update_klines = exchInfo.update_klines()
+        json_rsp['klines'] = update_klines
+                
+    except Exception as err:
+        err = str(err)
+        msg_text = f'No fue posible encontrar velas\n{err}'
+        json_rsp['error'].append(msg_text)
+    
+    ### Valida que los symbols de las estrategias se encuentren actualizados
+    actSymOk = True
+    for actSym in active_symbols:
+        if not json_rsp['klines'][actSym]['updated']:
+            actSymOk = False
+    """

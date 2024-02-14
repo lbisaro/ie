@@ -1,8 +1,13 @@
 import pandas as pd
 import datetime as dt
 
-from scripts.Bot_Core_utils import *
+from django.utils import timezone
+
+from scripts.Bot_Core_utils import Order as BotCoreUtilsOrder
 from scripts.functions import round_down
+
+from bot.models import Order as DbOrder
+from bot.model_kline import Symbol
 
 class Bot_Core_live:
 
@@ -14,6 +19,8 @@ class Bot_Core_live:
     def live_execute(self, exchange, signal_row, price, wallet, orders):
         self.backtesting = False
         self.live = True
+        self.exchange = exchange
+        self.wallet = wallet
 
         jsonRsp = {}
         
@@ -29,81 +36,13 @@ class Bot_Core_live:
         self.datetime = dt.datetime.now()
         self.row = signal_row
 
-        broker_wallet_base  = round_down(wallet[self.base_asset]['free'],self.qd_qty)
-        broker_wallet_quote = round_down(wallet[self.quote_asset]['free'],self.qd_quote)
-
         #Calculo del estado de la posicion actual
         self.load_orders(orders)
         
         self.live_check_orders()
         self.next()
-
+        print(self._orders)
         
-        """
-        for order in pos_orders:
-            if order.completed == 0:
-                jsonRsp['error'] = 'Existen ordenes incompletas'
-                return jsonRsp
-
-            order_quote = round( round(order.qty,self.qd_qty) * round(order.price,self.qd_price) , self.qd_quote )
-            if order.side == Order.SIDE_BUY:
-
-                self.wallet_quote -= order_quote
-                self.wallet_base += order.qty
-                base_in_usd += order_quote
-            else:
-                self.wallet_quote += order_quote
-                self.wallet_base -= order.qty
-                base_in_usd -= order_quote
-
-        self.wallet_base    = round(self.wallet_base,self.qd_qty)
-        base_in_usd = round(base_in_usd,self.qd_quote)
-        self.wallet_quote   = round(self.wallet_quote,self.qd_quote)
-
-        if self.wallet_base > 0:
-            price_calculated = base_in_usd / self.wallet_base
-            stop_loss_price = round( price_calculated - (price_calculated * ( self.stop_loss/100) ) , self.qd_price )
-            take_profit_price = round( price_calculated + (price_calculated * ( self.take_profit/100) ) , self.qd_price )
-
-
-        if signal == 'COMPRA' and self.wallet_quote == 0:
-            if self.interes == 's': #Interes Simple
-                quote_to_sell = round( self.wallet_quote*(self.quote_perc/100) , self.qd_quote )
-            else: #Interes Compuesto
-                quote_to_sell = round( self.wallet_quote*(self.quote_perc/100) , self.qd_quote )
-            if wallet[self.quote_asset]['free'] >= quote_to_sell:
-                qty = round( ( quote_to_sell / price ) , self.qd_qty )
-                if self.market_buy(exchange,self.symbol,qty,Order.FLAG_SIGNAL):
-                    jsonRsp['execute'] = 'OPEN'
-                else:
-                    jsonRsp['error'] = 'ORDER_NOT_PLACED'
-
-        elif signal == 'VENTA' and self.wallet_base > 0:
-            if wallet[self.base_asset]['free'] >= self.wallet_base:
-                qty = self.wallet_base
-                if self.market_sell(exchange,self.symbol,qty,Order.FLAG_SIGNAL):
-                    jsonRsp['execute'] = 'CLOSE'
-                else:
-                    jsonRsp['error'] = 'ORDER_NOT_PLACED'
-
-        else: #Si no hay una señal de compra venta, revisa Stop-Loss y Take-Profit
-            if self.wallet_base > 0:
-                if self.stop_loss > 0 and stop_loss_price > price:
-                    if wallet[self.base_asset]['free'] >= self.wallet_base:
-                        qty = self.wallet_base
-                        if self.market_sell(exchange,self.symbol,qty,Order.FLAG_STOPLOSS):
-                            jsonRsp['execute'] = 'CLOSE'
-                        else:
-                            jsonRsp['error'] = 'ORDER_NOT_PLACED'
-
-                if self.take_profit > 0 and take_profit_price < price:
-                    if wallet[self.base_asset]['free'] >= self.wallet_base:
-                        qty = self.wallet_base
-                        if self.market_sell(exchange,self.symbol,qty,Order.FLAG_TAKEPROFIT):
-                            jsonRsp['execute'] = 'CLOSE'
-                        else:
-                            jsonRsp['error'] = 'ORDER_NOT_PLACED'
-        """
         return jsonRsp
 
     def live_check_orders(self):
@@ -114,30 +53,29 @@ class Bot_Core_live:
         if len(self._orders) > 0:
             
             _orders = self._orders.copy().items()
-
             
             for i,order in _orders:
                 
                 if i in self._orders: #Se consulta si esta o no porque puede que se ejecute mas de una orden en la misma vela
                     order  = self._orders[i]
 
-                    if order.type == Order.TYPE_LIMIT:
+                    if order.type == BotCoreUtilsOrder.TYPE_LIMIT:
                         
-                        if order.side == Order.SIDE_BUY:
+                        if order.side == BotCoreUtilsOrder.SIDE_BUY:
                             if price <= order.limit_price:
                                 executed =  self.live_execute_order(order.id)
                                 
-                        if order.side == Order.SIDE_SELL and order.flag != Order.FLAG_STOPLOSS:
+                        if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag != BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price >= order.limit_price:
                                 executed = self.live_execute_order(order.id)
                         
-                        if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
+                        if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag == BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price <= order.limit_price:
                                 executed = self.live_execute_order(order.id)
 
-                    if order.type == Order.TYPE_TRAILING:
+                    if order.type == BotCoreUtilsOrder.TYPE_TRAILING:
 
-                        if order.side == Order.SIDE_SELL:
+                        if order.side == BotCoreUtilsOrder.SIDE_SELL:
                             if order.active:
                                 if price < order.limit_price:
                                     executed = self.live_execute_order(order.id)
@@ -153,7 +91,7 @@ class Bot_Core_live:
                                     if price < order.limit_price < price:
                                         executed = self.live_execute_order(order.id)
 
-                        if order.side == Order.SIDE_BUY:
+                        if order.side == BotCoreUtilsOrder.SIDE_BUY:
                             if order.active:
                                 if price < order.limit_price < price:
                                     executed = self.live_execute_order(order.id)
@@ -172,5 +110,92 @@ class Bot_Core_live:
         return executed
     
     def live_execute_order(self,orderid):
-        print('Live Execute Order - En desarrollo',orderid)
+        wallet = self.wallet
+        exchange = self.exchange
+        broker_wallet_base  = round_down(wallet[self.base_asset]['free'],self.qd_qty)
+        broker_wallet_quote = round_down(wallet[self.quote_asset]['free'],self.qd_quote)
+        print('Wallet BTC: ',broker_wallet_base)
+        print('Wallet USDT',broker_wallet_quote)
+        symbol = self.symbol
+
+        tmp_order = self._orders[orderid]
+        qty = tmp_order.qty
+
+        try:
+            if tmp_order.side == BotCoreUtilsOrder.SIDE_BUY:
+                str_side = 'BUY'
+                exch_order = exchange.order_market_buy(symbol=symbol, qty= qty)
+            else:
+                str_side = 'SELL'
+                exch_order = exchange.order_market_sell(symbol=symbol, qty= qty)
+        except Exception as e:
+            print(e)
+            return False
+
+        """
+        Binance order status:
+
+        ORDER_STATUS_NEW = 'NEW'
+        ORDER_STATUS_PARTIALLY_FILLED = 'PARTIALLY_FILLED'
+        ORDER_STATUS_FILLED = 'FILLED'
+        ORDER_STATUS_CANCELED = 'CANCELED'
+        ORDER_STATUS_PENDING_CANCEL = 'PENDING_CANCEL'
+        ORDER_STATUS_REJECTED = 'REJECTED'
+        ORDER_STATUS_EXPIRED = 'EXPIRED'
+        """
         
+        if exch_order['status'] != 'CANCELED' and exch_order['status'] != 'REJECTED' and exch_order['status'] != 'EXPIRED':
+            completed = 1 if exch_order['status'] == 'FILLED' else 0
+            if completed == 1:
+                price = round(float(exch_order['cummulativeQuoteQty'])/float(exch_order['executedQty']),self.qd_price)
+                qty = round(float(exch_order['executedQty']),self.qd_qty)
+            
+
+            symbol_obj = Symbol.objects.get(symbol=self.symbol)
+            bot_order = DbOrder()
+            bot_order.bot_id = self.bot_id
+            bot_order.datetime = timezone.now() - pd.Timedelta('3 hr')
+            bot_order.symbol = symbol_obj
+            bot_order.side = tmp_order.side
+            bot_order.flag = tmp_order.flag
+            bot_order.type = tmp_order.type
+            bot_order.completed = completed
+            if completed:
+                bot_order.price = price
+            else:
+                bot_order.price = 0
+            bot_order.qty = qty
+            bot_order.orderid = exch_order['orderId']
+            bot_order.pos_order_id = 0
+            bot_order.limit_price = tmp_order.limit_price
+            bot_order.activation_price = tmp_order.activation_price
+            bot_order.active = tmp_order.active
+            bot_order.trail_perc = tmp_order.trail_perc
+            bot_order.tag = tmp_order.tag
+            bot_order.save()
+            return True
+        print(exch_order['status'],tmp_order)
+        return False 
+
+    
+    def load_orders(self, orders):
+        self.wallet_base = 0
+        self.wallet_quote = self.quote_qty
+        print('Loading orders')
+        print('self.wallet: BASE ',self.wallet_base,' QUOTE ',self.wallet_quote)
+        for order in orders:
+            if order.completed > 0:
+                self._trades[order.id] = order
+                order_quote = round(order.qty*order.price,self.qd_quote)
+                if order.side == BotCoreUtilsOrder.SIDE_BUY:
+                    self.wallet_base += order.qty
+                    self.wallet_quote -= order_quote
+                else:
+                    self.wallet_base -= order.qty
+                    self.wallet_quote += order_quote
+            else:
+                self._orders[order.id] = order
+            print(order)
+            if order.id > self.order_id:
+                self.order_id = order.id
+        print('self.wallet: BASE ',self.wallet_base,' QUOTE ',self.wallet_quote)

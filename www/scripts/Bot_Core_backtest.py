@@ -8,7 +8,7 @@ import scripts.functions as fn
 class Bot_Core_backtest:
 
     def backtest(self,klines,from_date,to_date,rsp_mode,sub_klines):
-        
+        print('LAST')
         self.backtesting = True
         self.order_id = 0
         self.graph_open_orders = True
@@ -234,24 +234,27 @@ class Bot_Core_backtest:
             #para optimizar la ejecucion de las ordenes
             sub_k = self.sub_klines[(self.sub_klines.index>=start_d) & (self.sub_klines.index<end_d)] 
             for sub_i,sub_row in sub_k.iterrows():
-                
+                self.datetime = sub_row.name
                 for i,order in _orders:
                     
                     if i in self._orders: #Se consulta si esta o no porque puede que se ejecute mas de una orden en la misma vela
                         order  = self._orders[i]
 
                         if order.type == Order.TYPE_LIMIT:
-                            
-                            if order.side == Order.SIDE_BUY:
+                            if order.side == Order.SIDE_BUY and order.flag != Order.FLAG_STOPLOSS:
                                 if sub_row['low'] <= order.limit_price:
+                                    executed =  self.execute_order(order.id)
+                                    
+                            if order.side == Order.SIDE_BUY and order.flag == Order.FLAG_STOPLOSS:
+                                if sub_row['high'] >= order.limit_price:
                                     executed =  self.execute_order(order.id)
                                     
                             if order.side == Order.SIDE_SELL and order.flag != Order.FLAG_STOPLOSS:
                                 if sub_row['high'] >= order.limit_price:
                                     executed = self.execute_order(order.id)
-                            
+                                    
                             if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
-                                if sub_row['low'] <= order.limit_price:
+                                if sub_row['low'] <= order.limit_price < sub_row['high']:
                                     executed = self.execute_order(order.id)
 
                         if order.type == Order.TYPE_TRAILING:
@@ -286,7 +289,8 @@ class Bot_Core_backtest:
                                         if new_limit_price <= order.limit_price: 
                                             order.limit_price = round(new_limit_price,self.qd_price)
                                         if sub_row['low'] < order.limit_price < sub_row['high']:
-                                            executed = self.execute_order(order.id)
+                                            executed = self.execute_order(order.id)                                
+
 
                         #Establece la cantidad de Base y Quote bloqueadas en ordenes
                         if i in self._orders: #La orden no fue ejecutada
@@ -294,7 +298,7 @@ class Bot_Core_backtest:
                                 self.wallet_quote_block += round(order.qty*order.limit_price,self.qd_quote)
                             if order.side == Order.SIDE_SELL:
                                 self.wallet_base_block += round(order.qty,self.qd_qty)
-                self.datetime = sub_row.name
+                
             self.datetime = start_d
         return executed
         
@@ -352,3 +356,70 @@ class Bot_Core_backtest:
         
         
         return execute
+
+    def make_trades(self):
+        trade = {}
+        self.df_trades = pd.DataFrame(columns=self.df_trades_columns)
+        for i in self._trades:
+            order = self._trades[i]
+            
+            order.comision = round((order.price*order.qty)*(self.exch_comision_perc/100),4)
+            self._trades[i].comision = order.comision
+            
+            if trade == {}: # Open Trade
+                trade['start'] = order.datetime
+                trade['flag'] = order.flag
+                trade['type'] = order.type
+                trade['comision'] = order.comision
+                trade['orders']  = 1
+                if order.side == Order.SIDE_BUY:
+                    trade['buy_qty'] = order.qty
+                    trade['buy_quote'] = round(order.qty*order.price,self.qd_quote)
+                    trade['sell_qty'] = 0.0
+                    trade['sell_quote'] = 0.0
+                elif order.side == Order.SIDE_SELL:
+                    trade['buy_qty'] = 0.0
+                    trade['buy_quote'] = 0.0
+                    trade['sell_qty'] = order.qty
+                    trade['sell_quote'] = round(order.qty*order.price,self.qd_quote)
+                trade['price_start'] = order.price
+
+            else:
+                trade['orders'] += 1
+                trade['end'] = order.datetime
+                trade['flag'] = order.flag
+                trade['type'] = order.type
+                trade['comision'] = trade['comision']+order.comision
+                if order.side == Order.SIDE_BUY:
+                    trade['buy_qty'] = trade['buy_qty']+order.qty
+                    trade['buy_quote'] = trade['buy_quote']+round(order.qty*order.price,self.qd_quote)
+                elif order.side == Order.SIDE_SELL:
+                    trade['sell_qty'] = trade['sell_qty']+order.qty
+                    trade['sell_quote'] = trade['sell_quote']+round(order.qty*order.price,self.qd_quote)            
+            
+            saldo_qty = round(trade['buy_qty'] - trade['sell_qty'],self.qd_qty) 
+            saldo_quote  = round(trade['buy_quote'] - trade['sell_quote'],self.qd_quote)
+            
+            #Cuando se ejecuta una venta, ajusta el saldo para evitar errores de decimales
+            if order.side == Order.SIDE_SELL:
+                if -2 < saldo_qty * order.price < 2:
+                    saldo_qty = 0.0
+                if -2 < saldo_quote < 2:
+                    saldo_quote = 0.0
+
+            if ( (saldo_qty== 0) or (saldo_quote == 0) ) and (trade['buy_qty']) and (trade['sell_qty']):
+                start = trade['start']
+                buy_price = round(trade['buy_quote']/trade['buy_qty'],self.qd_price)
+                qty = trade['buy_qty']
+                end = trade['end']
+                sell_price = round(trade['sell_quote']/trade['sell_qty'],self.qd_price)
+                flag = trade['flag']
+                type = trade['type']
+                orders = trade['orders']
+                dif = trade['end'].to_pydatetime() - trade['start'].to_pydatetime()
+                days = dif.total_seconds() / 60 / 60 / 24
+                result_usd = trade['sell_quote'] - trade['buy_quote'] - trade['comision']
+                result_perc = round((((sell_price/buy_price)-1)*100) - ((self.exch_comision_perc) * 2) , 2)
+                trade = pd.DataFrame([[start,buy_price,qty,end,sell_price,flag,type,days,result_usd,result_perc,orders]], columns=self.df_trades_columns) 
+                self.df_trades = pd.concat([self.df_trades, trade], ignore_index=True) 
+                trade = {}

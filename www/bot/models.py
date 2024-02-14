@@ -618,14 +618,18 @@ class Order(models.Model):
         verbose_name_plural='Bot Orders'
     
     def __str__(self):
-        str = f"{self.datetime} {self.symbol.symbol} "
-        if self.side == 0:
-            str += 'Compra'
-        else:
-            str += 'Venta'
+        params = f'{self.datetime} #{self.id} {self.str_side()}\t{self.qty}\t{self.price} {self.str_type()} {self.str_flag()} '
+        if self.type != BotUtilsOrder.TYPE_MARKET:
+            params += f'Limit Price {self.limit_price} '
+        if self.type == BotUtilsOrder.TYPE_TRAILING:
+            params += f'Trl {self.trail_perc}% '     
+            if self.active:
+                params += ' ACT'   
+        if len(self.tag):
+            params += f' {self.tag}% '    
 
-        return str
-    
+        return f'{params}'
+        
     def str_side(self):
         if self.side == BotUtilsOrder.SIDE_BUY:
             return 'Compra'
@@ -639,6 +643,14 @@ class Order(models.Model):
         elif self.flag == BotUtilsOrder.FLAG_TAKEPROFIT:
             return 'Take-Profit'
         return ''
+
+    def str_type(self):
+        if self.type == BotUtilsOrder.TYPE_TRAILING:
+            return 'TRAIL'        
+        elif self.type == BotUtilsOrder.TYPE_LIMIT:
+            return 'LIMIT'
+        else:
+            return ''
     
     def quote_qty(self):
         return round( self.price * self.qty , self.symbol.qty_decs_quote)

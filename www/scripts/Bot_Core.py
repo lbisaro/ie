@@ -1,4 +1,3 @@
-from bot.models import *
 import scripts.functions as fn
 import pandas as pd
 import numpy as np
@@ -128,7 +127,9 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return 0
         
     def sell_limit(self,qty,flag,limit_price):
-        qty = round_down(qty,self.qd_qty)
+        qty = round(qty,self.qd_qty)
+        if self.wallet_base < qty:
+            qty = round_down(qty,self.qd_qty)
         if self.wallet_base >= qty and qty*limit_price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
@@ -222,20 +223,68 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
 
 
     def execute_order(self,orderid):
-        if self.backtesting and not self.live:
-            return self.backtest_execute_order(orderid)
-        if not self.backtesting and self.live:
-            return self.live_execute_order(orderid)
-        raise "No se ha definido el entorno de operacion (Live/Backtest)"
+        #if self.backtesting and not self.live:
+        #    return self.backtest_execute_order(orderid)
+        #if not self.backtesting and self.live:
+        #    return self.live_execute_order(orderid)
+        #raise "No se ha definido el entorno de operacion (Live/Backtest)"
+        if not( orderid in self._orders):
+            raise "La orden a ejecutar no existe en la lista de ordenes abiertas"
+
+        order = self._orders[orderid]
+        order.price = order.limit_price
+        order.datetime = self.datetime  
+        if order.type == Order.TYPE_TRAILING and not order.active:
+            order.type = Order.TYPE_LIMIT
+        
+        if self.print_orders:
+            if order.side == Order.SIDE_SELL:
+                print(f'\033[31m{order}\033[0m',end=' -> ')
+            else:
+                print(f'\033[32m{order}\033[0m',end=' -> ')
+
+        execute = False
+        if order.side == Order.SIDE_BUY:
+            quote_to_sell = round(order.qty*order.price,self.qd_quote)
+            comision = round(quote_to_sell*(self.exch_comision_perc/100),4)
+            new_wallet_base = round(self.wallet_base + order.qty,self.qd_qty)
+            new_wallet_quote = round(self.wallet_quote - quote_to_sell ,self.qd_quote)
+            if new_wallet_base >= 0 and new_wallet_quote >= 0:
+                self.wallet_base = new_wallet_base 
+                self.wallet_quote = round(new_wallet_quote - comision,self.qd_quote)
+                execute = True
+
+        elif order.side == Order.SIDE_SELL:
+            quote_to_buy = round(order.qty*order.price,self.qd_quote)
+            comision = round(quote_to_buy*(self.exch_comision_perc/100),4)
+            new_wallet_base = round(self.wallet_base - order.qty,self.qd_qty)
+            new_wallet_quote = round(self.wallet_quote + quote_to_buy,self.qd_quote)
+            if new_wallet_base >= 0 and new_wallet_quote >= 0:
+                self.wallet_base = new_wallet_base
+                
+                #Cuando se ejecuta una venta, ajusta el saldo para evitar errores de decimales
+                if self.wallet_base*self.price < 2:
+                    self.wallet_base = 0
+                self.wallet_quote = round(new_wallet_quote - comision,self.qd_quote)
+                execute = True
+
+        del self._orders[orderid] 
+        if execute:
+            
+            self._trades[order.id] = order
+            if self.print_orders:
+                print(f' {self.wallet_base} {self.wallet_quote} \033[32mOK\033[0m')
+            self.on_order_execute()
+
+        else:
+            if self.print_orders:
+                print(f' {self.wallet_base} {self.wallet_quote} \033[31mCANCELED\033[0m')
+        
+        
+        return execute        
     
     def on_order_execute(self):
         #Metodo que se 
         pass
 
-    def load_orders(self, orders):
-        self.wallet_base = 0
-        self.wallet_quote = self.quote_qty
-        print('Loading orders')
-        for order in orders:
-            print(order)
 
