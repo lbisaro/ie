@@ -6,6 +6,7 @@ numpy
 pickleshare
 python-binance
 ta
+pandas-ta
 django-pandas
 
 #Libs for Backtesting
