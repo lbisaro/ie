@@ -11,7 +11,7 @@ Instalar opcionales:
 Luego de clonar:
 	COPIAR:
 	local_config.py
-	Bse SQLite3 
+	Base SQLite3 
 	Bots base desde ./scripts
 	Carpeta Bots desde ./Scripts
 
