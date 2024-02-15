@@ -17,6 +17,7 @@ class Order:
 
     live_exch_comision_perc = 0.1
 
+    bot_id = 0
     id = 0
     type = 0
     datetime = None
@@ -32,6 +33,7 @@ class Order:
     trail_perc = 0
 
     def __init__(self,id,type,datetime,side,qty,price,flag):
+        self.bot_id = 0
         self.id = id
         self.type = type
         self.datetime = datetime
@@ -52,10 +54,10 @@ class Order:
         self.trail_perc = 0
     
     def __repr__(self):
-        return '<' + str(self) + '>'
+        return str(self)
 
     def __str__(self):
-        params = f'{self.datetime} #{self.id} {self.str_side()}\t{self.qty}\t{self.price} {self.str_type()} {self.str_flag()} '
+        params = f'{self.datetime} #{self.bot_id}.{self.id} {self.str_side()}\t{self.qty}\t{self.price} {self.str_type()} {self.str_flag()} '
         if self.type != self.TYPE_MARKET:
             params += f'Limit Price {self.limit_price} '
         if self.type == self.TYPE_TRAILING:
