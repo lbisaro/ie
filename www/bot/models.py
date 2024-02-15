@@ -46,7 +46,17 @@ class Estrategia(models.Model):
     
     def __str__(self):
         str = self.nombre
+
+        prms = self.parse_parametros()
+        str += ' '+prms['symbol']['v']
+
+        intervalo = fn.get_intervals(self.interval_id,'binance')
+        str += ' '+intervalo
+
         return str
+    
+    def get_intervalo(self):
+        return fn.get_intervals(self.interval_id,'binance')
     
     def get_descripcion(self):
         gen_bot = GenericBotClass()
@@ -96,8 +106,6 @@ class Estrategia(models.Model):
                     else:
                         parametros[v]['str'] = 'No'
                     
-                
-                    
         return parametros
 
     def str_parametros(self):
@@ -106,7 +114,7 @@ class Estrategia(models.Model):
         for p in prm:
             if str != '':
                 str += ', '
-            str += p['v']
+            str += prm[p]['str']
         return f"{str}"
 
     def get_estrategias_to_run(intervals):
@@ -530,7 +538,6 @@ class Bot(models.Model):
             if hold_qty == 0:
                 hold_qty = botClass.wallet_quote / k['close']
             usdH = float(hold_qty*k['close']) + (self.quote_qty - hold_qty)
-            print(botClass.wallet_quote - hold_qty)
 
             usdW = botClass.wallet_quote + (botClass.wallet_base * k['close'])
 
