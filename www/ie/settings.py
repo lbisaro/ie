@@ -86,40 +86,39 @@ WSGI_APPLICATION = 'ie.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db_sqlite/ie.sqlite3',
-    }
-}
-"""
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db_sqlite/db.sqlite3',
-    }
-"""
+if not local.LOC_DB_TYPE:
+    local.LOC_DB_TYPE = 'default'
 
-"""
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
+if local.LOC_DB_TYPE == 'default':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db_sqlite/ie.sqlite3',
+        }
     }
-"""
+elif local.LOC_DB_TYPE == 'mysql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': local.LOC_MYSQL_DB,
+            'USER': local.LOC_MYSQL_U,
+            'PASSWORD': local.LOC_MYSQL_P,
+            'HOST': local.LOC_MYSQL_H,   # Or an IP Address that your DB is hosted on
+            'PORT': '3306',
+        }
+    }
+elif local.LOC_DB_TYPE == 'postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME'),
+            'USER': os.environ.get('DB_USER'),
+            'PASSWORD': os.environ.get('DB_PASSWORD'),
+            'HOST': os.environ.get('DB_HOST'),
+            'PORT': os.environ.get('DB_PORT'),
+        }
+    }
 
-"""
-    'default': {
-        'ENGINE': 'django.db.backends.mysql', 
-        'NAME': local.LOC_MYSQL_DB,
-        'USER': local.LOC_MYSQL_U,
-        'PASSWORD': local.LOC_MYSQL_P,
-        'HOST': local.LOC_MYSQL_H,   # Or an IP Address that your DB is hosted on
-        'PORT': '3306',
-    }
-"""
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
