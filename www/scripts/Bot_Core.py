@@ -1,8 +1,9 @@
-import scripts.functions as fn
 import pandas as pd
 import numpy as np
-from scripts.Exchange import Exchange
 import datetime as dt
+
+import scripts.functions as fn
+from scripts.Exchange import Exchange
 from scripts.Bot_Core_utils import *
 from scripts.Bot_Core_stats import *
 from scripts.Bot_Core_backtest import *
@@ -10,6 +11,8 @@ from scripts.Bot_Core_live import *
 from scripts.functions import round_down
 import time
 
+from bot.models import Order as DbOrder
+from bot.model_kline import Symbol
 
 class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         
@@ -111,9 +114,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         if self.wallet_quote >= qty*self.price and qty*self.price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
             order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_BUY,qty,self.price,flag)
-            self._orders[order.id] = order
-            if self.execute_order(order.id):
-                return order.id
+            return self.add_order(order)
         return 0
 
     def sell(self,qty,flag):
@@ -121,9 +122,16 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         if self.wallet_base >= qty and qty*self.price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
             order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
-            self._orders[order.id] = order
-            if self.execute_order(order.id): 
-                return order.id
+            return self.add_order(order)
+        return 0
+          
+    def close(self,flag): #Vende el total existente en self.wallet_base
+        self.order_id += 1
+        qty = self.wallet_base
+        if qty > 0:
+            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
+            return self.add_order(order)
+            
         return 0
         
     def sell_limit(self,qty,flag,limit_price):
@@ -134,8 +142,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
             order = Order(self.order_id,Order.TYPE_LIMIT,self.row['datetime'],Order.SIDE_SELL,qty,limit_price,flag)
-            self._orders[order.id] = order
-            return order.id
+            return self.add_order(order)
         return 0  
     
     def buy_limit(self,qty,flag,limit_price):
@@ -144,8 +151,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
             order = Order(self.order_id,Order.TYPE_LIMIT,self.row['datetime'],Order.SIDE_BUY,qty,limit_price,flag)
-            self._orders[order.id] = order
-            return order.id
+            return self.add_order(order)
         return 0    
     
     def sell_trail(self,qty,flag,limit_price,activation_price,trail_perc):
@@ -156,8 +162,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             order = Order(self.order_id,Order.TYPE_TRAILING,self.row['datetime'],Order.SIDE_SELL,qty,limit_price,flag)
             order.activation_price = activation_price
             order.trail_perc = trail_perc
-            self._orders[order.id] = order
-            return order.id
+            return self.add_order(order)
         return 0    
     
     def buy_trail(self,qty,flag,limit_price,activation_price,trail_perc):
@@ -168,26 +173,23 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             order = Order(self.order_id,Order.TYPE_TRAILING,self.row['datetime'],Order.SIDE_BUY,qty,limit_price,flag)
             order.activation_price = activation_price
             order.trail_perc = trail_perc
-            self._orders[order.id] = order
-            return order.id
+            return self.add_order(order)
 
         return 0    
-          
-    def close(self,flag): #Vende el total existente en self.wallet_base
-        self.order_id += 1
-        qty = self.wallet_base
-        if qty > 0:
-            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
-            self._orders[order.id] = order
-            if self.execute_order(order.id):
-                return order.id
-        return 0
         
     def cancel_order(self,orderid):
         if orderid in self._orders:
+            if not self.backtesting and self.live:
+                order = self._orders[orderid]
+                self.delete_order(order)
             del self._orders[orderid]
         
     def cancel_orders(self):
+        if not self.backtesting and self.live:
+            for orderid in self._orders:
+                order = self._orders[orderid]
+                if order.completed == 0:
+                    self.delete_order(order)
         self._orders = {}
     
     def is_order(self,orderid):
@@ -219,72 +221,67 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             return self.backtest_check_orders()
         if not self.backtesting and self.live:
             return self.live_check_orders()
-        raise "No se ha definido el entorno de operacion (Live/Backtest)"
-
+        raise Exception(f'\n{self.__class__.__name__}No se ha definido el entorno de operacion (Live/Backtest)')
 
     def execute_order(self,orderid):
-        #if self.backtesting and not self.live:
-        #    return self.backtest_execute_order(orderid)
-        #if not self.backtesting and self.live:
-        #    return self.live_execute_order(orderid)
-        #raise "No se ha definido el entorno de operacion (Live/Backtest)"
-        if not( orderid in self._orders):
-            raise "La orden a ejecutar no existe en la lista de ordenes abiertas"
-
-        order = self._orders[orderid]
-        order.price = order.limit_price
-        order.datetime = self.datetime  
-        if order.type == Order.TYPE_TRAILING and not order.active:
-            order.type = Order.TYPE_LIMIT
-        
-        if self.print_orders:
-            if order.side == Order.SIDE_SELL:
-                print(f'\033[31m{order}\033[0m',end=' -> ')
-            else:
-                print(f'\033[32m{order}\033[0m',end=' -> ')
-
-        execute = False
-        if order.side == Order.SIDE_BUY:
-            quote_to_sell = round(order.qty*order.price,self.qd_quote)
-            comision = round(quote_to_sell*(self.exch_comision_perc/100),4)
-            new_wallet_base = round(self.wallet_base + order.qty,self.qd_qty)
-            new_wallet_quote = round(self.wallet_quote - quote_to_sell ,self.qd_quote)
-            if new_wallet_base >= 0 and new_wallet_quote >= 0:
-                self.wallet_base = new_wallet_base 
-                self.wallet_quote = round(new_wallet_quote - comision,self.qd_quote)
-                execute = True
-
-        elif order.side == Order.SIDE_SELL:
-            quote_to_buy = round(order.qty*order.price,self.qd_quote)
-            comision = round(quote_to_buy*(self.exch_comision_perc/100),4)
-            new_wallet_base = round(self.wallet_base - order.qty,self.qd_qty)
-            new_wallet_quote = round(self.wallet_quote + quote_to_buy,self.qd_quote)
-            if new_wallet_base >= 0 and new_wallet_quote >= 0:
-                self.wallet_base = new_wallet_base
-                
-                #Cuando se ejecuta una venta, ajusta el saldo para evitar errores de decimales
-                if self.wallet_base*self.price < 2:
-                    self.wallet_base = 0
-                self.wallet_quote = round(new_wallet_quote - comision,self.qd_quote)
-                execute = True
-
-        del self._orders[orderid] 
-        if execute:
-            
-            self._trades[order.id] = order
-            if self.print_orders:
-                print(f' {self.wallet_base} {self.wallet_quote} \033[32mOK\033[0m')
-            self.on_order_execute()
-
-        else:
-            if self.print_orders:
-                print(f' {self.wallet_base} {self.wallet_quote} \033[31mCANCELED\033[0m')
-        
-        
-        return execute        
+        if self.backtesting and not self.live:
+            return self.backtest_execute_order(orderid)
+        if not self.backtesting and self.live:
+            return self.live_execute_order(orderid)
+        raise Exception(f'\n{self.__class__.__name__}No se ha definido el entorno de operacion (Live/Backtest)')
     
     def on_order_execute(self):
-        #Metodo que se 
+        #El metodo se llama cuando una orden es ejecutada y debe ser desarrollado en la estrategia
         pass
+
+    def add_order(self,order):
+        
+        if not self.backtesting and self.live:
+            order = self.insert_order(order)
+            self._orders[order.id] = order
+        else:
+            self._orders[order.id] = order
+
+        if order.type == Order.TYPE_MARKET:
+            if self.execute_order(order.id):
+                return order.id
+        else:
+            return order.id
+        return 0
+
+    def delete_order(self,order):
+        print('Delete Order ',order)
+        if order.completed == 0:
+            print('Eliminada')
+            order.delete()
+
+    def insert_order(self,tmp_order):
+        symbol_obj = Symbol.objects.get(symbol=self.symbol)
+
+        bot_order = DbOrder()
+        bot_order.side = tmp_order.side
+        bot_order.completed = tmp_order.completed
+        bot_order.qty = tmp_order.qty
+        bot_order.price = tmp_order.price
+        bot_order.pos_order_id = 0
+        bot_order.bot_id = self.bot_id
+        bot_order.flag = tmp_order.flag
+        bot_order.datetime = timezone.now() - pd.Timedelta('3 hr')
+        bot_order.symbol = symbol_obj
+        bot_order.limit_price = tmp_order.limit_price
+        bot_order.tag = tmp_order.tag
+        bot_order.type = tmp_order.type
+        bot_order.activation_price = tmp_order.activation_price
+        bot_order.active = tmp_order.active
+        bot_order.trail_perc = tmp_order.trail_perc
+        bot_order.save()
+        return bot_order
+    
+    def update_order(self,order):
+        order.datetime = timezone.now() - pd.Timedelta('3 hr')
+        order.save()
+        return order
+
+
 
 

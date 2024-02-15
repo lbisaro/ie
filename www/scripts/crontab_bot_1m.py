@@ -18,7 +18,7 @@ def run():
     ### Establecer hora y minutos de start para definir que estrategias ejecutar de acuerdo al intervalo
     apply_intervals = fn.get_apply_intervals(startDt)
     json_rsp['apply_intervals'] = apply_intervals
-    print(f'apply_intervals: {apply_intervals}')
+    print(f'Intervalo: {apply_intervals}')
     
     ### Obtener estrategias activas (Activas y Con bots activos) con intervalos aplicables a la hora de ejecucion del script
     ### Crear una lista con los Symbol de las estrategias activas
@@ -36,18 +36,11 @@ def run():
         except Exception as err:
             raise ValidationError(err)
     
-    print(f'active_symbols: {active_symbols}')
-
     exchInfo = Exchange(type='info',exchange='bnc',prms=None)
     
-    ## Obtener precios de los symbols activos
-    prices = exchInfo.get_all_prices()
-   
-
     ### Si hay estrategias activas
     signal_rows = {}
     if len(estrategias):
-        print(f'Procesando estrategias')
         
         ### Buscar Señales
         for estr in estrategias:
@@ -59,8 +52,7 @@ def run():
         
         ### - Obtener lista de bots activos ordenados por usuario_id
         bots = Bot.get_bots_activos()
-        print(f'Bots activos: ',len(bots))
-        usuario_id = 0
+        usuario_id = -1
         for bot in bots:
             print(f'Bot: {bot}')
             
@@ -69,6 +61,7 @@ def run():
 
             if bot.usuario.id != usuario_id:
                 #log.info(f'Usuario: {bot.usuario.username}')
+
                 usuario_id = bot.usuario.id
                 profile = UserProfile.objects.get(user_id=bot.usuario.id)
                 profile_config = profile.parse_config()
@@ -81,6 +74,9 @@ def run():
                 exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
                 wallet = exch.get_wallet() 
 
+                ## Obtener precios de los symbols activos en cada iteracion de usuario
+                prices = exchInfo.get_all_prices()
+
             #log.info(f'Bot: {bot}')
             price = prices[botClass.symbol]
             orders = bot.get_orders()
@@ -88,17 +84,12 @@ def run():
             ### - Disparar las señales a los bots activos
             ### - Cuando se dispare una señal a un Bot 
             ###     - Si el bot NO PUEDE EJECUTARLA por cuestiones relacionadas con el capital. Inactivar el Bot
-            ###     - Si SE EJECUTA una compra/venta, registrar SL y TP en caso que aplique
             signal = 'NEUTRO'
             if bot.estrategia_id in signal_rows:
                 signal_row = signal_rows[bot.estrategia_id]
                 signal = signal_row['signal']
             if signal != 'NEUTRO':
                 log.info(f'Signal: {signal}')
-            
-            #Forzar signal
-            #signal = 'VENTA'
-            #signal = 'COMPRA'
             
             execRes = botClass.live_execute(exchange = exch, 
                                        signal_row=signal_row, 
@@ -107,9 +98,6 @@ def run():
                                        orders=orders)
             if len(execRes) > 0:
                 log.info(f'Execute: {execRes}')
-            if 'execute' in execRes and execRes['execute'] == 'CLOSE':
-                closeRes = bot.close_pos()
-                log.info(f'Close: {closeRes}')
 
     
     #Buscar ordenes incompletas, agrupadas por usuario

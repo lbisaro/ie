@@ -253,7 +253,7 @@ class Bot_Core_backtest:
                                     executed = self.execute_order(order.id)
                                     
                             if order.side == Order.SIDE_SELL and order.flag == Order.FLAG_STOPLOSS:
-                                if sub_row['low'] <= order.limit_price < sub_row['high']:
+                                if sub_row['low'] <= order.limit_price:
                                     executed = self.execute_order(order.id)
 
                         if order.type == Order.TYPE_TRAILING:

@@ -56,25 +56,36 @@ class BotLiveTest(Bot_Core):
             err.append("Se debe especificar el Par")
         if self.quote_perc <= 0:
             err.append("El Porcentaje de capital por operacion debe ser mayor a 0")
-
-
-        
         if len(err):
             raise Exception("\n".join(err))
         
     def start(self):
         self.klines['signal'] = 'NEUTRO'   
-        self.print_orders = True
-        self.graph_open_orders = True
-
+        self.print_orders = False
+        self.graph_open_orders = False
     
     def next(self):
-        self.actuar()
+        #self.alterna_compra_venta_market()
+        self.compra_sl_tp()
     
     def on_order_execute(self):
-        pass
+        self.cancel_orders()
+
+    def compra_sl_tp(self):
+        wallet_base_in_quote = self.wallet_base*self.price
+        if wallet_base_in_quote < 10:
+            qty = round_down((self.wallet_quote * (self.quote_perc/100)) / self.price , self.qd_qty)
+            self.last_order_id = self.buy(qty=qty,flag=Order.FLAG_SIGNAL)
+
+            buy_order = self._trades[self.last_order_id]
+            buy_price = buy_order.price
+            
+            limit_price = round(buy_price*1.005,self.qd_price)
+            self.sell_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
+            limit_price = round(buy_price*0.995,self.qd_price)
+            self.sell_limit(qty,Order.FLAG_STOPLOSS,limit_price)
     
-    def actuar(self):
+    def alterna_compra_venta_market(self):
         wallet_base_in_quote = self.wallet_base*self.price
         if wallet_base_in_quote < 10:
             qty = round_down((self.wallet_quote * (self.quote_perc/100)) / self.price , self.qd_qty)

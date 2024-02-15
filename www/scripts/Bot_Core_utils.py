@@ -18,6 +18,7 @@ class Order:
     live_exch_comision_perc = 0.1
 
     bot_id = 0
+    completed = 0
     id = 0
     type = 0
     datetime = None
@@ -34,6 +35,7 @@ class Order:
 
     def __init__(self,id,type,datetime,side,qty,price,flag):
         self.bot_id = 0
+        self.completed = 0
         self.id = id
         self.type = type
         self.datetime = datetime
