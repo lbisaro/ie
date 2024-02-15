@@ -24,6 +24,8 @@
         <thead>
             <tr>
                 <th>Nombre</th>
+                <th>Intervalo</th>
+                <th>Parametros</th>
                 <th>Clase a ejecutar</th>
                 <th>Bots</th>
                 <th>Estado</th>
@@ -34,6 +36,8 @@
             {% for e in estrategias %}
             <tr onclick="ver('{{e.id}}')" >
                 <td>{{e.nombre}}</td>
+                <td>{{e.get_intervalo}}</td>
+                <td>{{e.str_parametros}}</td>
                 <td>{{e.clase}}()</td>
                 <td>{% if e.qtyBots > 0  %} {{e.qtyBots}} {% endif %} </td>
                 <td>
