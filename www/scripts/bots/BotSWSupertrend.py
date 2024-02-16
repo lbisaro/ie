@@ -1,10 +1,11 @@
-from bot.model_kline import *
 import pandas as pd
 import numpy as np
 from scripts.functions import round_down
 from scripts.indicators import supertrend
 from scripts.Bot_Core import Bot_Core
-from scripts.Bot_Core_utils import *
+from scripts.Bot_Core_utils import Order
+from django.utils import timezone as dj_timezone
+
 
 class BotSWSupertrend(Bot_Core):
 
@@ -94,16 +95,19 @@ class BotSWSupertrend(Bot_Core):
         self.print_orders = False 
         self.graph_open_orders = False
         
-        self.start_cash = round(self.wallet_quote * (self.quote_perc/100),self.qd_quote)
    
     
     def next(self):
+        self.start_cash = round(self.quote_qty * (self.quote_perc/100),self.qd_quote)
         price = self.price
 
         hold = round(self.wallet_base*price,self.qd_quote)
+        print('Hold: ',hold)
+        print('start_cash: ',self.start_cash)
+        print('wallet_base: ',self.wallet_base)
         
         if hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
-
+            print('-------------------------> Entro en compra')
             if self.interes == 's': #Interes Simple
                 cash = self.start_cash if self.start_cash <= self.wallet_quote else self.wallet_quote
             else: #Interes Compuesto
@@ -114,15 +118,20 @@ class BotSWSupertrend(Bot_Core):
 
                 
         elif self.signal == 'VENTA':
+            print('-------------------------> Entro en Venta - CLOSE')
             self.close(Order.FLAG_SIGNAL)
             self.cancel_orders()
 
 
         elif hold > self.start_cash*(1+(self.lot_to_safe/100)):
+            print('-------------------------> Entro en Venta parcial')
+            print('hold: ',hold)
             qty = round_down(((hold - self.start_cash)/price), self.qd_qty)
-            if (qty*self.price)< 11.0:
+            print('qty 1: ',qty)
+            if (qty*self.price) < 11.0:
                 qty = round_down(11.0/price, self.qd_qty)
-            self.sell(qty,Order.FLAG_TAKEPROFIT)
-            if self.re_buy_perc > 0:
-                limit_price = price*(1-(self.re_buy_perc/100))
-                self.buy_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
+            print('qty 2: ',qty)
+            if self.sell(qty,Order.FLAG_TAKEPROFIT) > 0:
+                if self.re_buy_perc > 0:
+                    limit_price = round(price*(1-(self.re_buy_perc/100)),self.qd_price)
+                    self.buy_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)

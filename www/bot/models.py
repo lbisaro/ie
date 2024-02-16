@@ -3,6 +3,8 @@ from django.db import models, connection
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.db.models import Sum, F, Case, When, Value, FloatField
+
 import scripts.functions as fn
 import os, fnmatch
 import importlib
@@ -185,34 +187,35 @@ class Bot(models.Model):
         bots = Bot.objects.raw(query)
         return bots
     
-    def close_pos(self):
+    def make_operaciones(self):
         orders = self.get_pos_orders()
-        completed = True
-        qty_base = 0
+        acum_qty = 0
         buy = 0
         sell = 0
         start_order_id = 0
-
+        ref_price = 0.0
+        update = {}
         for order in orders:
+            ref_price = order.price
             if order.side == BotUtilsOrder.SIDE_BUY:
                 buy += 1
-                qty_base += order.qty
+                acum_qty += order.qty
             if order.side == BotUtilsOrder.SIDE_SELL:
                 sell += 1
-                qty_base -= order.qty
-            if order.completed == 0:
-                completed = False
-            if start_order_id == 0 or order.id < start_order_id:
+                acum_qty -= order.qty
+            if start_order_id == 0:
                 start_order_id = order.id
-
-        if buy > 0 and sell > 0 and completed and qty_base == 0:
-            for order in orders:
-                order.pos_order_id = start_order_id
-                order.save()
-            return True
-        
-        self.bloquear()
-        return False
+                update[start_order_id] = []
+            update[start_order_id].append(order.id)
+            
+            #Crea la operacion y reinicia los valores para la proxima 
+            #Si hubo compras y ventas, y la sumatoria de unidades compradas-vendidas es < a 2 USD
+            if buy > 0 and sell > 0 and abs(acum_qty*ref_price) < 2.0:
+                Order.objects.filter(id__in=update[start_order_id]).update(pos_order_id=start_order_id)
+                start_order_id = 0
+                acum_qty = 0
+                buy = 0
+                sell = 0
     
     def bloquear(self):
         self.activo = 0
@@ -230,15 +233,60 @@ class Bot(models.Model):
         orders = Order.objects.filter(bot=self).order_by('datetime')
         return orders
 
+    def get_orders_en_curso(self):
+        orders = Order.objects.filter(bot=self,pos_order_id=0).order_by('datetime')
+        return orders
+
     # Ordenes correspondientes a la Posicion abierta (Actual)
     def get_pos_orders(self):
-        pos_orders = Order.objects.filter(bot=self,pos_order_id=0).order_by('datetime')
+        pos_orders = Order.objects.filter(bot=self,pos_order_id=0,completed=1).order_by('datetime')
         return pos_orders
+    
+    def get_wallet(self):
+        resultados = Order.objects.filter(bot=self,completed=1).aggregate(
+            quote_compras=Sum(
+                Case(
+                    When(side=0, then=F('qty') * F('price') * -1),
+                    default=Value(0),
+                    output_field=FloatField(),
+                )
+            ),
+            base_compras=Sum(
+                Case(
+                    When(side=0, then=F('qty') ),
+                    default=Value(0),
+                    output_field=FloatField(),
+                )
+            ),
+            quote_ventas=Sum(
+                Case(
+                    When(side=1, then=F('qty') * F('price') ),
+                    default=Value(0),
+                    output_field=FloatField(),
+                )
+            ),
+            base_ventas=Sum(
+                Case(
+                    When(side=1, then=F('qty')  * -1),
+                    default=Value(0),
+                    output_field=FloatField(),
+                )
+            )
+        )
+        if not resultados['base_ventas']:
+            resultados['base_ventas'] = 0.0
+        if not resultados['quote_ventas']:
+            resultados['quote_ventas'] = 0.0
+        if not resultados['base_compras']:
+            resultados['base_compras'] = 0.0
+        if not resultados['quote_compras']:
+            resultados['quote_compras'] = 0.0
+
+        return resultados
         
     def get_trades(self):
         orders = self.get_orders()
         
-
         last_posorder_id = -1
         trades = {}
         trade = {}
@@ -257,9 +305,8 @@ class Bot(models.Model):
                     trade['buy_price'] = 0.0
                     trade['qty'] = 0.0
                     trade['end'] = None
-                    trade['flag'] = ''
+                    trade['flag_type'] = ''
                     trade['sell_price'] = 0.0
-                    trade['str_flag'] = ''
                     trade['comision'] = 0.0
                     trade['buy_ops'] = 0
                     trade['buy_acum_quote'] = 0.0
@@ -300,10 +347,17 @@ class Bot(models.Model):
                 
 
                 trade['end'] = o.datetime
+
+                if o.type == BotUtilsOrder.TYPE_LIMIT:
+                   trade['flag_type'] += 'Limit '
+                elif o.type == BotUtilsOrder.TYPE_TRAILING:
+                   trade['flag_type'] += 'Trail '
+
                 if o.flag == BotUtilsOrder.FLAG_STOPLOSS:
-                   trade['flag'] += 'SL '
+                   trade['flag_type'] += 'SL '
                 elif o.flag == BotUtilsOrder.FLAG_TAKEPROFIT:
-                   trade['flag'] += 'TP '
+                   trade['flag_type'] += 'TP '
+
                 
                 trades[key] = trade
 
@@ -625,7 +679,7 @@ class Order(models.Model):
         verbose_name_plural='Bot Orders'
     
     def __str__(self):
-        params = f'{self.datetime} #{self.id} {self.str_side()}\t{self.qty}\t{self.price} {self.str_type()} {self.str_flag()} '
+        params = f'{self.datetime:%Y-%m-%d %Z %H:%M:%S} #{self.id} {self.str_side()}\t{self.qty}\t{self.price} {self.str_type()} {self.str_flag()} '
         if self.type != BotUtilsOrder.TYPE_MARKET:
             params += f'Limit Price {self.limit_price} '
         if self.type == BotUtilsOrder.TYPE_TRAILING:

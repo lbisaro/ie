@@ -6,6 +6,7 @@ import scripts.functions as fn
 
 from scripts.app_log import app_log as Log
 
+
 def run():
     log = Log()
     json_rsp = {}
@@ -72,15 +73,11 @@ def run():
                        
 
                 exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
-                wallet = exch.get_wallet() 
-
-                ## Obtener precios de los symbols activos en cada iteracion de usuario
-                prices = exchInfo.get_all_prices()
+                
 
             #log.info(f'Bot: {bot}')
-            price = prices[botClass.symbol]
-            orders = bot.get_orders()
-
+              
+            
             ### - Disparar las señales a los bots activos
             ### - Cuando se dispare una señal a un Bot 
             ###     - Si el bot NO PUEDE EJECUTARLA por cuestiones relacionadas con el capital. Inactivar el Bot
@@ -90,15 +87,40 @@ def run():
                 signal = signal_row['signal']
             if signal != 'NEUTRO':
                 log.info(f'Signal: {signal}')
+
+            # Obtener precios de los symbols activos en cada iteracion de usuario
+            price = exchInfo.get_symbol_price(botClass.symbol)
+
+            #Cargando Billetera del Bot
+            resultados = bot.get_wallet()
+            symbol_info = exch.get_symbol_info(botClass.symbol)
+            qd_qty = symbol_info['qty_decs_qty']
+            qd_quote = symbol_info['qty_decs_quote']
+            botClass.wallet_quote = round(bot.quote_qty + resultados['quote_compras'] + resultados['quote_ventas'] , qd_quote)
+            botClass.wallet_base  = round(resultados['base_compras'] + resultados['base_ventas'] , qd_qty)
+            if abs(botClass.wallet_base*price) < 2: #Si el total de qty representa menos de 2 dolares, se toma como 0
+                botClass.wallet_base = 0.0
             
+            #Cargando Billetera del Exchange
+            exchange_wallet = exch.get_wallet() 
+
+            #Cargando Ordenes en curso
+            orders = bot.get_orders_en_curso()
+            botClass._trades = {}
+            botClass._orders = {}
+            for order in orders:
+                if order.completed > 0:
+                    botClass._trades[order.id] = order
+                else:
+                    botClass._orders[order.id] = order
             execRes = botClass.live_execute(exchange = exch, 
                                        signal_row=signal_row, 
                                        price=price, 
-                                       wallet=wallet, 
-                                       orders=orders)
+                                       exchange_wallet=exchange_wallet)
             if len(execRes) > 0:
                 log.info(f'Execute: {execRes}')
 
+            bot.make_operaciones()
     
     #Buscar ordenes incompletas, agrupadas por usuario
     #Si existen, reconectar con el Exchange para cada usuario 

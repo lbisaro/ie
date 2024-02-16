@@ -50,8 +50,8 @@ def bot(request, bot_id):
         'can_activar': bot.can_activar(),
         'parametros': bot.parse_parametros(),
         'trades': bot.get_trades(),
-        'orders': bot.get_orders(),
-        #s'resultados': bot.get_resultados(),
+        'orders': bot.get_orders_en_curso(),
+        #'resultados': bot.get_resultados(),
         'log': bot.get_log(),
     })
 

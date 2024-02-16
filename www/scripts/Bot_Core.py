@@ -266,7 +266,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         bot_order.pos_order_id = 0
         bot_order.bot_id = self.bot_id
         bot_order.flag = tmp_order.flag
-        bot_order.datetime = timezone.now() - pd.Timedelta('3 hr')
+        bot_order.datetime = timezone.now()
         bot_order.symbol = symbol_obj
         bot_order.limit_price = tmp_order.limit_price
         bot_order.tag = tmp_order.tag
@@ -278,10 +278,6 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return bot_order
     
     def update_order(self,order):
-        order.datetime = timezone.now() - pd.Timedelta('3 hr')
+        order.datetime = timezone.now()
         order.save()
         return order
-
-
-
-

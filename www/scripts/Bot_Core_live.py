@@ -14,13 +14,11 @@ class Bot_Core_live:
         self.start()
         return self.klines.iloc[-2]
     
-    def live_execute(self, exchange, signal_row, price, wallet, orders):
-        self._orders = {}
-        self._trades = {}
+    def live_execute(self, exchange, signal_row, price, exchange_wallet):
         self.backtesting = False
         self.live = True
         self.exchange = exchange
-        self.wallet = wallet
+        self.exchange_wallet = exchange_wallet
 
         jsonRsp = {}
         
@@ -35,21 +33,19 @@ class Bot_Core_live:
         self.signal = signal_row['signal']
         self.datetime = dt.datetime.now()
         self.row = signal_row
-
-        #Calculo del estado de la posicion actual
-        self.load_orders(orders)
         
         if self.live_check_orders():
             jsonRsp['execute'] = True
 
         self.next()
-        
+
         print('ORDERS')
         for k in self._orders:
-            print(self._orders[k])
+            print('    ',self._orders[k])
         print('TRADES')
         for k in self._trades:
-            print(self._trades[k])
+            print('    ',self._trades[k])
+
         return jsonRsp
 
     def live_check_orders(self):
@@ -77,15 +73,13 @@ class Bot_Core_live:
                                 executed =  self.live_execute_order(order.id)
 
                         if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag != BotCoreUtilsOrder.FLAG_STOPLOSS:
-                            print('Check Order ',order)
                             if price >= order.limit_price:
-                                print('Ejecutando')
+                                print('Ejecutando ',order)
                                 executed = self.live_execute_order(order.id)
                                 
                         if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag == BotCoreUtilsOrder.FLAG_STOPLOSS:
-                            print('Check Order ',order)
                             if price <= order.limit_price:
-                                print('Ejecutando')
+                                print('Ejecutando ',order)
                                 executed = self.live_execute_order(order.id)
 
                     if order.type == BotCoreUtilsOrder.TYPE_TRAILING:
@@ -127,7 +121,7 @@ class Bot_Core_live:
         return executed
     
     def live_execute_order(self,orderid):
-        wallet = self.wallet
+        wallet = self.exchange_wallet
         exchange = self.exchange
         broker_wallet_base  = round_down(wallet[self.base_asset]['free'],self.qd_qty)
         broker_wallet_quote = round_down(wallet[self.quote_asset]['free'],self.qd_quote)
@@ -166,6 +160,8 @@ class Bot_Core_live:
             
             order.completed = 1 if exch_order['status'] == 'FILLED' else 0
             order.price = 0
+            if order.type == BotCoreUtilsOrder.TYPE_MARKET:
+                order.limit_price = 0.0
             if order.completed == 1:
                 order.price = round(float(exch_order['cummulativeQuoteQty'])/float(exch_order['executedQty']),self.qd_price)
                 order.qty = round(float(exch_order['executedQty']),self.qd_qty)
@@ -189,23 +185,9 @@ class Bot_Core_live:
         
         print('Exec. Order ERROR ',exch_order['status'],str(order))
         return False 
-
     
-    def load_orders(self, orders):
-        self.wallet_base = 0
-        self.wallet_quote = self.quote_qty
-        for order in orders:
-            if order.completed > 0:
-                if order.pos_order_id == 0:
-                    self._trades[order.id] = order
-                order_quote = round(order.qty*order.price,self.qd_quote)
-                if order.side == BotCoreUtilsOrder.SIDE_BUY:
-                    self.wallet_base += order.qty
-                    self.wallet_quote -= order_quote
-                else:
-                    self.wallet_base -= order.qty
-                    self.wallet_quote += order_quote
-            else:
-                self._orders[order.id] = order
-            if order.id > self.order_id:
-                self.order_id = order.id
+
+
+        
+
+

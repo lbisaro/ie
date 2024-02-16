@@ -80,9 +80,9 @@ class BotLiveTest(Bot_Core):
             buy_order = self._trades[self.last_order_id]
             buy_price = buy_order.price
             
-            limit_price = round(buy_price*1.005,self.qd_price)
+            limit_price = round(buy_price*1.01,self.qd_price)
             self.sell_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
-            limit_price = round(buy_price*0.995,self.qd_price)
+            limit_price = round(buy_price*0.99,self.qd_price)
             self.sell_limit(qty,Order.FLAG_STOPLOSS,limit_price)
     
     def alterna_compra_venta_market(self):
