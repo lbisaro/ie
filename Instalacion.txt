@@ -27,25 +27,6 @@ Crear SuperUser:
 	cd www/
 	python ./manage.py createsuperuser
 	
-Comandos Docker:
-
-	Construir, Reconstruir y Ejecutar
-	docker-compose up --build
-
-	Ejecutar y ver log
-	docker-compose up
-
-	Ejecutar y devolver el control a la terminal
-	docker-compose up -d 
-
-	Otros comandos
-
-	Command				Action						Removes Containers		Removes Networks	Removes Volumes		Removes Images
-	docker-compose down	Stops and removes			Yes						Yes					Optional			Optional
-	docker-compose stop	Stops only					No						No					No					No
-	docker-compose rm	Removes stopped containers	Yes						No					No					No
-
-//---------------------------------------------------------------------------------------------------------------
 
 
 #Entorno virtual
@@ -87,3 +68,22 @@ git init
 git add .
 git commit -m "Start"
 
+Comandos Docker:
+
+	Construir, Reconstruir y Ejecutar
+	docker-compose up --build
+
+	Ejecutar y ver log
+	docker-compose up
+
+	Ejecutar y devolver el control a la terminal
+	docker-compose up -d 
+
+	Otros comandos
+
+	Command				Action						Removes Containers		Removes Networks	Removes Volumes		Removes Images
+	docker-compose down	Stops and removes			Yes						Yes					Optional			Optional
+	docker-compose stop	Stops only					No						No					No					No
+	docker-compose rm	Removes stopped containers	Yes						No					No					No
+
+//---------------------------------------------------------------------------------------------------------------
