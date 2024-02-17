@@ -102,7 +102,7 @@ class BotSWSupertrend(Bot_Core):
         price = self.price
 
         hold = round(self.wallet_base*price,self.qd_quote)
-        print('Hold: ',hold)
+        print('Hold: ',hold, dj_timezone.now())
         print('start_cash: ',self.start_cash)
         print('wallet_base: ',self.wallet_base)
         
