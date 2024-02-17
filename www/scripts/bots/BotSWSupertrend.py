@@ -90,7 +90,7 @@ class BotSWSupertrend(Bot_Core):
         
     def start(self):
         self.klines = supertrend(self.klines)  
-        self.klines['signal'] = np.where(self.klines['st_trigger']>1 , 'COMPRA' , 'NEUTRO')  
+        self.klines['signal'] = np.where(self.klines['st_trigger']>0 , 'COMPRA' , 'NEUTRO')  
         self.klines['signal'] = np.where(self.klines['st_trigger']<0 , 'VENTA'  , self.klines['signal']) 
         self.print_orders = False 
         self.graph_open_orders = False
