@@ -50,7 +50,7 @@ class Bot_Core_live:
         return jsonRsp
 
     def live_check_orders(self):
-        
+        print(dt.datetime.now(),'Live Check Orders')
         executed = False
         price = self.price
        
