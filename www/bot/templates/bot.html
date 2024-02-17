@@ -111,7 +111,7 @@
                     <tbody>
                         {% for o in orders %}
                         <tr class="{% if o.side == 0 %}green{% else %}red{% endif %}">
-                            <td>{{o.datetime}}</td>
+                            <td>{{o.datetime|date:"c"}}</td>
                             <td>{{o.symbol}}</td>
                             <td>{% if o.side == 0 %}COMPRA{% else %}VENTA{% endif %} {{o.str_type}} {{o.str_flag}}
                                 {% if o.limit_price > 0 %} (Limit Price {{o.limit_price}}) {% endif %}
@@ -144,8 +144,8 @@
                     <tbody>
                     {% for t in trades %}
                         <tr class="{% if t.result_perc > 0 %}green{% else %}red{% endif %}">
-                            <td>{{t.start|date:"d-m-Y H:i"}}</td>
-                            <td>{{t.end|date:"d-m-Y H:i"}}</td>
+                            <td>{{t.start|date:"d-m-Y h:i"}}</td>
+                            <td>{{t.end|date:"d-m-Y h:i"}}</td>
                             <td>{{t.duracion}}</td>
                             <td>{{t.flag_type}}</td>
                             <td class="text-end">{{t.buy_acum_base}}</td>
