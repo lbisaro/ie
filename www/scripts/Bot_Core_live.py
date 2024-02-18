@@ -55,7 +55,7 @@ class Bot_Core_live:
         return jsonRsp
 
     def live_check_orders(self):
-        self.log.info('live_check_orders()')
+        #self.log.info('live_check_orders()')
         print(dt.datetime.now(),'Live Check Orders')
         executed = False
         price = self.price
@@ -130,7 +130,7 @@ class Bot_Core_live:
         return executed
     
     def live_execute_order(self,orderid):
-        self.log.info(f'live_execute_order({orderid})')
+        #self.log.info(f'live_execute_order({orderid})')
         wallet = self.exchange_wallet
         exchange = self.exchange
         broker_wallet_base  = round_down(wallet[self.base_asset]['free'],self.qd_qty)
