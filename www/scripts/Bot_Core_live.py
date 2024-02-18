@@ -19,7 +19,7 @@ class Bot_Core_live:
         return self.klines.iloc[-2]
     
     def live_execute(self, exchange, signal_row, price, exchange_wallet):
-        self.log.info('live_execute()')
+        #self.log.info('live_execute()')
         self.backtesting = False
         self.live = True
         self.exchange = exchange
