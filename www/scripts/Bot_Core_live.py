@@ -142,7 +142,7 @@ class Bot_Core_live:
                 str_side = 'SELL'
                 exch_order = exchange.order_market_sell(symbol=symbol, qty= qty)
         except Exception as e:
-            print(e)
+            self.log.error(f'bot.id: {self.bot_id} {e}')
             return False
 
         """

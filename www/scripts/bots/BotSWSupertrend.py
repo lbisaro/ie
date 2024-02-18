@@ -107,7 +107,12 @@ class BotSWSupertrend(Bot_Core):
         print('price: ',self.price)
         print('wallet_base: ',self.wallet_base)
         
-    
+        """
+        La linea
+            if 'st_trend' in self.row
+        Representa que entro en next, cuando aplicaba el check de la señal de acuerdo al timeframe aplicable
+
+        """
         if 'st_trend' in self.row and hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
             if self.interes == 's': #Interes Simple
                 cash = self.start_cash if self.start_cash <= self.wallet_quote else self.wallet_quote
