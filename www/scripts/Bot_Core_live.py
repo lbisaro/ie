@@ -5,9 +5,12 @@ from django.utils import timezone
 
 from scripts.Bot_Core_utils import Order as BotCoreUtilsOrder
 from scripts.functions import round_down
+from scripts.app_log import app_log as Log
 
 
 class Bot_Core_live:
+    
+    log = Log()
 
     def live_get_signal(self,klines):
         self.klines = klines
@@ -16,6 +19,7 @@ class Bot_Core_live:
         return self.klines.iloc[-2]
     
     def live_execute(self, exchange, signal_row, price, exchange_wallet):
+        self.log.info('live_execute()')
         self.backtesting = False
         self.live = True
         self.exchange = exchange
@@ -51,6 +55,7 @@ class Bot_Core_live:
         return jsonRsp
 
     def live_check_orders(self):
+        self.log.info('live_check_orders()')
         print(dt.datetime.now(),'Live Check Orders')
         executed = False
         price = self.price
@@ -125,6 +130,7 @@ class Bot_Core_live:
         return executed
     
     def live_execute_order(self,orderid):
+        self.log.info(f'live_execute_order({orderid})')
         wallet = self.exchange_wallet
         exchange = self.exchange
         broker_wallet_base  = round_down(wallet[self.base_asset]['free'],self.qd_qty)
@@ -185,6 +191,7 @@ class Bot_Core_live:
                 self.wallet_quote += order_quote
             
             self.on_order_execute()
+            self.log.info(f'live_execute_order({orderid}) OK')
             return True
         
         print('Exec. Order ERROR ',exch_order['status'],str(order))
