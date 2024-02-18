@@ -94,6 +94,7 @@ def run():
 
         #Cargando Billetera del Bot
         resultados = bot.get_wallet()
+        print(resultados)
         symbol_info = exch.get_symbol_info(botClass.symbol)
         qd_qty = symbol_info['qty_decs_qty']
         qd_quote = symbol_info['qty_decs_quote']
