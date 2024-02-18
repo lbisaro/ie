@@ -113,7 +113,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         qty = round_down(qty,self.qd_qty)
         if self.wallet_quote >= qty*self.price and qty*self.price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_BUY,qty,self.price,flag)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_BUY,qty,self.price,flag)
             return self.add_order(order)
         return 0
 
@@ -121,7 +121,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         qty = round_down(qty,self.qd_qty)
         if self.wallet_base >= qty and qty*self.price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_SELL,qty,self.price,flag)
             return self.add_order(order)
         return 0
           
@@ -129,7 +129,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         self.order_id += 1
         qty = self.wallet_base
         if qty > 0:
-            order = Order(self.order_id,Order.TYPE_MARKET,self.row['datetime'],Order.SIDE_SELL,qty,self.price,flag)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_SELL,qty,self.price,flag)
             return self.add_order(order)
             
         return 0
@@ -141,7 +141,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         if self.wallet_base >= qty and qty*limit_price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
-            order = Order(self.order_id,Order.TYPE_LIMIT,self.row['datetime'],Order.SIDE_SELL,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_SELL,qty,limit_price,flag)
             return self.add_order(order)
         return 0  
     
@@ -150,7 +150,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         if self.wallet_quote >= qty*self.price and qty*limit_price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
-            order = Order(self.order_id,Order.TYPE_LIMIT,self.row['datetime'],Order.SIDE_BUY,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_BUY,qty,limit_price,flag)
             return self.add_order(order)
         return 0    
     
@@ -159,7 +159,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         qty = round(qty,self.qd_qty)
         if self.wallet_base >= qty and qty*limit_price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_TRAILING,self.row['datetime'],Order.SIDE_SELL,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_SELL,qty,limit_price,flag)
             order.activation_price = activation_price
             order.trail_perc = trail_perc
             return self.add_order(order)
@@ -170,7 +170,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         qty = round(qty,self.qd_qty)
         if self.wallet_quote >= qty*limit_price and qty*limit_price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_TRAILING,self.row['datetime'],Order.SIDE_BUY,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_BUY,qty,limit_price,flag)
             order.activation_price = activation_price
             order.trail_perc = trail_perc
             return self.add_order(order)
