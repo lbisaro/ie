@@ -41,7 +41,7 @@ def run():
     
     ### Si hay estrategias activas
     signal_rows = {}
-    if len(estrategias):
+    if True or len(estrategias):
         
         ### Buscar Señales
         for estr in estrategias:
