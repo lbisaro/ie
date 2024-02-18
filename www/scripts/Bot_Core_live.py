@@ -18,31 +18,25 @@ class Bot_Core_live:
         print(self.klines.iloc[-1]['datetime'],' signal [-1]',self.klines.iloc[-1]['signal'],' signal [-2]',self.klines.iloc[-2]['signal'])
         return self.klines.iloc[-2]
     
-    def live_execute(self, exchange, signal_row, price, exchange_wallet):
+    def live_execute(self):
         #self.log.info('live_execute()')
         self.backtesting = False
         self.live = True
-        self.exchange = exchange
-        self.exchange_wallet = exchange_wallet
-
+        
         jsonRsp = {}
         
-        symbol_info = exchange.get_symbol_info(self.symbol)
+        symbol_info = self.exchange.get_symbol_info(self.symbol)
         self.base_asset = symbol_info['base_asset']
         self.quote_asset = symbol_info['quote_asset']
         self.qd_price = symbol_info['qty_decs_price']
         self.qd_qty = symbol_info['qty_decs_qty']
         self.qd_quote = symbol_info['qty_decs_quote']
 
-        self.price = price
         self.datetime = dt.datetime.now()
         
         if self.live_check_orders():
             jsonRsp['execute'] = True
 
-        #if 'signal' in signal_row: #Si existe la columna 'signal' es porque la estrategia calculo la señal de acuerdo a un timeframe aplicable
-        self.signal = signal_row['signal']
-        self.row = signal_row
         self.next()
 
         print('ORDERS')

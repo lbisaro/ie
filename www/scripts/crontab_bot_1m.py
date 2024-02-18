@@ -114,10 +114,14 @@ def run():
                 botClass._trades[order.id] = order
             else:
                 botClass._orders[order.id] = order
-        execRes = botClass.live_execute(exchange = exch, 
-                                    signal_row=signal_row, 
-                                    price=price, 
-                                    exchange_wallet=exchange_wallet)
+        
+        botClass.signal = signal
+        botClass.signal_row = signal_row
+        botClass.exchange = exch
+        botClass.price = price
+        botClass.exchange_wallet = exchange_wallet
+        execRes = botClass.live_execute()
+        
         if len(execRes) > 0:
             log.info(f'Execute: {execRes}')
 
