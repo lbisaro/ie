@@ -115,13 +115,14 @@ def run():
             else:
                 botClass._orders[order.id] = order
         
+        #Cargando datos para la ejecucion
         botClass.signal = signal
         botClass.signal_row = signal_row
         botClass.exchange = exch
         botClass.price = price
         botClass.exchange_wallet = exchange_wallet
         execRes = botClass.live_execute()
-        
+
         if len(execRes) > 0:
             log.info(f'Execute: {execRes}')
 
