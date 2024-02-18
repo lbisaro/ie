@@ -106,7 +106,8 @@ class BotSWSupertrend(Bot_Core):
         print('start_cash: ',self.start_cash)
         print('wallet_base: ',self.wallet_base)
         
-        if hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
+    
+        if 'st_trend' in self.row and hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
             if self.interes == 's': #Interes Simple
                 cash = self.start_cash if self.start_cash <= self.wallet_quote else self.wallet_quote
             else: #Interes Compuesto
@@ -116,7 +117,7 @@ class BotSWSupertrend(Bot_Core):
             self.buy(qty,Order.FLAG_SIGNAL)
 
                 
-        elif hold > 10 and ( self.signal == 'VENTA' or self.row['st_trend'] < 0 ): 
+        elif 'st_trend' in self.row and hold > 10 and ( self.signal == 'VENTA' or self.row['st_trend'] < 0 ): 
             self.close(Order.FLAG_SIGNAL)
             self.cancel_orders()
 
