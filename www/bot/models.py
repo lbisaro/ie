@@ -145,6 +145,7 @@ class Bot(models.Model):
     quote_qty = models.FloatField(null=False, blank=False)
     max_drawdown = models.FloatField(null=False, blank=False)
     stop_loss = models.FloatField(null=False, blank=False)
+    status = models.TextField(null=False, blank=True)
     
     class Meta:
         verbose_name = "Bot"
