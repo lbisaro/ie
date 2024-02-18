@@ -40,10 +40,10 @@ class Bot_Core_live:
         if self.live_check_orders():
             jsonRsp['execute'] = True
 
-        if 'signal' in signal_row: #Si existe la columna 'signal' es porque la estrategia calculo la señal de acuerdo a un timeframe aplicable
-            self.signal = signal_row['signal']
-            self.row = signal_row
-            self.next()
+        #if 'signal' in signal_row: #Si existe la columna 'signal' es porque la estrategia calculo la señal de acuerdo a un timeframe aplicable
+        self.signal = signal_row['signal']
+        self.row = signal_row
+        self.next()
 
         print('ORDERS')
         for k in self._orders:
