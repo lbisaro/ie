@@ -191,7 +191,7 @@ class Bot_Core_live:
                 self.wallet_quote += order_quote
             
             self.on_order_execute()
-            self.log.info(f'live_execute_order({orderid}) OK')
+            self.log.info(f'live_execute_order OK - {order}')
             return True
         
         print('Exec. Order ERROR ',exch_order['status'],str(order))
