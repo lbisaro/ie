@@ -41,86 +41,87 @@ def run():
     
     ### Si hay estrategias activas
     signal_rows = {}
-    if True or len(estrategias):
+    
         
-        ### Buscar Señales
-        for estr in estrategias:
-            botClass = estr.get_instance()
-            klines = exchInfo.get_klines(botClass.symbol, estr.interval_id, limit=201)
-            signal_row = botClass.live_get_signal(klines)
-            print(estr, signal_row['signal'])
-            signal_rows[estr.id] = signal_row
+    ### Buscar Señales
+    for estr in estrategias:
+        botClass = estr.get_instance()
+        klines = exchInfo.get_klines(botClass.symbol, estr.interval_id, limit=201)
+        signal_row = botClass.live_get_signal(klines)
+        print(estr, signal_row['signal'])
+        signal_rows[estr.id] = signal_row
+    
+    ### - Obtener lista de bots activos ordenados por usuario_id
+    bots = Bot.get_bots_activos()
+    usuario_id = -1
+    for bot in bots:
+        print(f'Bot: {bot}')
         
-        ### - Obtener lista de bots activos ordenados por usuario_id
-        bots = Bot.get_bots_activos()
-        usuario_id = -1
-        for bot in bots:
-            print(f'Bot: {bot}')
+        botClass = bot.get_instance()
+        botClass.bot_id = bot.id
+
+        if bot.usuario.id != usuario_id:
+            #log.info(f'Usuario: {bot.usuario.username}')
+
+            usuario_id = bot.usuario.id
+            profile = UserProfile.objects.get(user_id=bot.usuario.id)
+            profile_config = profile.parse_config()
+            prms = {}
+            prms['bnc_apk'] = profile_config['bnc']['bnc_apk']
+            prms['bnc_aps'] = profile_config['bnc']['bnc_aps']
+            prms['bnc_env'] = profile_config['bnc']['bnc_env']
+                    
+
+            exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
             
-            botClass = bot.get_instance()
-            botClass.bot_id = bot.id
 
-            if bot.usuario.id != usuario_id:
-                #log.info(f'Usuario: {bot.usuario.username}')
-
-                usuario_id = bot.usuario.id
-                profile = UserProfile.objects.get(user_id=bot.usuario.id)
-                profile_config = profile.parse_config()
-                prms = {}
-                prms['bnc_apk'] = profile_config['bnc']['bnc_apk']
-                prms['bnc_aps'] = profile_config['bnc']['bnc_aps']
-                prms['bnc_env'] = profile_config['bnc']['bnc_env']
-                       
-
-                exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
-                
-
-            #log.info(f'Bot: {bot}')
-              
+        #log.info(f'Bot: {bot}')
             
-            ### - Disparar las señales a los bots activos
-            ### - Cuando se dispare una señal a un Bot 
-            ###     - Si el bot NO PUEDE EJECUTARLA por cuestiones relacionadas con el capital. Inactivar el Bot
-            signal = 'NEUTRO'
-            if bot.estrategia_id in signal_rows:
-                signal_row = signal_rows[bot.estrategia_id]
-                signal = signal_row['signal']
-            if signal != 'NEUTRO':
-                log.info(f'Signal: {signal}')
+        
+        ### - Disparar las señales a los bots activos
+        ### - Cuando se dispare una señal a un Bot 
+        ###     - Si el bot NO PUEDE EJECUTARLA por cuestiones relacionadas con el capital. Inactivar el Bot
+        signal = 'NEUTRO'
+        signal_row = pd.DataFrame()
+        if bot.estrategia_id in signal_rows:
+            signal_row = signal_rows[bot.estrategia_id]
+            signal = signal_row['signal']
+        if signal != 'NEUTRO':
+            log.info(f'Signal: {signal}')
 
-            # Obtener precios de los symbols activos en cada iteracion de usuario
-            price = exchInfo.get_symbol_price(botClass.symbol)
+        # Obtener precios de los symbols activos en cada iteracion de usuario
+        price = exchInfo.get_symbol_price(botClass.symbol)
 
-            #Cargando Billetera del Bot
-            resultados = bot.get_wallet()
-            symbol_info = exch.get_symbol_info(botClass.symbol)
-            qd_qty = symbol_info['qty_decs_qty']
-            qd_quote = symbol_info['qty_decs_quote']
-            botClass.wallet_quote = round(bot.quote_qty + resultados['quote_compras'] + resultados['quote_ventas'] , qd_quote)
-            botClass.wallet_base  = round(resultados['base_compras'] + resultados['base_ventas'] , qd_qty)
-            if abs(botClass.wallet_base*price) < 2: #Si el total de qty representa menos de 2 dolares, se toma como 0
-                botClass.wallet_base = 0.0
-            
-            #Cargando Billetera del Exchange
-            exchange_wallet = exch.get_wallet() 
+        #Cargando Billetera del Bot
+        resultados = bot.get_wallet()
+        symbol_info = exch.get_symbol_info(botClass.symbol)
+        qd_qty = symbol_info['qty_decs_qty']
+        qd_quote = symbol_info['qty_decs_quote']
+        botClass.wallet_quote = round(bot.quote_qty + resultados['quote_compras'] + resultados['quote_ventas'] , qd_quote)
+        botClass.wallet_base  = round(resultados['base_compras'] + resultados['base_ventas'] , qd_qty)
+        if abs(botClass.wallet_base*price) < 2: #Si el total de qty representa menos de 2 dolares, se toma como 0
+            botClass.wallet_base = 0.0
+        
+        #Cargando Billetera del Exchange
+        exchange_wallet = exch.get_wallet() 
 
-            #Cargando Ordenes en curso
-            orders = bot.get_orders_en_curso()
-            botClass._trades = {}
-            botClass._orders = {}
-            for order in orders:
-                if order.completed > 0:
-                    botClass._trades[order.id] = order
-                else:
-                    botClass._orders[order.id] = order
-            execRes = botClass.live_execute(exchange = exch, 
-                                       signal_row=signal_row, 
-                                       price=price, 
-                                       exchange_wallet=exchange_wallet)
-            if len(execRes) > 0:
-                log.info(f'Execute: {execRes}')
+        #Cargando Ordenes en curso
+        orders = bot.get_orders_en_curso()
+        botClass._trades = {}
+        botClass._orders = {}
+        for order in orders:
+            if order.completed > 0:
+                botClass._trades[order.id] = order
+            else:
+                botClass._orders[order.id] = order
+        execRes = botClass.live_execute(exchange = exch, 
+                                    signal_row=signal_row, 
+                                    price=price, 
+                                    exchange_wallet=exchange_wallet)
+        if len(execRes) > 0:
+            log.info(f'Execute: {execRes}')
 
-            bot.make_operaciones()
+        bot.make_operaciones()
     
     #Buscar ordenes incompletas, agrupadas por usuario
     #Si existen, reconectar con el Exchange para cada usuario 
