@@ -31,14 +31,15 @@ class Bot_Core_live:
         self.qd_quote = symbol_info['qty_decs_quote']
 
         self.price = price
-        self.signal = signal_row['signal']
         self.datetime = dt.datetime.now()
-        self.row = signal_row
         
         if self.live_check_orders():
             jsonRsp['execute'] = True
 
-        self.next()
+        if 'signal' in signal_row: #Si existe la columna 'signal' es porque la estrategia calculo la señal de acuerdo a un timeframe aplicable
+            self.signal = signal_row['signal']
+            self.row = signal_row
+            self.next()
 
         print('ORDERS')
         for k in self._orders:
@@ -76,11 +77,13 @@ class Bot_Core_live:
                         if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag != BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price >= order.limit_price:
                                 print('Ejecutando ',order)
+                                self.log.info(f'Ejecutando {order}')
                                 executed = self.live_execute_order(order.id)
                                 
                         if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag == BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price <= order.limit_price:
                                 print('Ejecutando ',order)
+                                self.log.info(f'Ejecutando {order}')
                                 executed = self.live_execute_order(order.id)
 
                     if order.type == BotCoreUtilsOrder.TYPE_TRAILING:
