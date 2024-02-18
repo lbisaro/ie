@@ -56,9 +56,6 @@
             <li class="nav-item" role="resumen">
               <button class="nav-link active" id="resumen-tab" data-bs-toggle="tab" data-bs-target="#resumen-tab-pane" type="button" role="tab" aria-controls="resumen-tab-pane" aria-selected="true">Resumen</button>
             </li>
-            <li class="nav-item" role="ordenes">
-              <button class="nav-link" id="ordenes-tab" data-bs-toggle="tab" data-bs-target="#ordenes-tab-pane" type="button" role="tab" aria-controls="ordenes-tab-pane" aria-selected="false">Ordenes</button>
-            </li>
             <li class="nav-item" role="trades">
                 <button class="nav-link" id="trades-tab" data-bs-toggle="tab" data-bs-target="#trades-tab-pane" type="button" role="tab" aria-controls="trades-tab-pane" aria-selected="false">Operaciones</button>
             </li>
@@ -88,44 +85,48 @@
                     <div class="col-3" id="indicadores" style="font-size: 0.8em;" >
                         <h6 class="text-info">Indicadores</h5>
                         {% for item in resultados.indicadores %}
-                            <div class="row pb-1">
-                                <div class="col-6">{{item.t}}</div><div class="col-6 {{item.c}}">{{item.v}}</div>
-                            </div> 
+                        <div class="row pb-1">
+                            <div class="col-6">{{item.t}}</div><div class="col-6 {{item.c}}">{{item.v}}</div>
+                        </div> 
                         {% endfor %}
                     </div>
                 </div>
+                <div class="row pt-4">  
+                    <h6 class="text-info">Ordenes en curso</h5>
+                    <div class="col">        
+                        <table class="table-dg table-trade-info">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Par</th>
+                                    <th>Operacion</th>
+                                    <th class="text-end">Cantidad</th>
+                                    <th class="text-end">Precio</th>
+                                    <th class="text-end">USD</th>
+                                    <th class="text-end">Comision USD</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for o in orders %}
+                                <tr class="{% if o.side == 0 %}green{% else %}red{% endif %}">
+                                    <td>{{o.datetime|date:"d-m-Y H:i"}}</td>
+                                    <td>{{o.symbol}}</td>
+                                    <td>{% if o.side == 0 %}COMPRA{% else %}VENTA{% endif %} {{o.str_type}} {{o.str_flag}}
+                                        {% if o.limit_price > 0 %} (Limit Price {{o.limit_price}}) {% endif %}
+                                        {% if o.trail_perc > 0 %} (Trail {{o.trail_perc}}%) {% endif %}
+                                    </td>
+                                    <td class="text-end">{{o.qty}}</td>
+                                    <td class="text-end">{% if o.completed > 0 %} {{o.price}} {% else %} - {% endif %}</td>
+                                    <td class="text-end">{% if o.completed > 0 %} {{o.quote_qty|stringformat:".2f"}} {% else %} - {% endif %}</td>
+                                    <td class="text-end">{% if o.completed > 0 %} {{o.comision|stringformat:".2f"}} {% else %} - {% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="tab-pane fade" id="ordenes-tab-pane" role="tabpanel" aria-labelledby="ordenes-tab" tabindex="0">
-                <table class="table-dg table-trade-info">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Par</th>
-                            <th>Operacion</th>
-                            <th class="text-end">Cantidad</th>
-                            <th class="text-end">Precio</th>
-                            <th class="text-end">USD</th>
-                            <th class="text-end">Comision USD</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for o in orders %}
-                        <tr class="{% if o.side == 0 %}green{% else %}red{% endif %}">
-                            <td>{{o.datetime|date:"d-m-Y H:i"}}</td>
-                            <td>{{o.symbol}}</td>
-                            <td>{% if o.side == 0 %}COMPRA{% else %}VENTA{% endif %} {{o.str_type}} {{o.str_flag}}
-                                {% if o.limit_price > 0 %} (Limit Price {{o.limit_price}}) {% endif %}
-                                {% if o.trail_perc > 0 %} (Trail {{o.trail_perc}}%) {% endif %}
-                            </td>
-                            <td class="text-end">{{o.qty}}</td>
-                            <td class="text-end">{% if o.completed > 0 %} {{o.price}} {% else %} - {% endif %}</td>
-                            <td class="text-end">{% if o.completed > 0 %} {{o.quote_qty|stringformat:".2f"}} {% else %} - {% endif %}</td>
-                            <td class="text-end">{% if o.completed > 0 %} {{o.comision|stringformat:".2f"}} {% else %} - {% endif %}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+
             <div class="tab-pane fade" id="trades-tab-pane" role="tabpanel" aria-labelledby="trades-tab" tabindex="0">
                 <table class="table-dg table-trade-info">
                     <thead>
