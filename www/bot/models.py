@@ -654,8 +654,11 @@ class Bot(models.Model):
         
         return json_rsp
     
-    def load_status(self,status):
-        self.status = str(status)
+    def load_status(self,new_status):
+        actual_status = eval(self.status) if len(self.status) > 0 else {}
+        for k in new_status:
+            actual_status[k] = new_status[k]
+        self.status = str(actual_status)
         self.save()
 
 class Order(models.Model):

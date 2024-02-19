@@ -84,6 +84,21 @@ class BotSWSupertrend(Bot_Core):
         
         if len(err):
             raise Exception("\n".join(err))
+    
+    def get_status(self):
+
+        status = super().get_status()
+        if 'st_trend' in self.row:
+            if self.row['st_trend'] > 0:
+                tendencia = 'Alcista'
+            elif self.row['st_trend'] < 0:
+                tendencia = 'Bajista'
+            else:
+                tendencia = 'Neutral'
+            status['trend'] = {'l': 'Tendencia','v': tendencia, 'r': self.row['st_trend']}
+
+        return status
+        
         
     def start(self):
         self.klines = supertrend(self.klines)  
@@ -99,10 +114,6 @@ class BotSWSupertrend(Bot_Core):
         price = self.price
 
         hold = round(self.wallet_base*price,self.qd_quote)
-        print('Hold: ',hold, dj_timezone.now())
-        print('start_cash: ',self.start_cash)
-        print('price: ',self.price)
-        print('wallet_base: ',self.wallet_base)
         
         """
         La linea
