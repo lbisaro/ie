@@ -131,11 +131,8 @@ def run():
 
             #Procesando estado actual del bot
             status = botClass.get_status()
-            for k in status:
-                print(k)
+            bot.load_status(status)
             
-            bot.status = str(status)
-            bot.save()
 
         except Exception as e:
             log.error(f'bot.id: {bot.id} {e}')

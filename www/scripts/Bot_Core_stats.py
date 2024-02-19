@@ -8,31 +8,31 @@ from scripts.Bot_Core_utils import *
 class Bot_Core_stats:
     def get_status(self):
 
-        status = []
+        status = {}
         last_exec = dt.datetime.now()
-        status.append( {'c': 'last_exec', 'l': 'Ultima ejecucion','v': last_exec.strftime('%d-%m-%Y %H:%M'), 'r': last_exec.strftime('%d-%m-%Y %H:%M')})
+        status['last_exec'] = {'l': 'Ultima ejecucion','v': last_exec.strftime('%d-%m-%Y %H:%M'), 'r': last_exec.strftime('%d-%m-%Y %H:%M')}
         
         price = round(self.price,self.qd_price)
-        status.append({'c': 'price','l': 'Precio','v': f'{price}', 'r': price})
+        status['price'] = {'l': 'Ultimo precio','v': f'{price}', 'r': price}
 
         wallet_base = round(self.wallet_base,self.qd_qty)
         wallet_base_in_quote = round(self.wallet_base*self.price,self.qd_quote)
         v = f'{wallet_base} {self.base_asset} ({wallet_base_in_quote} {self.quote_asset})'
-        status.append({'c': 'wallet_base','l': 'Comprado','v': v,'r':wallet_base})
+        status['wallet_base'] = {'l': 'Comprado','v': v,'r':wallet_base}
         
         wallet_quote = round(self.wallet_quote,self.qd_quote)
         v = f'{wallet_quote} {self.quote_asset}'
-        status.append({'c': 'wallet_base','l': 'Disponible','v': v,'r':wallet_quote})
+        status['wallet_quote'] = {'l': 'Disponible','v': v,'r':wallet_quote}
         
         wallet_tot = round(self.wallet_quote+wallet_base_in_quote,self.qd_quote)
 
         v = f'{wallet_tot} {self.quote_asset}'
-        status.append({'c': 'wallet_tot','l': 'Capital actual','v': v,'r':wallet_tot})
+        status['wallet_tot'] = {'l': 'Capital actual','v': v,'r':wallet_tot}
 
         wallet_pnl = round(((wallet_tot/self.quote_qty)-1)*100,2)
         wallet_pml_sign = '' if wallet_pnl <= 0 else '+'
         v = f'{wallet_pml_sign}{wallet_pnl:.2f}%'
-        status.append({'c': 'wallet_tot','l': 'PNL','v': v,'r':wallet_pnl})
+        status['pnl'] = {'l': 'PNL','v': v,'r':wallet_pnl}
 
         return status
 

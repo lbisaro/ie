@@ -30,11 +30,8 @@ class BotSWSupertrend(Bot_Core):
         self.interes = '' 
     
     descripcion = 'Bot de Balanceo de Billetera \n'\
-                  ' \n'\
                   'Con tendencia alcista, Realiza una compra al inicio, y Vende parcial para tomar ganancias cuando el capital es mayor a la compra inicial, \n'\
-                  'Con tendencia bajista, Vende el total. \n'\
-                  'El parametro [Compra inicial] y porcentaje establecido en [Resguardo si supera la compra] se debe establecer de forma tal '\
-                  'que al generar el resguardo la venta se haga por un importe mayor a 11 USD, de acuerdo a las restricciones del exchange.'
+                  'Con tendencia bajista, Vende el total.'
     
     parametros = {'symbol':  {  
                         'c' :'symbol',

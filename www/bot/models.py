@@ -653,6 +653,10 @@ class Bot(models.Model):
         json_rsp['ok'] = True
         
         return json_rsp
+    
+    def load_status(self,status):
+        self.status = str(status)
+        self.save()
 
 class Order(models.Model):
     bot = models.ForeignKey(Bot, on_delete = models.CASCADE)

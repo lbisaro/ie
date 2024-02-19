@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Bot {{title}}{% endblock %}
-{% block nav_title %}Bot{% endblock %}
+{% block title %}Bot #{{bot_id}}{% endblock %}
+{% block nav_title %}Bot #{{bot_id}}{% endblock %}
 
 {% load static %}
 {% load tz %}
@@ -20,21 +20,34 @@
 {% endblock %}
 
 {% block content %}
+<div class="modal fade" id="descripcion_modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel">Estrategia {{estrategia}}</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            {{descripcion}}
+        </div>
+      </div>
+    </div>
+  </div>
 <div class="container" >
-    <div class="row pb-2">
+    <div class="row pb-4">
         <div class="col-2">Estrategia:  
         <span class="col fw-bold">{{estrategia}}</span> 
+        <i class="bi bi-info-circle text-warning" data-bs-toggle="modal" data-bs-target="#descripcion_modal"></i>
+        
         {% if estrategia_activo == 0%} <span class="text-danger">Inactiva</span>{% endif %}
     </div>
-    <div class="row pb-1">                                  
-        <pre style="font-family: inherit;">{{descripcion}}</pre>                                    
-    </div>
+    
     {% if activo == 0 %}
     <div class="row pb-2">
         <h3 class="text-danger text-center">Bot inactivo</h3>
     </div>
     {% endif %}
-    <div class="row" style="font-size: 0.8em;">
+    <div class="row pt-2" style="font-size: 0.8em;">
         <div class="d-flex flex-row flex-wrap rounded border border-1 pb-1 mb-1">
             <div class="w-25 py-1">Intervalo: <b>{{intervalo}}</b></div>
             {% for k,prm in parametros.items %}
@@ -44,6 +57,7 @@
             {% endfor %}
         </div>
     </div>
+
     <div class="row pb-2" style="font-size: 0.8em;">
         <div class="d-flex flex-row flex-wrap rounded border border-1 pb-1 mb-1">
             <div class="w-25 py-1">Capital USD: <b>{{quote_qty|stringformat:".2f"}}</b></div>
@@ -51,6 +65,20 @@
             <div class="w-25 py-1">Maximo DrowDawn: <b>{{max_drawdown|stringformat:".2f" }} %</b></div>
         </div>
     </div>
+
+    <div class="row" style="font-size: 0.8em;">
+        <h6 class="text-info">Estado de la posicion actual</h5>
+        <div class="d-flex flex-row flex-wrap rounded border border-1 pb-1 mb-1">
+            {% for k,item in status.items %}
+                {% if k == 'pnl' %}
+                    <div class="w-25 py-1">{{item.l}}: <b class="text-{% if item.r > 0 %}success{% else %}danger{% endif %}">{{item.v}}</b></div>
+                {% else %}
+                    <div class="w-25 py-1">{{item.l}}: <b>{{item.v}}</b></div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
     <div class="row">
         <ul class="nav nav-tabs" id="myTab" role="tablist" style="font-size: 0.9em;">
             <li class="nav-item" role="resumen">
@@ -66,15 +94,7 @@
           <div class="tab-content" id="myTabContent">
             <div class="tab-pane fade show active" id="resumen-tab-pane" role="tabpanel" aria-labelledby="resumen-tab" tabindex="0" >
                 <div class="row pt-4">
-                    <div class="col-3" id="status" style="font-size: 0.8em;" >
-                        <h6 class="text-info">Estado de la posicion actual</h5>
-                        {% for item in status %}
-                            <div class="row pb-1">
-                                <div class="col-6">{{item.l}}</div><div class="col-6" >{{item.v}}</div>
-                            </div> 
-                        {% endfor %}
-                    </div>
-                    <div class="col-3" id="general" style="font-size: 0.8em;" >
+                    <div class="col-6" id="general" style="font-size: 0.8em;" >
                         <h6 class="text-info">General</h5>
                         {% for item in resultados.general %}
                             <div class="row pb-1">
