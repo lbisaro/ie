@@ -347,7 +347,7 @@ class Bot_Core_backtest:
             self._trades[order.id] = order
             if self.print_orders:
                 print(f' {self.wallet_base} {self.wallet_quote} \033[32mOK\033[0m')
-            self.on_order_execute()
+            self.on_order_execute(order)
 
         else:
             if self.print_orders:

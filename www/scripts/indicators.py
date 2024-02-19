@@ -23,6 +23,8 @@ def supertrend(df):
     df['st_trend'] = df[signal_col]
     df['st_trigger'] = np.where((df[signal_col]>0) & (df[signal_col].shift(1)<=0) ,1,0)
     df['st_trigger'] = np.where((df[signal_col]<0) & (df[signal_col].shift(1)>=0) ,-1,df['st_trigger']) 
+    df['st_sl_long'] = df[up_col]
+    df['st_sl_short'] = df[down_col]
     df = df.drop([signal_col,up_col,down_col,price_col], axis=1)
 
     return df

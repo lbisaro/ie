@@ -82,7 +82,7 @@ class BotTrailOrder(Bot_Core):
         if self.last_order_id == -1:
             self.actuar()
     
-    def on_order_execute(self):
+    def on_order_execute(self,order):
         self.actuar()
     
     def actuar(self):

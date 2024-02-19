@@ -215,6 +215,13 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         if orderid in self._trades:
             return self._trades[orderid]
         return None
+    
+    def get_order_by_tag(self,tag):
+        for id in self._orders:
+            order = self._orders[id]
+            if order.tag == tag:
+                return order
+        return None
 
     def check_orders(self):
         if self.backtesting and not self.live:
@@ -230,7 +237,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             return self.live_execute_order(orderid)
         raise Exception(f'\n{self.__class__.__name__}No se ha definido el entorno de operacion (Live/Backtest)')
     
-    def on_order_execute(self):
+    def on_order_execute(self,order):
         #El metodo se llama cuando una orden es ejecutada y debe ser desarrollado en la estrategia
         pass
 
@@ -278,6 +285,9 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return bot_order
     
     def update_order(self,order):
-        order.datetime = timezone.now()
-        order.save()
+        if order.id in self._orders:
+            self._orders[order.id] = order
+        if not self.backtesting and self.live:
+            order.datetime = timezone.now()
+            order.save()
         return order

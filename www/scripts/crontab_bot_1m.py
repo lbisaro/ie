@@ -130,7 +130,6 @@ def run():
 
             #Procesando estado actual del bot
             status = botClass.get_status()
-            print(status)
             bot.load_status(status)
             
 

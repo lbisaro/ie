@@ -68,7 +68,7 @@ class BotLiveTest(Bot_Core):
         #self.alterna_compra_venta_market()
         self.compra_sl_tp()
     
-    def on_order_execute(self):
+    def on_order_execute(self,order):
         self.cancel_orders()
 
     def compra_sl_tp(self):

@@ -695,7 +695,7 @@ class Order(models.Model):
             if self.active:
                 params += ' ACT'   
         if len(self.tag):
-            params += f' {self.tag}% '    
+            params += f' {self.tag} '    
 
         return f'{params}'
         

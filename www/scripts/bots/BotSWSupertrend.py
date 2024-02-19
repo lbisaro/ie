@@ -5,6 +5,7 @@ from scripts.indicators import supertrend
 from scripts.Bot_Core import Bot_Core
 from scripts.Bot_Core_utils import Order
 from django.utils import timezone as dj_timezone
+import datetime as dt
 
 
 class BotSWSupertrend(Bot_Core):
@@ -86,17 +87,26 @@ class BotSWSupertrend(Bot_Core):
             raise Exception("\n".join(err))
     
     def get_status(self):
-
+        status_datetime = dt.datetime.now()
         status = super().get_status()
         if 'st_trend' in self.row:
             if self.row['st_trend'] > 0:
-                tendencia = 'Alcista'
+                tendencia = 'Alcista '+status_datetime.strftime('%d-%m-%Y %H:%M')
+                cls = 'text-succes'
             elif self.row['st_trend'] < 0:
-                tendencia = 'Bajista'
+                tendencia = 'Bajista '+status_datetime.strftime('%d-%m-%Y %H:%M')
+                cls = 'text-danger'
             else:
-                tendencia = 'Neutral'
-            status['trend'] = {'l': 'Tendencia','v': tendencia, 'r': self.row['st_trend']}
+                tendencia = 'Neutral '+status_datetime.strftime('%d-%m-%Y %H:%M')
+                cls = 'text-secondary'
+            status['trend'] = {'l': 'Tendencia','v': tendencia, 'r': self.row['st_trend'], 'cls': cls}
 
+        if self.signal != 'NEUTRO':
+            if self.signal == 'COMPRA':
+                cls = 'text-success'
+            else: 
+                cls = 'text-danger'
+            status['signal'] = {'l': 'Ultima señal','v': self.signal+' '+status_datetime.strftime('%d-%m-%Y %H:%M'), 'r': self.signal, 'cls': cls}
         return status
         
         
@@ -104,10 +114,14 @@ class BotSWSupertrend(Bot_Core):
         self.klines = supertrend(self.klines)  
         self.klines['signal'] = np.where(self.klines['st_trigger']>0 , 'COMPRA' , 'NEUTRO')  
         self.klines['signal'] = np.where(self.klines['st_trigger']<0 , 'VENTA'  , self.klines['signal']) 
-        self.print_orders = False 
+        self.print_orders = True 
         self.graph_open_orders = False
-        
-   
+
+    def on_order_execute(self,order):
+        if order.tag == 'STOP_LOSS':
+            self.cancel_orders()
+        elif order.side == Order.SIDE_SELL and order.flag == Order.FLAG_SIGNAL:
+            self.cancel_orders()
     
     def next(self):
         self.start_cash = round(self.quote_qty * (self.quote_perc/100),self.qd_quote)
@@ -130,17 +144,31 @@ class BotSWSupertrend(Bot_Core):
             qty = round_down(cash/self.price,self.qd_qty)
             self.buy(qty,Order.FLAG_SIGNAL)
 
+            ##Corte por Stop-Loss basado en la señal del SuperTrend
+            #sl_order_id = self.sell_limit(qty,Order.FLAG_STOPLOSS,self.row['st_sl_long'])
+            #sl_order = self.get_order(sl_order_id)
+            #sl_order.tag = 'STOP_LOSS'
+            #self.update_order(sl_order)
                 
-        elif 'st_trend' in self.row and hold > 10 and ( self.signal == 'VENTA' or self.row['st_trend'] < 0 ): 
+        elif 'st_trend' in self.row and hold > 10 and ( self.signal == 'VENTA' ): 
             self.close(Order.FLAG_SIGNAL)
-            self.cancel_orders()
-
-
-        elif hold > self.start_cash*(1+(self.lot_to_safe/100)):
-            qty = round_down(((hold - self.start_cash)/price), self.qd_qty)
-            if (qty*self.price) < 11.0:
-                qty = round_down(11.0/price, self.qd_qty)
-            if self.sell(qty,Order.FLAG_TAKEPROFIT) > 0:
-                if self.re_buy_perc > 0:
-                    limit_price = round(price*(1-(self.re_buy_perc/100)),self.qd_price)
-                    self.buy_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
+            
+        else:
+            if hold > self.start_cash*(1+(self.lot_to_safe/100)):
+                qty = round_down(((hold - self.start_cash)/price), self.qd_qty)
+                if (qty*self.price) < 11.0:
+                    qty = round_down(11.0/price, self.qd_qty)
+                if self.sell(qty,Order.FLAG_TAKEPROFIT) > 0:
+                    if self.re_buy_perc > 0:
+                        limit_price = round(price*(1-(self.re_buy_perc/100)),self.qd_price)
+                        self.buy_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
+            
+            ##Corte por Stop-Loss basado en la señal del SuperTrend
+            #elif 'st_sl_long' in self.row:
+            #    sl_order = self.get_order_by_tag('STOP_LOSS')
+            #    if sl_order and self.row['st_sl_long'] > 0:
+            #        stop_loss_price = round(self.row['st_sl_long'],self.qd_price)
+            #        if sl_order.limit_price != stop_loss_price and sl_order.qty != self.wallet_base:
+            #            sl_order.limit_price = stop_loss_price
+            #            sl_order.qty = self.wallet_base
+            #            self.update_order(sl_order)

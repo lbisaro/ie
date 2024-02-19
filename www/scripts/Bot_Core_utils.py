@@ -59,7 +59,7 @@ class Order:
         return str(self)
 
     def __str__(self):
-        params = f'{self.datetime:%Y-%m-%d %Z %H:%M:%S} #{self.bot_id}.{self.id} {self.str_side()}\t{self.qty}\t{self.price} {self.str_type()} {self.str_flag()} '
+        params = f'{self.datetime:%Y-%m-%d %Z %H:%M:%S} #{self.id} {self.str_side()}\t{self.qty}\t{self.price} {self.str_type()} {self.str_flag()} '
         if self.type != self.TYPE_MARKET:
             params += f'Limit Price {self.limit_price} '
         if self.type == self.TYPE_TRAILING:
@@ -67,7 +67,7 @@ class Order:
             if self.active:
                 params += ' ACT'   
         if len(self.tag):
-            params += f' {self.tag}% '    
+            params += f' {self.tag}'    
 
         return f'{params}'
     

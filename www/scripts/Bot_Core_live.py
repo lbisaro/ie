@@ -177,7 +177,7 @@ class Bot_Core_live:
                 self.wallet_base -= order.qty
                 self.wallet_quote += order_quote
             
-            self.on_order_execute()
+            self.on_order_execute(order)
             self.log.info(f'live_execute_order OK - {order}')
             return True
         

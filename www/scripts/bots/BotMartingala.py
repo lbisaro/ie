@@ -158,7 +158,7 @@ class BotMartingala(Bot_Core):
         return round(self.wallet_base*price + self.wallet_quote,2)
 
 
-    def on_order_execute(self):
+    def on_order_execute(self,order):
         #Venta por stop-loss
         if self.stop_loss>0 and self.order_status(self.sell_sl_orderid) == Order.STATE_COMPLETE:
             self.block_by_stop_loss = True
