@@ -51,6 +51,7 @@ def bot(request, bot_id):
         'parametros': bot.parse_parametros(),
         'trades': bot.get_trades(),
         'orders': bot.get_orders_en_curso(),
+        'status': eval(bot.status),
         #'resultados': bot.get_resultados(),
         'log': bot.get_log(),
     })

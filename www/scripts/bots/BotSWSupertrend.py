@@ -129,12 +129,9 @@ class BotSWSupertrend(Bot_Core):
 
 
         elif hold > self.start_cash*(1+(self.lot_to_safe/100)):
-            print('hold: ',hold)
             qty = round_down(((hold - self.start_cash)/price), self.qd_qty)
-            print('qty 1: ',qty)
             if (qty*self.price) < 11.0:
                 qty = round_down(11.0/price, self.qd_qty)
-            print('qty 2: ',qty)
             if self.sell(qty,Order.FLAG_TAKEPROFIT) > 0:
                 if self.re_buy_perc > 0:
                     limit_price = round(price*(1-(self.re_buy_perc/100)),self.qd_price)

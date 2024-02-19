@@ -128,6 +128,15 @@ def run():
                 log.info(f'Execute: {execRes}')
 
             bot.make_operaciones()
+
+            #Procesando estado actual del bot
+            status = botClass.get_status()
+            for k in status:
+                print(k)
+            
+            bot.status = str(status)
+            bot.save()
+
         except Exception as e:
             log.error(f'bot.id: {bot.id} {e}')
             json_rsp['error'].append(f'bot.id: {bot.id} {e}')

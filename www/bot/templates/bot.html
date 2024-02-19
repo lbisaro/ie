@@ -91,6 +91,16 @@
                         {% endfor %}
                     </div>
                 </div>
+                <div class="row pt-4">
+                    <div class="col-6" id="status" style="font-size: 0.8em;" >
+                        <h6 class="text-info">Estado actual</h5>
+                        {% for item in status %}
+                            <div class="row pb-1">
+                                <div class="col-6">{{item.l}}</div><div class="col-6" >{{item.v}}</div>
+                            </div> 
+                        {% endfor %}
+                    </div>
+                </div>
                 <div class="row pt-4">  
                     <h6 class="text-info">Ordenes en curso</h5>
                     <div class="col">        

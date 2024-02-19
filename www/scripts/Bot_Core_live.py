@@ -39,13 +39,6 @@ class Bot_Core_live:
 
         self.next()
 
-        print('ORDERS')
-        for k in self._orders:
-            print('    ',self._orders[k])
-        print('TRADES')
-        for k in self._trades:
-            print('    ',self._trades[k])
-
         return jsonRsp
 
     def live_check_orders(self):

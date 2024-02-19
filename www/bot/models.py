@@ -170,7 +170,7 @@ class Bot(models.Model):
         orders = Order.objects.filter(bot_id=self.id)
         qtyOrders = len(orders)
         return True if (qtyOrders == 0 and self.activo == 0) else False
-         
+    
     def parse_parametros(self):
         return self.estrategia.parse_parametros()
     
