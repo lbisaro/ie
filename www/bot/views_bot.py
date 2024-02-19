@@ -32,6 +32,7 @@ def bots(request):
 def bot(request, bot_id):
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     intervalo = fn.get_intervals(bot.estrategia.interval_id,'name')
+    status = eval(bot.status) if len(bot.status) > 0 else []
     return render(request, 'bot.html',{
         'title': str(bot),
         'nav_title': str(bot),
@@ -51,7 +52,7 @@ def bot(request, bot_id):
         'parametros': bot.parse_parametros(),
         'trades': bot.get_trades(),
         'orders': bot.get_orders_en_curso(),
-        'status': eval(bot.status),
+        'status': status,
         #'resultados': bot.get_resultados(),
         'log': bot.get_log(),
     })
