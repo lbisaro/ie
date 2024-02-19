@@ -218,10 +218,10 @@ class Bot(models.Model):
                 buy = 0
                 sell = 0
     
-    def bloquear(self):
+    def bloquear(self,texto=''):
         self.activo = 0
         self.save()
-        self.add_log(BotLog.LOG_DESACTIVAR)
+        self.add_log(BotLog.LOG_DESACTIVAR,texto)
     
     def add_log(self,log_id,texto=''):
         bot_log = BotLog()

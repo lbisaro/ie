@@ -7,6 +7,8 @@ from scripts.Bot_Core_utils import Order as BotCoreUtilsOrder
 from scripts.functions import round_down
 from scripts.app_log import app_log as Log
 
+from bot.models import Bot as DbBot
+
 
 class Bot_Core_live:
     
@@ -136,6 +138,8 @@ class Bot_Core_live:
                 exch_order = exchange.order_market_sell(symbol=symbol, qty= qty)
         except Exception as e:
             self.log.error(f'bot.id: {self.bot_id} {e}')
+            self.bloquear_bot(f'No fue posible ejecutar la orden {order} - {e}')
+            self.cancel_order(order.id)
             return False
 
         """
@@ -185,7 +189,8 @@ class Bot_Core_live:
         return False 
     
 
-
-        
+    def bloquear_bot(self,texto):
+        bot = DbBot.objects.get(pk=self.bot_id) 
+        bot.bloquear(texto)       
 
 

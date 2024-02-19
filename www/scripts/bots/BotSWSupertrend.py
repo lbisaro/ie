@@ -18,11 +18,7 @@ class BotSWSupertrend(Bot_Core):
     re_buy_perc = 0 #% para recompra luego de una venta
     interes = '' 
 
-    op_last_price = 0
     
-    start_cash = 0.0  #Cash correspondiente a la compra inicial
-    pre_start = False #Controla que en la primera vela se compren la sunidades para stock 
-
     def __init__(self):
         self.symbol = ''
         self.quote_perc = 0.0
@@ -92,7 +88,7 @@ class BotSWSupertrend(Bot_Core):
         if 'st_trend' in self.row:
             if self.row['st_trend'] > 0:
                 tendencia = 'Alcista '+status_datetime.strftime('%d-%m-%Y %H:%M')
-                cls = 'text-succes'
+                cls = 'text-success'
             elif self.row['st_trend'] < 0:
                 tendencia = 'Bajista '+status_datetime.strftime('%d-%m-%Y %H:%M')
                 cls = 'text-danger'
@@ -114,7 +110,7 @@ class BotSWSupertrend(Bot_Core):
         self.klines = supertrend(self.klines)  
         self.klines['signal'] = np.where(self.klines['st_trigger']>0 , 'COMPRA' , 'NEUTRO')  
         self.klines['signal'] = np.where(self.klines['st_trigger']<0 , 'VENTA'  , self.klines['signal']) 
-        self.print_orders = True 
+        self.print_orders = False 
         self.graph_open_orders = False
 
     def on_order_execute(self,order):
@@ -124,7 +120,7 @@ class BotSWSupertrend(Bot_Core):
             self.cancel_orders()
     
     def next(self):
-        self.start_cash = round(self.quote_qty * (self.quote_perc/100),self.qd_quote)
+        start_cash = round(self.quote_qty * (self.quote_perc/100),self.qd_quote)
         price = self.price
 
         hold = round(self.wallet_base*price,self.qd_quote)
@@ -137,7 +133,7 @@ class BotSWSupertrend(Bot_Core):
         """
         if 'st_trend' in self.row and hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
             if self.interes == 's': #Interes Simple
-                cash = self.start_cash if self.start_cash <= self.wallet_quote else self.wallet_quote
+                cash = start_cash if start_cash <= self.wallet_quote else self.wallet_quote
             else: #Interes Compuesto
                 cash = self.wallet_quote
 
@@ -154,8 +150,8 @@ class BotSWSupertrend(Bot_Core):
             self.close(Order.FLAG_SIGNAL)
             
         else:
-            if hold > self.start_cash*(1+(self.lot_to_safe/100)):
-                qty = round_down(((hold - self.start_cash)/price), self.qd_qty)
+            if hold > start_cash*(1+(self.lot_to_safe/100)):
+                qty = round_down(((hold - start_cash)/price), self.qd_qty)
                 if (qty*self.price) < 11.0:
                     qty = round_down(11.0/price, self.qd_qty)
                 if self.sell(qty,Order.FLAG_TAKEPROFIT) > 0:
