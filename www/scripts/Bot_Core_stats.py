@@ -3,7 +3,7 @@ import numpy as np
 import datetime as dt
 
 import scripts.functions as fn
-from scripts.Bot_Core_utils import *
+from scripts.Bot_Core_utils import Order
     
 class Bot_Core_stats:
     def get_status(self):
@@ -29,10 +29,20 @@ class Bot_Core_stats:
         v = f'{wallet_tot} {self.quote_asset}'
         status['wallet_tot'] = {'l': 'Capital actual','v': v,'r':wallet_tot}
 
-        wallet_pnl = round(((wallet_tot/self.quote_qty)-1)*100,2)
-        wallet_pml_sign = '' if wallet_pnl <= 0 else '+'
-        v = f'{wallet_pml_sign}{wallet_pnl:.2f}%'
-        status['pnl'] = {'l': 'PNL','v': v,'r':wallet_pnl}
+        #wallet_pnl = round(((wallet_tot/self.quote_qty)-1)*100,2)
+        #wallet_pnl_sign = '' if wallet_pnl <= 0 else '+'
+        #v = f'{wallet_pnl_sign}{wallet_pnl:.2f}%'
+        #status['wallet_pnl'] = {'l': 'PNL','v': v,'r':wallet_pnl}
+
+        pos_quote = 0
+        for i in self._trades:
+            order = self._trades[i]
+            sign = -1 if order.side == Order.SIDE_BUY else 1
+            pos_quote += order.price * order.qty * sign
+        pos_quote += wallet_base_in_quote
+        pos_quote_sign = '' if pos_quote <= 0 else '+'
+        v = f'{pos_quote_sign}{pos_quote:.2f}  {self.quote_asset}'
+        status['pos_pnl'] = {'l': 'PNL','v': v,'r':pos_quote}
 
         return status
 

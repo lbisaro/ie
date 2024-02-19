@@ -70,7 +70,7 @@
         <h6 class="text-info">Estado de la posicion actual</h5>
         <div class="d-flex flex-row flex-wrap rounded border border-1 pb-1 mb-1">
             {% for k,item in status.items %}
-                {% if k == 'pnl' %}
+                {% if k == 'wallet_pnl' or k == 'pos_pnl'%}
                     <div class="w-25 py-1">{{item.l}}: <b class="text-{% if item.r > 0 %}success{% else %}danger{% endif %}">{{item.v}}</b></div>
                 {% else %}
                     <div class="w-25 py-1">{{item.l}}: <b>{{item.v}}</b></div>
