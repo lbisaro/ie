@@ -94,7 +94,6 @@ def run():
 
             #Cargando Billetera del Bot
             resultados = bot.get_wallet()
-            print(resultados)
             symbol_info = exch.get_symbol_info(botClass.symbol)
             qd_qty = symbol_info['qty_decs_qty']
             qd_quote = symbol_info['qty_decs_quote']
@@ -118,7 +117,7 @@ def run():
             
             #Cargando datos para la ejecucion
             botClass.signal = signal
-            botClass.signal_row = signal_row
+            botClass.row = signal_row
             botClass.exchange = exch
             botClass.price = price
             botClass.exchange_wallet = exchange_wallet
@@ -131,6 +130,7 @@ def run():
 
             #Procesando estado actual del bot
             status = botClass.get_status()
+            print(status)
             bot.load_status(status)
             
 
