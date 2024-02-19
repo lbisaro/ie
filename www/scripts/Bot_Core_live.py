@@ -19,7 +19,7 @@ class Bot_Core_live:
         self.start()
         signals = str(self.klines.iloc[-1]['datetime'])+' signal [-1] '+self.klines.iloc[-1]['signal']+' signal [-2]'+self.klines.iloc[-2]['signal']
         print(signals)
-        self.log.info(signals)
+        self.log.info(self.symbol+' - '+signals)
         return self.klines.iloc[-2]
     
     def live_execute(self):
@@ -47,7 +47,6 @@ class Bot_Core_live:
 
     def live_check_orders(self):
         #self.log.info('live_check_orders()')
-        print(dt.datetime.now(),'Live Check Orders')
         executed = False
         price = self.price
        
