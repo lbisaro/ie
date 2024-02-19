@@ -17,7 +17,9 @@ class Bot_Core_live:
     def live_get_signal(self,klines):
         self.klines = klines
         self.start()
-        print(self.klines.iloc[-1]['datetime'],' signal [-1]',self.klines.iloc[-1]['signal'],' signal [-2]',self.klines.iloc[-2]['signal'])
+        signals = str(self.klines.iloc[-1]['datetime'])+' signal [-1] '+self.klines.iloc[-1]['signal']+' signal [-2]'+self.klines.iloc[-2]['signal']
+        print(signals)
+        self.log.info(signals)
         return self.klines.iloc[-2]
     
     def live_execute(self):
