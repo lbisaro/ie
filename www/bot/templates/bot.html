@@ -165,6 +165,7 @@
                             <th class="text-end">Venta</th>
                             <th class="text-end">Resultado USD</th>
                             <th class="text-end">Resultado %</th>
+                            <th class="text-end">Ordenes</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -179,6 +180,7 @@
                             <td class="text-end">{{t.sell_avg_price}}</td>
                             <td class="text-end">{{t.result_quote|stringformat:".2f"}}</td>
                             <td class="text-end">{{t.result_perc|stringformat:".2f"}} %</td>
+                            <td class="text-end">{{t.orders}}</td>
                         </tr>
                     {% endfor %}
                     </tbody>

@@ -320,14 +320,17 @@ class Bot(models.Model):
                     trade['result_qty'] = 0.0
                     trade['result_quote'] = 0.0
                     trade['result_perc'] = 0.0
+                    trade['orders'] = 0
+                    
                         
                     
+                trade['orders'] += 1
                 if o.side == BotUtilsOrder.SIDE_BUY:
                     trade['buy_ops'] += 1
                     trade['buy_acum_quote'] += o.price * o.qty
                     trade['buy_acum_base'] += o.qty
                     trade['result_qty'] += o.qty
-
+            
                 else:
                     trade['sell_ops'] += 1
                     trade['sell_acum_quote'] += o.price * o.qty
