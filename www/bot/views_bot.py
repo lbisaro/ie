@@ -167,6 +167,7 @@ def bot_toogle_activo(request,bot_id):
         bot.add_log(BotLog.LOG_DESACTIVAR)
     elif bot.can_activar():
             bot.activo = 1
+            bot.status=''
             bot.save()
             bot.add_log(BotLog.LOG_ACTIVAR)
             
