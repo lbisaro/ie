@@ -131,7 +131,7 @@ class BotSWSupertrend(Bot_Core):
         Representa que entro en next, cuando aplicaba el check de la señal de acuerdo al timeframe aplicable
 
         """
-        if 'st_trend' in self.row and hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
+        if 'st_trend' in self.row and hold < 10 and (self.signal == 'COMPRA'  ): #or self.row['st_trend'] > 0
             if self.interes == 's': #Interes Simple
                 cash = start_cash if start_cash <= self.wallet_quote else self.wallet_quote
             else: #Interes Compuesto
@@ -151,7 +151,7 @@ class BotSWSupertrend(Bot_Core):
             
         else:
             if hold > start_cash*(1+(self.lot_to_safe/100)):
-                qty = round_down(((hold - start_cash)/price), self.qd_qty)
+                qty = round_down(((hold - start_cash)/price) * 2, self.qd_qty)
                 if (qty*self.price) < 11.0:
                     qty = round_down(11.0/price, self.qd_qty)
                 if self.sell(qty,Order.FLAG_TAKEPROFIT) > 0:
