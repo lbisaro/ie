@@ -17,10 +17,8 @@ class Bot_Core_live:
     def live_get_signal(self,klines):
         self.klines = klines
         self.start()
-        signals = str(self.klines.iloc[-1]['datetime'])+' signal [-1] '+self.klines.iloc[-1]['signal']+' [-2] '+self.klines.iloc[-2]['signal']
-        signals = f'{signals} st_trend [-1] ' +str(self.klines.iloc[-1]['st_trend'])+' [-2] '+ str(self.klines.iloc[-2]['st_trend'])
-        self.log.info(f'{self.symbol} - {signals}')
-        print(signals)
+        #No vuelve la ultima vela porque recien inicia a formarse
+        #Es por eso que se devuelve la anteultima
         return self.klines.iloc[-2]
     
     def live_execute(self):
