@@ -74,7 +74,7 @@ class BotTrailOrder(Bot_Core):
         
     def start(self):
         self.klines['signal'] = 'NEUTRO'   
-        self.print_orders = True
+        self.print_orders = False
         self.graph_open_orders = True
         self.last_order_id = -1
     
@@ -91,14 +91,14 @@ class BotTrailOrder(Bot_Core):
             qty = round_down((self.wallet_quote * (self.quote_perc/100)) / self.price , self.qd_qty)
             self.last_order_id = self.buy_trail(qty=qty,
                                                 flag=Order.FLAG_TAKEPROFIT,
-                                                limit_price=self.price * (1+(self.trail_b/3/100)),
+                                                limit_price=self.price * (1+(self.trail_b/100)),
                                                 activation_price=0,
                                                 trail_perc = self.trail_b)
         else:
             qty = self.wallet_base
             self.last_order_id = self.sell_trail(qty=qty,
                                                 flag=Order.FLAG_TAKEPROFIT,
-                                                limit_price=self.price * (1-(self.trail_s/3/100)),
+                                                limit_price=self.price * (1-(self.trail_s/100)),
                                                 activation_price=0,
                                                 trail_perc = self.trail_s)
             
