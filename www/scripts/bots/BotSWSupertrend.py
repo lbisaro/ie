@@ -74,8 +74,8 @@ class BotSWSupertrend(Bot_Core):
             err.append("Se debe especificar el Par")
         if self.quote_perc <= 0:
             err.append("El Porcentaje de capital por operacion debe ser mayor a 0")
-        if self.lot_to_safe <= 0 or self.lot_to_safe > 100:
-            err.append("El Resguardo debe ser un valor mayor a 0 y menor o igual a 100")
+        if self.lot_to_safe < 0 or self.lot_to_safe > 100:
+            err.append("El Resguardo debe ser un valor mayor o igual a 0 y menor o igual a 100")
         if self.re_buy_perc < 0 or self.re_buy_perc > 100:
             err.append("La recompra debe ser un valor mayor o igual a 0 y menor o igual a 100")
         
@@ -131,7 +131,8 @@ class BotSWSupertrend(Bot_Core):
         Representa que entro en next, cuando aplicaba el check de la señal de acuerdo al timeframe aplicable
 
         """
-        if 'st_trend' in self.row and hold < 10 and (self.signal == 'COMPRA'  ): #or self.row['st_trend'] > 0
+        if 'st_trend' in self.row and hold < 10 and (self.signal == 'COMPRA' or self.row['st_trend'] > 0 ):
+            
             if self.interes == 's': #Interes Simple
                 cash = start_cash if start_cash <= self.wallet_quote else self.wallet_quote
             else: #Interes Compuesto
@@ -141,17 +142,18 @@ class BotSWSupertrend(Bot_Core):
             self.buy(qty,Order.FLAG_SIGNAL)
 
             ##Corte por Stop-Loss basado en la señal del SuperTrend
-            #sl_order_id = self.sell_limit(qty,Order.FLAG_STOPLOSS,self.row['st_sl_long'])
+            #stop_loss_price = round((self.row['st_sl_long']+self.row['low'])/2,self.qd_price)
+            #sl_order_id = self.sell_limit(qty,Order.FLAG_STOPLOSS,stop_loss_price)
             #sl_order = self.get_order(sl_order_id)
             #sl_order.tag = 'STOP_LOSS'
             #self.update_order(sl_order)
                 
-        elif 'st_trend' in self.row and hold > 10 and ( self.signal == 'VENTA' ): 
+        elif 'st_trend' in self.row and hold > 10 and self.signal == 'VENTA': 
             self.close(Order.FLAG_SIGNAL)
             
         else:
-            if hold > start_cash*(1+(self.lot_to_safe/100)):
-                qty = round_down(((hold - start_cash)/price) * 2, self.qd_qty)
+            if self.lot_to_safe > 0 and hold > start_cash*(1+(self.lot_to_safe/100)):
+                qty = round_down(((hold - start_cash)/price) , self.qd_qty)
                 if (qty*self.price) < 11.0:
                     qty = round_down(11.0/price, self.qd_qty)
                 if self.sell(qty,Order.FLAG_TAKEPROFIT) > 0:
@@ -163,7 +165,7 @@ class BotSWSupertrend(Bot_Core):
             #elif 'st_sl_long' in self.row:
             #    sl_order = self.get_order_by_tag('STOP_LOSS')
             #    if sl_order and self.row['st_sl_long'] > 0:
-            #        stop_loss_price = round(self.row['st_sl_long'],self.qd_price)
+            #        stop_loss_price = round((self.row['st_sl_long']+self.row['low'])/2,self.qd_price)
             #        if sl_order.limit_price != stop_loss_price and sl_order.qty != self.wallet_base:
             #            sl_order.limit_price = stop_loss_price
             #            sl_order.qty = self.wallet_base

@@ -1,4 +1,5 @@
 import pandas as pd
+import pandas as pd
 import datetime as dt
 
 from scripts.Bot_Core_utils import *
@@ -36,15 +37,18 @@ class Bot_Core_backtest:
         #Aplicar la señal de compra/venta
     
         self.klines = klines
-        self.signal = 'NEUTRO'
         self.sub_klines = sub_klines
         self.start()
         
         #quitando las velas previas a la fecha de start
+        self.timeframe_length = self.klines['datetime'].iloc[1] - self.klines['datetime'].iloc[0]
+        
+        #Carla la vela anterior al inicio del ciclo
+        self.row = self.klines[self.klines['datetime'] == pd.to_datetime(from_date)-self.timeframe_length ].iloc[0]
+        
         self.klines = self.klines[self.klines['datetime'] >= pd.to_datetime(from_date)]
         self.klines = self.klines.reset_index(drop=True)
 
-        self.timeframe_length = self.klines['datetime'].iloc[1] - self.klines['datetime'].iloc[0]
         
         self.sub_klines = self.sub_klines[self.sub_klines['datetime'] >= pd.to_datetime(from_date)]
         self.sub_klines = self.sub_klines.set_index('datetime')
@@ -185,10 +189,11 @@ class Bot_Core_backtest:
             return res
     
     def _next(self,row):
-            
-        self.row = row
-        self.price = self.row['open']
-        self.datetime = self.row['datetime']
+        #El primer self.row fue precargado con la vela anterior al inicio del ciclo
+        self.signal = self.row['signal']
+        self.price = self.row['close']
+        self.datetime = self.row['datetime']+self.timeframe_length   
+
         self.next()
 
         #Gestion de stoploss y takeprofit price
@@ -213,14 +218,14 @@ class Bot_Core_backtest:
 
         usd_strat = round( self.price * self.wallet_base + self.wallet_quote, self.qd_quote )
         
-        self.signal = self.row['signal']
+        self.row = row
         return usd_strat
 
     def backtest_check_orders(self):
         
         executed = False
-        start_d = self.datetime 
-        end_d = self.datetime + self.timeframe_length 
+        start_d = self.datetime + self.timeframe_length
+        end_d = self.datetime + self.timeframe_length * 2
         
         if len(self._orders) > 0:
             
@@ -297,8 +302,7 @@ class Bot_Core_backtest:
                                 self.wallet_quote_block += round(order.qty*order.limit_price,self.qd_quote)
                             if order.side == Order.SIDE_SELL:
                                 self.wallet_base_block += round(order.qty,self.qd_qty)
-                
-            self.datetime = start_d
+            
         return executed
         
     def backtest_execute_order(self,orderid):
