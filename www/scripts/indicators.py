@@ -2,7 +2,7 @@ import pandas as pd
 import pandas_ta
 import numpy as np
 
-def supertrend(df):
+def supertrend(df,length=7,multiplier=3):
     """
     Al dataframe le agrega las siguientes columnas
     st_trend: Muestra la tendencia del precio
@@ -13,8 +13,8 @@ def supertrend(df):
     1  (Alcista)          -1 (Bajista)          0  (Neutro)      
     
     """
-    st_length = 7
-    st_multiplier=3
+    st_length = length
+    st_multiplier = multiplier
     df.ta.supertrend(length=st_length, multiplier=st_multiplier, append=True)
     signal_col = f'SUPERTd_{st_length}_{st_multiplier}.0'
     up_col     = f'SUPERTl_{st_length}_{st_multiplier}.0'
