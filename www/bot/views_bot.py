@@ -8,6 +8,7 @@ from django.template import RequestContext
 
 from bot.models import *
 from bot.model_kline import *
+from user.models import UserProfile
 
 @login_required
 def bots(request):
@@ -194,3 +195,31 @@ def get_resultados(request,bot_id):
         json_rsp['error'] = 'No existe el bot con ID: '+bot_id
     return JsonResponse(json_rsp)   
  
+@login_required
+def bot_order_echange_info(request,order_id):
+    json_rsp = {}
+    order = Order.objects.get(pk=order_id)
+
+    usuario=request.user
+    usuario_id = usuario.id
+    profile = UserProfile.objects.get(user_id=usuario_id)
+    profile_config = profile.parse_config()
+    prms = {}
+    prms['bnc_apk'] = profile_config['bnc']['bnc_apk']
+    prms['bnc_aps'] = profile_config['bnc']['bnc_aps']
+    prms['bnc_env'] = profile_config['bnc']['bnc_env']
+            
+
+    exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
+    exch_order_info = exch.get_order(symbol=order.symbol.symbol,orderId=order.orderid)
+    
+    json_rsp['ok'] = True
+    json_rsp['id'] = order.id
+
+    for k in exch_order_info:
+        if k == 'time':
+            json_rsp[k] = exch_order_info[k].strftime('%d-%m-%Y %H:%M')+' Hs.'
+        else:
+            json_rsp[k] = exch_order_info[k]
+    
+    return JsonResponse(json_rsp)

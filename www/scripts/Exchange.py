@@ -1,7 +1,7 @@
 from binance.client import Client as BinanceClient
 from local__config import *
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytz
 import pandas as pd
 from scripts.functions import get_intervals
@@ -211,3 +211,19 @@ class Exchange():
         print(f'SELL {symbol} {qty}')
         order = self.client.order_market_sell(symbol=symbol, quantity=qty)
         return order
+    
+    def get_order(self,symbol,orderId):
+        order = self.client.get_order(symbol=symbol,orderId=orderId)
+        info = {}
+        symbol_info = self.get_symbol_info(symbol=symbol)
+         
+        info['symbol'] = order['symbol']
+        info['orderId'] = order['orderId']
+        info['qty'] = float(order['executedQty'])
+        info['quote'] = float(order['cummulativeQuoteQty'])
+        info['price'] = round(float(order['cummulativeQuoteQty'])/float(order['executedQty']) , symbol_info['qty_decs_price'])
+        info['status'] = order['status']
+        info['type'] = order['type']
+        info['side'] = order['side']
+        info['time'] = datetime.utcfromtimestamp(order['time'] / 1000) - timedelta(hours = 3)
+        return info

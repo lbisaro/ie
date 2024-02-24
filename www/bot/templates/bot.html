@@ -20,19 +20,32 @@
 {% endblock %}
 
 {% block content %}
-<div class="modal fade" id="descripcion_modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="descripcion_modal" tabindex="-1" aria-labelledby="descripcion_modalModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-      <div class="modal-content">
+        <div class="modal-content">
         <div class="modal-header">
-          <h1 class="modal-title fs-5" id="exampleModalLabel">Estrategia {{estrategia}}</h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h1 class="modal-title fs-5" id="descripcion_modalModalLabel">Estrategia {{estrategia}}</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
             {{descripcion}}
         </div>
-      </div>
+        </div>
     </div>
-  </div>
+</div>
+<div class="modal fade" id="exch_order_modal" tabindex="-1" aria-labelledby="exch_order_modalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h1 class="modal-title fs-5" id="exch_order_modalModalLabel">#</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="modal_order_info">
+            
+        </div>
+        </div>
+    </div>
+</div>
 <div class="container" >
     <div class="row pb-4">
         <div class="col-2">Estrategia:  
@@ -133,7 +146,8 @@
                             </thead>
                             <tbody>
                                 {% for o in orders %}
-                                <tr class="{% if o.side == 0 %}green{% else %}red{% endif %}">
+                                <tr class="{% if o.side == 0 %}green{% else %}red{% endif %}" {% if o.price > 0 %} style="cursor:pointer;" onclick="show_exchange_order_info({{o.id}})" {% endif %}>
+                                    
                                     <td>{{o.datetime|date:"d-m-Y H:i"}}</td>
                                     <td>{{o.symbol}}</td>
                                     <td>{% if o.side == 0 %}COMPRA{% else %}VENTA{% endif %} {{o.str_type}} {{o.str_flag}}
@@ -266,6 +280,48 @@ function eliminar()
     }
 }
 
+function show_exchange_order_info(id)
+{
+
+    var modal = new bootstrap.Modal(document.getElementById('exch_order_modal'), {});
+    $('#modal_order_info').html('Obteniendo informacion desdel exchange ...');
+    modal.show();
+    url = "{% url 'bot_order_echange_info' 0 %}".replace('0',id);
+    data = null
+    get_ajax(url,data).done( function (rsp) {
+        if (rsp.error)
+            html_alert('Errores detectados',rsp.error,'text-danger')
+        if (rsp.ok)
+        {
+            $('#exch_order_modalModalLabel').html('Order ID #'+rsp.id+' '+rsp.symbol);
+            $('#modal_order_info').html('');
+            var html = '<div class="container">';
+
+            side = (rsp.side == 'BUY' ? '<span class="text-success">BUY</span>':'<span class="text-danger">SELL</span>')
+            
+            html += get_div_data('orderId',rsp.orderId)
+            html += get_div_data('Type',rsp.type)
+            html += get_div_data('Side',side)
+            html += get_div_data('Status',rsp.status)
+            html += get_div_data('Price',rsp.price)
+            html += get_div_data('Qty',rsp.qty)
+            html += get_div_data('Quote',rsp.quote)
+            html += get_div_data('Time',rsp.time)
+            html += '</div>';
+            $('#modal_order_info').html(html);
+            console.log(rsp);
+        }
+    });    
+}
+
+function get_div_data(label,data)
+{
+    return ' \
+        <div class="row"> \
+            <div class="col">'+label+'</div> \
+            <div class="col">'+data+'</div> \
+        </div>';
+}
 
 </script>
 
