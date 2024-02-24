@@ -9,6 +9,7 @@ from django.template import RequestContext
 from bot.models import *
 from bot.model_kline import *
 from user.models import UserProfile
+import local__config as local
 
 @login_required
 def bots(request):
@@ -34,6 +35,20 @@ def bot(request, bot_id):
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     intervalo = fn.get_intervals(bot.estrategia.interval_id,'name')
     status = eval(bot.status) if len(bot.status) > 0 else []
+
+    #Avisos por entornos de ejecucion de TEST
+    environment_advertisement = []
+    #Entorno General
+    if local.LOC_BNC_TESNET:
+        environment_advertisement.append('El analisis de estrategias se ejecuta en un entorno de TEST')
+    #Entorno de usuario
+    usuario=request.user
+    usuario_id = usuario.id
+    profile = UserProfile.objects.get(user_id=usuario_id)
+    profile_config = profile.parse_config()
+    if profile_config['bnc']['bnc_env'] == 'test':
+        environment_advertisement.append('La ejecucion del Bot se ejecuta en un entorno de TEST')
+
     return render(request, 'bot.html',{
         'title': str(bot),
         'nav_title': str(bot),
@@ -54,6 +69,7 @@ def bot(request, bot_id):
         'trades': bot.get_trades(),
         'orders': bot.get_orders_en_curso(),
         'status': status,
+        'environment_advertisement': environment_advertisement,
         #'resultados': bot.get_resultados(),
         'log': bot.get_log(),
     })
