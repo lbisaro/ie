@@ -40,14 +40,14 @@ def bot(request, bot_id):
     environment_advertisement = []
     #Entorno General
     if local.LOC_BNC_TESNET:
-        environment_advertisement.append('El analisis de estrategias se ejecuta en un entorno de TEST')
+        environment_advertisement.append('El analisis de estrategias se ejecuta en entorno de TEST')
     #Entorno de usuario
     usuario=request.user
     usuario_id = usuario.id
     profile = UserProfile.objects.get(user_id=usuario_id)
     profile_config = profile.parse_config()
     if profile_config['bnc']['bnc_env'] == 'test':
-        environment_advertisement.append('La ejecucion del Bot se ejecuta en un entorno de TEST')
+        environment_advertisement.append('El Bot se ejecuta en entorno de TEST')
 
     return render(request, 'bot.html',{
         'title': str(bot),
