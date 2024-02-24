@@ -90,7 +90,7 @@ def run():
                 log.info(f'Signal: {signal}')
 
             # Obtener precios de los symbols activos en cada iteracion de usuario
-            price = exchInfo.get_symbol_price(botClass.symbol)
+            price = exch.get_symbol_price(botClass.symbol)
 
             #Cargando Billetera del Bot
             resultados = bot.get_wallet()
