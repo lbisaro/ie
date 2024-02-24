@@ -179,13 +179,9 @@ def bot_edit(request,bot_id):
 def bot_toogle_activo(request,bot_id):
     bot = get_object_or_404(Bot, pk=bot_id,usuario=request.user)
     if bot.activo > 0:
-        bot.activo = 0
-        bot.save()
-        bot.add_log(BotLog.LOG_DESACTIVAR)
+        bot.desactivar()
     elif bot.can_activar():
-            bot.activo = 1
-            bot.save()
-            bot.add_log(BotLog.LOG_ACTIVAR)
+        bot.activar()
             
     return redirect('/bot/bot/'+str(bot.id))
  
