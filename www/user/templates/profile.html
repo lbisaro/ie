@@ -25,7 +25,7 @@
         </div>                                    
     {% else %}
         <div class="col">
-            <button onclick="remove('bnc');" class="btn btn-danger">Desconectar exchange Binance</button>
+            <button onclick="remove('bnc');" class="btn btn-danger">Desconectar exchange Binance <b>{{config.bnc.bnc_env|upper}}</b></button>
         </div>                                    
     {% endif%}
     </div>

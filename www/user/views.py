@@ -109,7 +109,6 @@ def profile(request):
             'config': profile.parse_config(),
         })
     else:
-        print('//---------------------------------------')
         config = profile.parse_config()
         if 'remove' in request.POST:
             del config[request.POST['remove']]
