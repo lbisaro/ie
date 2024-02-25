@@ -29,6 +29,39 @@ def supertrend(df,length=7,multiplier=3):
 
     return df
 
+def volume_level(df,period=50,level_high=1.5,level_low=0.2):
+    """
+    Level:
+        ExtraHigh = 3
+        High = 1.5
+        Medium = 0.2
+        Normal = -0.5
+
+        Volumen optimo entre High y Medium
+
+        Lectura
+           vol_signal = 1  -> Volumen optimo para entradas en Long
+           vol_signal = -1 -> Volumen optimo para entradas en Short
+        
+    """
+    
+    vol_period = period
+    thresholdHigh = level_high
+    thresholdLow = level_low
+
+    df['vol_mean'] = df['volume'].rolling(window=vol_period).mean()
+    df['vol_std']  = df['volume'].rolling(window=vol_period).std()
+    df['vol_h'] = df['vol_std'] * thresholdHigh + df['vol_mean']
+    df['vol_l'] = df['vol_std'] * thresholdLow + df['vol_mean']
+
+    df['signal_sign'] = np.where(df['close']>df['open'],1,-1)
+    
+    #El volumen debe estar entre medio (vol_l) y alto (vol_h)
+    df['vol_signal'] = np.where((df['volume']>df['vol_l']) & (df['volume']<df['vol_h']), 1 * df['signal_sign'],None)
+
+    df = df.drop(['vol_mean','vol_std','vol_h','vol_l','signal_sign'], axis=1)
+    return df
+
 
 # Función para calcular los pivotes de máximos y mínimos
 def find_pivots(df,dev_threshold=0,dev_trend=0.33):
