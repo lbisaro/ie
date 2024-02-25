@@ -27,6 +27,7 @@ class Order:
     price = 0
     comision = 0
     tag = ''
+    pos_order_id = 0
 
     #Trail parameters
     activation_price = 0
@@ -54,6 +55,7 @@ class Order:
         self.activation_price = 0
         self.active = False
         self.trail_perc = 0
+        self.pos_order_id = 0
     
     def __repr__(self):
         return str(self)
