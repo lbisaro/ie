@@ -147,11 +147,14 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
     
     def buy_limit(self,qty,flag,limit_price):
         qty = round_down(qty,self.qd_qty)
+        print('|-----> entro 1')
         if self.wallet_quote >= qty*self.price and qty*limit_price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+            print('|-----> entro 2')
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
             order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_BUY,qty,limit_price,flag)
             return self.add_order(order)
+        print('|-----> entro 3')
         return 0    
     
     def sell_trail(self,qty,flag,limit_price,activation_price,trail_perc):
