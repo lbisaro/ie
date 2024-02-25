@@ -62,24 +62,35 @@ class Bot_Core_live:
                         
                         if order.side == BotCoreUtilsOrder.SIDE_BUY and order.flag != BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price <= order.limit_price:
-                                self.log(f'self.price {self.price} Ejecutando: {order}')
-                                executed =  self.execute_order(order.id)
+                                print('Ejecutando ',order)
+                                self.log.info(f'Ejecutando self.price: {self.price}')
+                                self.log.info(f'Ejecutando {order}')
+                                executed =  self.live_execute_order(order.id)
+                                self.log.info(f'Ejecutada  {order}')
                                 
                         if order.side == BotCoreUtilsOrder.SIDE_BUY and order.flag == BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price >= order.limit_price:
+                                print('Ejecutando ',order)
+                                self.log.info(f'Ejecutando self.price: {self.price}')
+                                self.log.info(f'Ejecutando {order}')
                                 executed =  self.live_execute_order(order.id)
+                                self.log.info(f'Ejecutada  {order}')
 
                         if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag != BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price >= order.limit_price:
                                 print('Ejecutando ',order)
+                                self.log.info(f'Ejecutando self.price: {self.price}')
                                 self.log.info(f'Ejecutando {order}')
                                 executed = self.live_execute_order(order.id)
+                                self.log.info(f'Ejecutada  {order}')
                                 
                         if order.side == BotCoreUtilsOrder.SIDE_SELL and order.flag == BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price <= order.limit_price:
                                 print('Ejecutando ',order)
+                                self.log.info(f'Ejecutando self.price: {self.price}')
                                 self.log.info(f'Ejecutando {order}')
                                 executed = self.live_execute_order(order.id)
+                                self.log.info(f'Ejecutada  {order}')
 
                     if order.type == BotCoreUtilsOrder.TYPE_TRAILING:
                         raise Exception('/------------------- EXECUTE ORDER TRAIL - PENDIENTE DE DESARROLLO ---------------------/')

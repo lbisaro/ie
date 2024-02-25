@@ -20,7 +20,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
     exch_comision_perc = 0.2 #0.4% - Comision por operacion de compra o venta
 
     signal = 'NEUTRO'
-    order_id = 0
+    order_id = 1
 
     parametros = {}
 
