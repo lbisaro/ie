@@ -158,10 +158,8 @@ class BotSWSupertrend(Bot_Core):
                 sell_order_id = self.sell(qty,Order.FLAG_TAKEPROFIT)
                  
                 if sell_order_id > 0:
-                    print('|-----> entro 1')
                     if self.re_buy_perc > 0:
-                        print('|-----> entro 2')
                         sell_order = self.get_order(sell_order_id)
                         limit_price = round(sell_order.price*(1-(self.re_buy_perc/100)),self.qd_price)
                         rebuy_order_id = self.buy_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
-                        print('|-----> entro 3 ',rebuy_order_id,qty,limit_price)
+                    
