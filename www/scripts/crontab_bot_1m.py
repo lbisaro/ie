@@ -89,8 +89,6 @@ def run():
             if signal != 'NEUTRO':
                 log.info(f'Signal: {signal}')
 
-            # Obtener precios de los symbols activos en cada iteracion de usuario
-            price = exch.get_symbol_price(botClass.symbol)
 
             #Cargando Billetera del Bot
             resultados = bot.get_wallet()
@@ -99,11 +97,10 @@ def run():
             qd_quote = symbol_info['qty_decs_quote']
             botClass.wallet_quote = round(bot.quote_qty + resultados['quote_compras'] + resultados['quote_ventas'] , qd_quote)
             botClass.wallet_base  = round(resultados['base_compras'] + resultados['base_ventas'] , qd_qty)
-            if abs(botClass.wallet_base*price) < 2: #Si el total de qty representa menos de 2 dolares, se toma como 0
-                botClass.wallet_base = 0.0
             
             #Cargando Billetera del Exchange
             exchange_wallet = exch.get_wallet() 
+
 
             #Cargando Ordenes en curso
             orders = bot.get_orders_en_curso()
@@ -115,6 +112,11 @@ def run():
                 else:
                     botClass._orders[order.id] = order
             
+            # Obtener precios de los symbols activos en cada iteracion de usuario
+            price = exch.get_symbol_price(botClass.symbol)
+            if abs(botClass.wallet_base*price) < 2: #Si el total de qty representa menos de 2 dolares, se toma como 0
+                botClass.wallet_base = 0.0
+
             #Cargando datos para la ejecucion
             botClass.signal = signal
             botClass.row = signal_row
