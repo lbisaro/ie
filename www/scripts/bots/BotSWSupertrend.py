@@ -153,12 +153,15 @@ class BotSWSupertrend(Bot_Core):
         else:
             if self.lot_to_safe > 0 and hold > start_cash*(1+(self.lot_to_safe/100)):
                 qty = round_down(((hold - start_cash)/price) , self.qd_qty)
-                if (qty*self.price) < 15.0:
-                    qty = round_down(15.0/price, self.qd_qty)
+                if (qty*self.price) < 20.0:
+                    qty = round_down(20.0/price, self.qd_qty)
                 sell_order_id = self.sell(qty,Order.FLAG_TAKEPROFIT)
-                
+                 
                 if sell_order_id > 0:
+                    print('|-----> entro 1')
                     if self.re_buy_perc > 0:
+                        print('|-----> entro 2')
                         sell_order = self.get_order(sell_order_id)
                         limit_price = round(sell_order.price*(1-(self.re_buy_perc/100)),self.qd_price)
-                        self.buy_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)            
+                        rebuy_order_id = self.buy_limit(qty,Order.FLAG_TAKEPROFIT,limit_price)
+                        print('|-----> entro 3 ',rebuy_order_id,qty,limit_price)
