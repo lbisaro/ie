@@ -62,6 +62,7 @@ class Bot_Core_live:
                         
                         if order.side == BotCoreUtilsOrder.SIDE_BUY and order.flag != BotCoreUtilsOrder.FLAG_STOPLOSS:
                             if price <= order.limit_price:
+                                self.log(f'self.price {self.price} Ejecutando: {order}')
                                 executed =  self.execute_order(order.id)
                                 
                         if order.side == BotCoreUtilsOrder.SIDE_BUY and order.flag == BotCoreUtilsOrder.FLAG_STOPLOSS:
