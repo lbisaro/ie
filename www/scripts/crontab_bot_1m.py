@@ -114,7 +114,6 @@ def run():
             
             # Obtener precios de los symbols activos en cada iteracion de usuario
             price = exch.get_symbol_price(botClass.symbol)
-            print('--------------------------------> price: ',price)
             if abs(botClass.wallet_base*price) < 2: #Si el total de qty representa menos de 2 dolares, se toma como 0
                 botClass.wallet_base = 0.0
 
