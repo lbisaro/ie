@@ -108,6 +108,16 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
     
     def next(self):
         raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo next(df)')
+    
+    def is_backtesting(self):
+        if self.backtesting and not self.live:
+            return True
+        return False
+
+    def is_live_run(self):
+        if self.live and not self.backtesting:
+            return True
+        return False
 
     def buy(self,qty,flag):
         qty = round(qty,self.qd_qty)
@@ -175,13 +185,13 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         
     def cancel_order(self,orderid):
         if orderid in self._orders:
-            if not self.backtesting and self.live:
+            if self.is_live_run():
                 order = self._orders[orderid]
                 self.delete_order(order)
             del self._orders[orderid]
         
     def cancel_orders(self):
-        if not self.backtesting and self.live:
+        if self.is_live_run():
             for orderid in self._orders:
                 order = self._orders[orderid]
                 if order.completed == 0:
@@ -220,18 +230,18 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return None
 
     def check_orders(self):
-        if self.backtesting and not self.live:
+        if self.is_backtesting():
             return self.backtest_check_orders()
-        if not self.backtesting and self.live:
+        if self.is_live_run():
             return self.live_check_orders()
-        raise Exception(f'\n{self.__class__.__name__}No se ha definido el entorno de operacion (Live/Backtest)')
+        raise Exception(f'\n{self.__class__.__name__} No se ha definido el entorno de operacion (Live/Backtest)')
 
     def execute_order(self,orderid):
-        if self.backtesting and not self.live:
+        if self.is_backtesting():
             return self.backtest_execute_order(orderid)
-        if not self.backtesting and self.live:
+        if self.is_live_run():
             return self.live_execute_order(orderid)
-        raise Exception(f'\n{self.__class__.__name__}No se ha definido el entorno de operacion (Live/Backtest)')
+        raise Exception(f'\n{self.__class__.__name__} No se ha definido el entorno de operacion (Live/Backtest)')
     
     def on_order_execute(self,order):
         #El metodo se llama cuando una orden es ejecutada y debe ser desarrollado en la estrategia
@@ -239,7 +249,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
 
     def add_order(self,order):
         
-        if not self.backtesting and self.live:
+        if self.is_live_run():
             order = self.insert_order(order)
             self._orders[order.id] = order
         else:
@@ -283,7 +293,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
     def update_order(self,order):
         if order.id in self._orders:
             self._orders[order.id] = order
-        if not self.backtesting and self.live:
+        if self.is_live_run():
             order.datetime = timezone.now()
             order.save()
         return order
