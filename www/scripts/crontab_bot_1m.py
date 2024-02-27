@@ -59,6 +59,7 @@ def run():
         try:
             botClass = bot.get_instance()
             botClass.bot_id = bot.id
+            botClass.username = bot.usuario.username
 
             if bot.usuario.id != usuario_id:
                 #log.info(f'Usuario: {bot.usuario.username}')

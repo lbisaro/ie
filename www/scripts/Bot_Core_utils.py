@@ -1,3 +1,13 @@
+from scripts.app_log import app_log as Log
+
+class BotCoreLog(Log):
+    bot_id = 0
+    username = ''
+
+    def write(self,type,msg):
+        msg = f'{self.username} Bot#{self.bot_id} {msg}'
+        super().write(type,msg)
+
 class Order:
 
     SIDE_BUY = 0

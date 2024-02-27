@@ -34,6 +34,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
     quote_qty = 0
     interval_id = ''
     bot_id = None
+    username = ''
 
     base_asset = ''
     quote_asset = ''
