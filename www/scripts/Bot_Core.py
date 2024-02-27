@@ -110,8 +110,8 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         raise Exception(f'\n{self.__class__.__name__} Se debe establecer un metodo next(df)')
 
     def buy(self,qty,flag):
-        qty = round_down(qty,self.qd_qty)
-        if self.wallet_quote >= qty*self.price and qty*self.price>=10: #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+        qty = round(qty,self.qd_qty)
+        if qty*self.price>=10: 
             self.order_id += 1
             order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_BUY,qty,self.price,flag)
             return self.add_order(order)
@@ -119,7 +119,7 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
 
     def sell(self,qty,flag):
         qty = round_down(qty,self.qd_qty)
-        if self.wallet_base >= qty and qty*self.price>=10: #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+        if qty*self.price>=10: 
             self.order_id += 1
             order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_SELL,qty,self.price,flag)
             return self.add_order(order)
@@ -135,10 +135,8 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return 0
         
     def sell_limit(self,qty,flag,limit_price):
-        qty = round(qty,self.qd_qty)
-        if self.wallet_base < qty:
-            qty = round_down(qty,self.qd_qty)
-        if self.live == True or (self.wallet_base >= qty and qty*limit_price>=10): #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+        qty = round_down(qty,self.qd_qty)
+        if qty*limit_price>=10:
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
             order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_SELL,qty,limit_price,flag)
@@ -146,8 +144,8 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return 0  
     
     def buy_limit(self,qty,flag,limit_price):
-        qty = round_down(qty,self.qd_qty)
-        if self.live == True or (self.wallet_quote >= qty*self.price and qty*limit_price>=10): #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+        qty = round(qty,self.qd_qty)
+        if qty*limit_price>=10:
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
             order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_BUY,qty,limit_price,flag)
@@ -155,9 +153,8 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return 0    
     
     def sell_trail(self,qty,flag,limit_price,activation_price,trail_perc):
-        
-        qty = round(qty,self.qd_qty)
-        if self.live == True or (self.wallet_base >= qty and qty*limit_price>=10): #Vende solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+        qty = round_down(qty,self.qd_qty)
+        if qty*limit_price>=10:
             self.order_id += 1
             order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_SELL,qty,limit_price,flag)
             order.activation_price = activation_price
@@ -166,9 +163,8 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
         return 0    
     
     def buy_trail(self,qty,flag,limit_price,activation_price,trail_perc):
-        
         qty = round(qty,self.qd_qty)
-        if self.live == True or (self.wallet_quote >= qty*limit_price and qty*limit_price>=10): #Compra solo si hay wallet_quote y si el wallet_quote a comprar es > 10 USD
+        if qty*limit_price>=10:
             self.order_id += 1
             order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_BUY,qty,limit_price,flag)
             order.activation_price = activation_price
