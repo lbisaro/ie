@@ -134,6 +134,7 @@ def run():
             #Procesando estado actual del bot
             status = botClass.get_status()
             bot.update_status(status)
+            print(status)
             
 
         except Exception as e:
