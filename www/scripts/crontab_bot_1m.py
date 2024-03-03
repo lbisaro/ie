@@ -134,7 +134,8 @@ def run():
             #Procesando estado actual del bot
             status = botClass.get_status()
             bot.update_status(status)
-            #print(status)
+            if 'trend' in status:
+                print(status['trend'])
             
 
         except Exception as e:
