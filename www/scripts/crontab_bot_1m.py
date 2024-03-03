@@ -135,7 +135,7 @@ def run():
             status = botClass.get_status()
             bot.update_status(status)
             if 'trend' in status:
-                print(status['trend'])
+                print('Trend: ',status['trend']['v'])
             
 
         except Exception as e:
