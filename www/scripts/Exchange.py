@@ -91,7 +91,6 @@ class Exchange():
     
     def get_klines(self,symbol,interval_id,limit):
         interval = get_intervals(interval_id,'binance')
-        print('Binance interval: '+interval)
         klines = self.client.get_historical_klines(symbol=symbol, 
                                                    interval=interval,
                                                    limit=limit)
