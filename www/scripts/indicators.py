@@ -16,16 +16,25 @@ def supertrend(df,length=7,multiplier=3):
     st_length = length
     st_multiplier = multiplier
     df.ta.supertrend(length=st_length, multiplier=st_multiplier, append=True)
-    signal_col = f'SUPERTd_{st_length}_{st_multiplier}.0'
-    up_col     = f'SUPERTl_{st_length}_{st_multiplier}.0'
-    down_col   = f'SUPERTs_{st_length}_{st_multiplier}.0'
-    price_col  = f'SUPERT_{st_length}_{st_multiplier}.0'
-    df['st_trend'] = df[signal_col]
-    df['st_trigger'] = np.where((df[signal_col]>0) & (df[signal_col].shift(1)<=0) ,1,0)
-    df['st_trigger'] = np.where((df[signal_col]<0) & (df[signal_col].shift(1)>=0) ,-1,df['st_trigger']) 
-    df['st_sl_long'] = df[up_col]
-    df['st_sl_short'] = df[down_col]
-    df = df.drop([signal_col,up_col,down_col,price_col], axis=1)
+
+    ### Renombrando columnas del SuperTrend
+    cols = df.columns
+    posfix = ''
+    for col in cols:
+        if col.startswith('SUPERT_'):
+            posfix = col.replace('SUPERT','')
+    for col in cols:
+        if col.endswith(posfix):
+            new_col = col.replace(posfix,'')
+            df.rename(columns={col: new_col}, inplace=True)
+    ###
+
+    df['st_trend'] = df['SUPERTd']
+    df['st_trigger'] = np.where((df['SUPERTd']>0) & (df['SUPERTd'].shift(1)<=0) ,1,0)
+    df['st_trigger'] = np.where((df['SUPERTd']<0) & (df['SUPERTd'].shift(1)>=0) ,-1,df['st_trigger']) 
+    df['st_sl_long'] = df['SUPERTl']
+    df['st_sl_short'] = df['SUPERTs']
+    df = df.drop(['SUPERTd','SUPERTl','SUPERTs','SUPERT'], axis=1)
 
     return df
 
