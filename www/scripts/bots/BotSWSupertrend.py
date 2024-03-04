@@ -54,14 +54,14 @@ class BotSWSupertrend(Bot_Core):
                 're_buy_perc': {
                         'c' :'re_buy_perc',
                         'd' :'Recompra luego de una venta',
-                        'v' :'2',
+                        'v' :'0',
                         't' :'perc',
                         'pub': True,
                         'sn':'Recompra', },
                 'interes': {
                         'c' :'interes',
                         'd' :'Tipo de interes',
-                        'v' :'c',
+                        'v' :'s',
                         't' :'t_int',
                         'pub': True,
                         'sn':'Int', },
@@ -112,7 +112,7 @@ class BotSWSupertrend(Bot_Core):
         
         self.klines['signal'] = np.where((self.klines['st_trigger']>0) , 'COMPRA' , 'NEUTRO')  #& (self.klines['vol_signal']>0)
         self.klines['signal'] = np.where((self.klines['st_trigger']<0)  , 'VENTA'  , self.klines['signal'])  #& (self.klines['vol_signal']<0)
-
+        
         self.klines['ma'] = self.klines['close'].rolling(window=150).mean()
 
         self.print_orders = False 
@@ -149,7 +149,7 @@ class BotSWSupertrend(Bot_Core):
                 
         elif 'st_trend' in self.row and hold > 10 and self.signal == 'VENTA': 
             self.close(Order.FLAG_SIGNAL)
-            
+        
         else:
             if self.lot_to_safe > 0 and hold > start_cash*(1+(self.lot_to_safe/100)):
                 qty = round_down(((hold - start_cash)/price) , self.qd_qty)
