@@ -42,7 +42,7 @@ class Bot_Core_stats:
         pos_quote += wallet_base_in_quote
         pos_quote_sign = '' if pos_quote <= 0 else '+'
         v = f'{pos_quote_sign}{pos_quote:.2f}  {self.quote_asset}'
-        cls = 'text-success' if pos_quote > 0 else 'text-danger'
+        cls = 'text-success' if pos_quote > 0 else ('text-danger' if pos_quote < 0 else '')
         status['pos_pnl'] = {'l': 'PNL','v': v,'r':pos_quote, 'cls': cls}
 
         return status
