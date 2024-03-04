@@ -1,8 +1,0 @@
-#Configurar estas dos lineas en el crontab
-
-
-SHELL=/bin/bash
-cd /home/lbisaro/ie
-source venv/bin/activate
-python --version
-python manage.py runscript crontab_bot_1m
