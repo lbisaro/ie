@@ -56,7 +56,6 @@ def get_apply_intervals(dt):
 
     return whereIn
 
-
 def round_down(num, decs):
     pot = 10**decs
     num = num * pot
@@ -69,3 +68,45 @@ def pendiente(y):
     x = np.arange(qty)
     p = np.polyfit(x, y, 1)
     return round(p[0],2)
+
+def ohlc_mirror_v(df):
+    """
+    Transforma el DF invirtiendo las tendencias, 
+    espejando los precios de OHLC de forma vertical
+    """
+    df.rename(columns={'open':'open_i','close':'close_i','low':'low_i','high':'high_i'},inplace=True)
+
+    open_high = df['high_i'].max()
+    open_low  = df['low_i'].min()
+    open_mean = (open_high+open_low)/2
+    df['open_diff'] = open_mean-df['open_i']
+    df['open'] = open_mean + df['open_diff']
+
+    df['close_d'] = df['open_i']-df['close_i']
+    df['close'] = df['open']+df['close_d']
+
+    df['high_d'] = df['open_i']-df['high_i']
+    df['low'] = df['open']+df['high_d']
+
+    df['low_d'] = df['open_i']-df['low_i']
+    df['high'] = df['open']+df['low_d']
+
+    df.drop(columns=['open_i','close_i','low_i','high_i','open_diff','close_d','high_d','low_d'],inplace=True)
+    return df
+
+def ohlc_mirror_h(df):
+    """
+    Transforma el DF colocando al inicio las velas finales y viceversa, 
+    espejando los precios de OHLC de forma horizontal
+    """
+    df_i = df.iloc[::-1].copy()
+    df_i.reset_index(inplace = True)
+    df_i.drop(columns=['index'],inplace=True)
+    
+    df['close']  = df_i['open']
+    df['open']   = df_i['close']
+    df['high']   = df_i['high']
+    df['low']    = df_i['low']
+    df['volume'] = df_i['volume']
+
+    return df
