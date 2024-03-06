@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from math import floor
+from datetime import datetime, timedelta
 
 def get_intervals(i='ALL',c='ALL'):
     columns=['id','interval_id','name','binance','pandas_resample','minutes']
@@ -36,7 +37,10 @@ def get_binance_intervals():
 
 
 def get_apply_intervals(dt):
-    
+
+    #Se calcula el time interval con GMT+0 para que Al buscar velas de 4hs o diarias, se obtengan velas cerradas
+    dt = dt-timedelta(hours=3)
+
     hr = dt.strftime('%H')
     mn = dt.strftime('%M')
 

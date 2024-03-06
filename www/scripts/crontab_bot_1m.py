@@ -48,7 +48,7 @@ def run():
         botClass = estr.get_instance()
         klines = exchInfo.get_klines(botClass.symbol, estr.interval_id, limit=201)
         signal_row = botClass.live_get_signal(klines)
-        print(estr, signal_row['signal'])
+        print(estr, signal_row['datetime'], signal_row['signal'])
         signal_rows[estr.id] = signal_row
     
     ### - Obtener lista de bots activos ordenados por usuario_id
