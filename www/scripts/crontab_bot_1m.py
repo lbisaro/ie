@@ -171,7 +171,7 @@ def run():
     endDt = datetime.now()
     #log.info(f'END {endDt}')
     durationDt = endDt-startDt
-    print('Duracion del proceso: ',durationDt)
+    #print('Duracion del proceso: ',durationDt)
 
     """
     ### Actualizar velas de los Symbols
