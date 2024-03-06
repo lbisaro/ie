@@ -4,7 +4,7 @@ from ..Bot_CoreLong import Bot_CoreLong
 import ta
 from ta.trend import ADXIndicator
 
-class BotADXplus(Bot_CoreLong):
+class Botprueba(Bot_CoreLong):
 
     descripcion = 'Bot Core v2 \n'\
                   'Ejecuta la compra al recibir una señal de Compra, '\
@@ -16,9 +16,12 @@ class BotADXplus(Bot_CoreLong):
         ADX_PERIODO = 14
         warnings.filterwarnings("ignore") #Se evita el warning generado por el indicador
         iADX = ADXIndicator(self.klines['high'], self.klines['low'],self.klines['close'],ADX_PERIODO, False)    
-
+        self.klines['vol_sma21_ratio'] = self.klines['volume'].rolling(window=21).mean() / self.klines['volume']
+        self.klines['vol_sma10_ratio'] = self.klines['volume'].rolling(window=10).mean() / self.klines['volume']
+        self.klines['vol_ratio'] = self.klines['vol_sma10_ratio'] / self.klines['vol_sma21_ratio']
+        self.klines['obv'] = ta.volume.OnBalanceVolumeIndicator(close=self.klines['close'], volume=self.klines['volume']).on_balance_volume()
         self.klines['rsi_2'] = ta.momentum.RSIIndicator(self.klines['close'], window=2).rsi()
-        
+        self.klines['sma2'] = self.klines['close'].rolling(20).mean()
         self.klines['sma'] = self.klines['close'].rolling(40).mean()
         #self.klines['ADX'] = iADX.adx()
         self.klines['ADX+'] = iADX.adx_pos()
@@ -28,11 +31,12 @@ class BotADXplus(Bot_CoreLong):
         # Asumiendo que self.klines ya tiene las columnas 'close' y 'sma' definidas.
         condiciones = [
                             # Condición para COMPRA: close > sma Y rsi_14 > 86.899055
-                            (self.klines['ADX-'] < self.klines['ADX+']) & (self.klines['rsi_2'] > 85),
+                            ((self.klines['ADX+'] - self.klines['ADX-']) > 1 ) & (self.klines['rsi_2'] > 85) & (self.klines['obv'] < -1528501.000000),
                             
-                            # Condición para VENTA: close < sma
-                            (self.klines['close'] < self.klines['sma'])
+                            # Condición para VENTA: (ADX- > 20) O (close < sma)
+                            ((self.klines['ADX-'] > 20) | (self.klines['close'] < self.klines['sma']))
                         ]
+                        
 
         # Las opciones correspondientes a cada condición
         opciones = ['COMPRA', 'VENTA']

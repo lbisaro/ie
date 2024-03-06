@@ -139,6 +139,148 @@ class BotMultiple(Bot_CoreLong):
                 
                 return 'COMPRA'
         
+        elif self.desicion==17:
+            if row['atr'] <= 312.867615 and row['adx_neg'] <= 19.161321:
+                
+                return 'COMPRA'
+            
+        elif self.desicion==18:
+            if row['atr'] > 312.867615 and row['adx_pos'] <= 34.819384 and row['williams_r'] <= -10.729880 and row['vol_sma50_ratio'] > 9.676181:
+                
+                return 'COMPRA'
+            
+        elif self.desicion==19:
+            if row['adx_pos'] <= 34.819384 and row['williams_r'] <= -13.783968 and row['rsi_14_sma'] <= 76.979183:
+            #if row['atr'] > 312.867615 and row['adx_pos'] <= 34.819384: #and row['williams_r'] <= -13.783968: #and row['rsi_14_sma'] <= 76.979183:    
+                return 'COMPRA'
+            
+        elif self.desicion==20:
+            if row['atr'] <= 312.867615 and row['adx_neg'] <= 19.161321 :
+           
+                return 'COMPRA'
+
+        elif self.desicion==21:
+            if row['atr'] > 312.867615 and row['adx'] <= 25.459907 and row['rsi_2_sma'] <= 20.989966:
+           
+                return 'COMPRA'
+        elif self.desicion==22:
+            if row['atr'] <= 312.867615 and row['cci'] <= 71.582623 and row['stoch_k'] <= 59.777229:
+           
+                return 'COMPRA'
+        elif self.desicion==23:
+            if row['atr'] <= 34.819384 and row['cci'] > 71.582623:
+           
+                return 'COMPRA'
+        elif self.desicion==24:
+            if row['atr'] > 316.010025 and row['obv'] <= -3300211.375000 and row['williams_r'] <= -58.383982 and row['atr'] > 1079.188538:
+           
+                return 'COMPRA'
+        elif self.desicion==25:
+            
+           
+                return 'COMPRA'
+        elif self.desicion==26:
+            if row['atr'] <= 316.010025 and row['adx_neg'] > 17.529139 and row['stoch_k'] <= 59.777229:
+           
+                return 'COMPRA'
+        elif self.desicion==27:
+            if row['atr'] > 316.010025 and row['williams_r'] <= -97.968349 and row['williams_r'] > -99.487511:
+           
+                return 'COMPRA'
+        elif self.desicion==28:
+            if row['atr'] > 316.010025 and row['williams_r'] > -97.968349 and row['obv'] > -3334902.500000 and row['adx'] <= 11.299541:
+           
+                return 'COMPRA'
+            
+        elif self.desicion==29:
+            if row['atr'] <= 299.901535 and row['rsi_2_sma'] > 65.384960:
+           
+                return 'COMPRA'
+            
+        elif self.desicion==30:
+            if row['atr'] > 299.901535 and row['cci'] <= 183.376541 and row['vol_sma10_ratio'] <= 1.747323 and row['stoch_d'] <= 3.465020:
+           
+                return 'COMPRA'      
+
+        elif self.desicion==31:
+            if row['atr'] > 299.901535 and row['cci'] > 183.376541 and row['obv'] <= -3246834.125000 and row['rsi_14'] > 58.121748:
+           
+                return 'COMPRA'
+
+        elif self.desicion==32:
+            if row['adx'] <= 11.652590:
+           
+                return 'COMPRA'
+            
+
+        elif self.desicion==33:
+            if row['adx'] > 11.652590 and row['vol_sma21_ratio'] > 4.436767 and row['ma21_open_ratio'] > 0.940411 and row['vol_sma50_ratio'] > 12.263862:
+           
+                return 'COMPRA'
+            
+#reglas para velas de una hora 
+        elif self.desicion==34:
+            if row['adx_neg'] <= 4.147797 and row['ma21_open_ratio'] > 0.970539:
+          
+                return 'COMPRA'
+
+        elif self.desicion==35:
+            
+            if row['adx_neg'] > 4.147797 and row['obv'] <= 25302.322266 and row['rsi_14_sma'] > 69.921474:
+
+                return 'COMPRA'
+
+        elif self.desicion==36:
+            if row['adx_neg'] > 4.147797 and row['obv'] > 25302.322266 and row['ma10_open_ratio'] <= 0.994876 and row['rsi_14'] <= 36.423223:
+
+           
+                return 'COMPRA'
+            
+        elif self.desicion==37:
+           if row['adx_neg'] > 4.147797 and row['obv'] > 25302.322266 and row['ma10_open_ratio'] > 0.994876 and row['adx_neg'] <= 5.053723:
+           
+                return 'COMPRA'
+            
+        elif self.desicion==38:
+            if row['rsi_14_sma'] <= 80.174129 and row['obv'] <= 25849.329102 and row['adx'] > 41.597105 and row['vol_sma10_ratio'] > 0.979084:
+           
+                return 'COMPRA'
+            
+        elif self.desicion==39:
+            if row['rsi_14_sma'] > 80.174129 and row['ao'] <= 1397.371216:
+
+                return 'COMPRA'
+            
+        elif self.desicion==40:
+            if row['rsi_2'] <= 77.408722 and row['rsi_2'] > 21.077771 and row['vol_sma50_ratio'] <= 7.118444 and row['rsi_2'] <= 71.264767:
+
+           
+                return 'COMPRA'    
+            
+        elif self.desicion==41:
+            if row['rsi_2'] > 77.408722 and row['rsi_2'] <= 99.354679 and row['atr'] > 295.447906 and row['macd'] > 584.277039:
+           
+                return 'COMPRA' 
+        elif self.desicion==42:
+            if row['rsi_14_sma'] > 80.174129 and row['obv'] <= 83783.769531 or row['adx_neg'] > 4.147797 and row['obv'] <= 25302.322266 and row['rsi_14_sma'] > 69.921474:
+
+           
+                return 'COMPRA'              
+        elif self.desicion==43:
+            if row['obv'] > 91680.722656 and row['adx_neg'] > 13.965136 and row['rsi_2_sma'] > 71.484917 and row['adx'] > 24.642095 and row['obv'] <= 207445.578125:
+        
+                return 'COMPRA'
+            
+        elif self.desicion==44:
+             if row['rsi_2'] <= 65.681824 and row['ma10_open_ratio'] <= 1.026084 and row['atr'] <= 809.712433 and row['ma21_open_ratio'] <= 0.907263:
+                
+                return 'COMPRA'              
+        elif self.desicion==65:
+            if row['rsi_14_sma'] > 80.174129 and row['obv'] <= 83783.769531 or row['adx_neg'] > 4.147797 and row['obv'] <= 25302.322266 and row['rsi_14_sma'] > 69.921474:
+
+           
+                return 'COMPRA'    
+                     
         return 'NEUTRO'
     
     

@@ -4,7 +4,7 @@ from ..Bot_CoreLong import Bot_CoreLong
 import ta
 from ta.trend import ADXIndicator
 
-class BotADXplus(Bot_CoreLong):
+class BotADX_RSI_Sma2(Bot_CoreLong):
 
     descripcion = 'Bot Core v2 \n'\
                   'Ejecuta la compra al recibir una señal de Compra, '\
@@ -28,11 +28,12 @@ class BotADXplus(Bot_CoreLong):
         # Asumiendo que self.klines ya tiene las columnas 'close' y 'sma' definidas.
         condiciones = [
                             # Condición para COMPRA: close > sma Y rsi_14 > 86.899055
-                            (self.klines['ADX-'] < self.klines['ADX+']) & (self.klines['rsi_2'] > 85),
+                            ((self.klines['ADX+'] - self.klines['ADX-']) > 1 ) & (self.klines['rsi_2'] > 85),
                             
-                            # Condición para VENTA: close < sma
-                            (self.klines['close'] < self.klines['sma'])
+                            # Condición para VENTA: (ADX- > 20) O (close < sma)
+                            ((self.klines['ADX-'] > 20) | (self.klines['close'] < self.klines['sma']))
                         ]
+                        
 
         # Las opciones correspondientes a cada condición
         opciones = ['COMPRA', 'VENTA']
