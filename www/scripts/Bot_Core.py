@@ -120,64 +120,64 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             return True
         return False
 
-    def buy(self,qty,flag):
+    def buy(self,qty,flag,**kwargs):
         qty = round(qty,self.qd_qty)
         if qty*self.price>=10: 
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_BUY,qty,self.price,flag)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_BUY,qty,self.price,flag,**kwargs)
             return self.add_order(order)
         return 0
 
-    def sell(self,qty,flag):
+    def sell(self,qty,flag,**kwargs):
         qty = round_down(qty,self.qd_qty)
         if qty*self.price>=10: 
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_SELL,qty,self.price,flag)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_SELL,qty,self.price,flag,**kwargs)
             return self.add_order(order)
         return 0
           
-    def close(self,flag): #Vende el total existente en self.wallet_base
+    def close(self,flag,**kwargs): #Vende el total existente en self.wallet_base
         self.order_id += 1
         qty = self.wallet_base
         if qty > 0:
-            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_SELL,qty,self.price,flag)
+            order = Order(self.order_id,Order.TYPE_MARKET,self.datetime,Order.SIDE_SELL,qty,self.price,flag,**kwargs)
             return self.add_order(order)
             
         return 0
         
-    def sell_limit(self,qty,flag,limit_price):
+    def sell_limit(self,qty,flag,limit_price,**kwargs):
         qty = round_down(qty,self.qd_qty)
         if qty*limit_price>=10:
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
-            order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_SELL,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_SELL,qty,limit_price,flag,**kwargs)
             return self.add_order(order)
         return 0  
     
-    def buy_limit(self,qty,flag,limit_price):
+    def buy_limit(self,qty,flag,limit_price,**kwargs):
         qty = round(qty,self.qd_qty)
         if qty*limit_price>=10:
             self.order_id += 1
             limit_price = round(limit_price,self.qd_price)
-            order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_BUY,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_LIMIT,self.datetime,Order.SIDE_BUY,qty,limit_price,flag,**kwargs)
             return self.add_order(order)
         return 0    
     
-    def sell_trail(self,qty,flag,limit_price,activation_price,trail_perc):
+    def sell_trail(self,qty,flag,limit_price,activation_price,trail_perc,**kwargs):
         qty = round_down(qty,self.qd_qty)
         if qty*limit_price>=10:
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_SELL,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_SELL,qty,limit_price,flag,**kwargs)
             order.activation_price = activation_price
             order.trail_perc = trail_perc
             return self.add_order(order)
         return 0    
     
-    def buy_trail(self,qty,flag,limit_price,activation_price,trail_perc):
+    def buy_trail(self,qty,flag,limit_price,activation_price,trail_perc,**kwargs):
         qty = round(qty,self.qd_qty)
         if qty*limit_price>=10:
             self.order_id += 1
-            order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_BUY,qty,limit_price,flag)
+            order = Order(self.order_id,Order.TYPE_TRAILING,self.datetime,Order.SIDE_BUY,qty,limit_price,flag,**kwargs)
             order.activation_price = activation_price
             order.trail_perc = trail_perc
             return self.add_order(order)
@@ -229,7 +229,22 @@ class Bot_Core(Bot_Core_stats,Bot_Core_backtest,Bot_Core_live):
             if order.tag == tag:
                 return order
         return None
-
+    
+    def update_order_by_tag(self,tag,**kwargs):
+        """
+        tag: Se especifica para encontrar la primer orden existente con ese tab
+        """
+        order = self.get_order_by_tag(tag)
+        if order:
+            if 'limit_price' in kwargs:
+                order.limit_price = kwargs['limit_price']
+            if 'qty' in kwargs:
+                order.qty = kwargs['qty']
+            self.update_order(order)
+            return order
+        
+        return None
+    
     def check_orders(self):
         if self.is_backtesting():
             return self.backtest_check_orders()

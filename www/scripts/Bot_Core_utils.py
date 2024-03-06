@@ -44,7 +44,7 @@ class Order:
     active = False
     trail_perc = 0
 
-    def __init__(self,id,type,datetime,side,qty,price,flag):
+    def __init__(self,id,type,datetime,side,qty,price,flag,**kwargs):
         self.bot_id = 0
         self.completed = 0
         self.id = id
@@ -61,11 +61,14 @@ class Order:
         self.flag = flag
         self.comision = 0
         self.tag = ''
+        if 'tag' in kwargs:
+            self.tag = kwargs['tag']
 
         self.activation_price = 0
         self.active = False
         self.trail_perc = 0
         self.pos_order_id = 0
+        
     
     def __repr__(self):
         return str(self)

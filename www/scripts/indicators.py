@@ -32,8 +32,8 @@ def supertrend(df,length=7,multiplier=3):
     df['st_trend'] = df['SUPERTd']
     df['st_trigger'] = np.where((df['SUPERTd']>0) & (df['SUPERTd'].shift(1)<=0) ,1,0)
     df['st_trigger'] = np.where((df['SUPERTd']<0) & (df['SUPERTd'].shift(1)>=0) ,-1,df['st_trigger']) 
-    df['st_sl_long'] = df['SUPERTl']
-    df['st_sl_short'] = df['SUPERTs']
+    df['st_low'] = df['SUPERTl']
+    df['st_high'] = df['SUPERTs']
     df = df.drop(['SUPERTd','SUPERTl','SUPERTs','SUPERT'], axis=1)
 
     return df

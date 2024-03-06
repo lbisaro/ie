@@ -15,8 +15,8 @@ class Bot_Core_live:
     def live_get_signal(self,klines):
         self.klines = klines
         self.start()
-        #No vuelve la ultima vela porque recien inicia a formarse
-        #Es por eso que se devuelve la anteultima
+        #No devuelve la ultima vela porque recien inicia a formarse
+        #Es por eso que se devuelve la ante-ultima
         return self.klines.iloc[-2]
     
     def live_execute(self):
