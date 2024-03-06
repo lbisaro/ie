@@ -12,14 +12,14 @@ def run():
     json_rsp = {}
     startDt = datetime.now()
     #log.info(f'START {startDt}')
-    print(f'START {startDt}')
+    #print(f'START {startDt}')
 
     json_rsp['error'] = []
 
     ### Establecer hora y minutos de start para definir que estrategias ejecutar de acuerdo al intervalo
     apply_intervals = fn.get_apply_intervals(startDt)
     json_rsp['apply_intervals'] = apply_intervals
-    print(f'Intervalo: {apply_intervals}')
+    #print(f'Intervalo: {apply_intervals}')
     
     ### Obtener estrategias activas (Activas y Con bots activos) con intervalos aplicables a la hora de ejecucion del script
     ### Crear una lista con los Symbol de las estrategias activas
@@ -27,7 +27,7 @@ def run():
     active_symbols = []
     for estr in estrategias:
         #log.info(f'Estrategia: {estr}')
-        print(f'Estrategia: {estr}')
+        #print(f'Estrategia: {estr}')
         gen_bot = GenericBotClass().get_instance(estr.clase)
         gen_bot.set(estr.parse_parametros())
         try:
@@ -55,7 +55,7 @@ def run():
     bots = Bot.get_bots_activos()
     usuario_id = -1
     for bot in bots:
-        print(f'Bot: {bot}')
+        #print(f'Bot: {bot}')
         try:
             botClass = bot.get_instance()
             botClass.bot_id = bot.id
@@ -71,10 +71,8 @@ def run():
                 prms['bnc_apk'] = profile_config['bnc']['bnc_apk']
                 prms['bnc_aps'] = profile_config['bnc']['bnc_aps']
                 prms['bnc_env'] = profile_config['bnc']['bnc_env']
-                        
 
-                exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)
-                
+                exch = Exchange(type='user_apikey',exchange='bnc',prms=prms)                
 
             #log.info(f'Bot: {bot}')
                 
@@ -134,8 +132,6 @@ def run():
             #Procesando estado actual del bot
             status = botClass.get_status()
             bot.update_status(status)
-            if 'trend' in status:
-                print('Trend: ',status['trend']['v'])
             
 
         except Exception as e:
@@ -166,11 +162,11 @@ def run():
             if k == 'error':
                 for err in json_rsp['error']:
                     print(f"ERROR -> {err}")
-                    log.error(f"ERROR -> {err}")    
+                    log.error(f"{err}")    
             else:
                 log.info(f"{k}: {v}")
 
-    print('Ready')
+    #print('Ready')
 
     endDt = datetime.now()
     #log.info(f'END {endDt}')
