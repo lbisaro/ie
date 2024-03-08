@@ -17,6 +17,8 @@ class Backtest(models.Model):
     ESTADO_ENCURSO = 50
     ESTADO_COMPLETO = 100
 
+    tendencias = ['Completo','Alcista','Lateral','Bajista']
+
     klines_folder = os.path.join(settings.BASE_DIR,'backtest','klines')
     results_folder = os.path.join(settings.BASE_DIR,'backtest','results')
 
@@ -92,8 +94,8 @@ class Backtest(models.Model):
                     tmp_df = pd.DataFrame(periodo['bt'],columns=['ind',symbol])
                     json_rsp[tendencia][symbol] = tmp_df[symbol]
     
-        tendencias = ['Completo','Alcista','Lateral','Bajista']
-        for tendencia in tendencias:
+        
+        for tendencia in self.tendencias:
             #Eliminando metricas que no se van a medir
             json_rsp[tendencia].drop(json_rsp[tendencia][json_rsp[tendencia]['ind'] == 'maximo_operaciones_negativas_consecutivas'].index, inplace=True)
             json_rsp[tendencia].drop(json_rsp[tendencia][json_rsp[tendencia]['ind'] == 'ratio_dias_sin_operar'].index, inplace=True)
@@ -341,19 +343,20 @@ class Backtest(models.Model):
                         start = parts[3]
                         end = parts[4]
                         key = len(periodos)
-                        periodos.append({
-                                    'key': key,
-                                    'tendencia':tendencia,
-                                    'interval':interval,
-                                    'interval_id': folder,
-                                    'start': start,
-                                    'end': end,
-                                    'symbol': symbol,
-                                    'str': f'{symbol} {interval} {tendencia} desde el {start} al {end}',
-                                    'file': file,
-                                    'procesado': 'NO',
-                                    }
-                                )
+                        if tendencia in self.tendencias:
+                            periodos.append({
+                                        'key': key,
+                                        'tendencia':tendencia,
+                                        'interval':interval,
+                                        'interval_id': folder,
+                                        'start': start,
+                                        'end': end,
+                                        'symbol': symbol,
+                                        'str': f'{symbol} {interval} {tendencia} desde el {start} al {end}',
+                                        'file': file,
+                                        'procesado': 'NO',
+                                        }
+                                    )
                                    
         return periodos
     
