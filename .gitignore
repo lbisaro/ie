@@ -3,6 +3,7 @@ www/venv
 www/local__*
 www/user/migrations/*.py
 www/bot/migrations/*.py
+www/scripts/bots/Bot*.py
 *.log
 *.DataFrame
 www/backtest/results/*.json
