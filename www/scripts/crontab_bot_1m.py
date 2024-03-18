@@ -37,7 +37,7 @@ def run():
         except Exception as err:
             raise ValidationError(err)
     
-    exchInfo = Exchange(type='general_apikey',exchange='bnc',prms=None)
+    exchInfo = Exchange(type='info',exchange='bnc',prms=None)
     
     ### Si hay estrategias activas
     signal_rows = {}
@@ -48,7 +48,9 @@ def run():
         botClass = estr.get_instance()
         klines = exchInfo.get_klines(botClass.symbol, estr.interval_id, limit=201)
         signal_row = botClass.live_get_signal(klines)
-        print(estr, signal_row['datetime'], signal_row['signal'])
+        #signal = signal_row['signal']
+        #log.info(f'{estr} {signal}')
+        #print(estr, signal_row['datetime'], signal_row['signal'])
         signal_rows[estr.id] = signal_row
     
     ### - Obtener lista de bots activos ordenados por usuario_id
@@ -86,7 +88,7 @@ def run():
                 signal_row = signal_rows[bot.estrategia_id]
                 signal = signal_row['signal']
             if signal != 'NEUTRO':
-                log.info(f'Signal: {signal}')
+                log.info(f'{bot} - aa Signal: {signal}')
 
 
             #Cargando Billetera del Bot
@@ -112,7 +114,7 @@ def run():
                     botClass._orders[order.id] = order
             
             # Obtener precios de los symbols activos en cada iteracion de usuario
-            price = exch.get_symbol_price(botClass.symbol)
+            price = exchInfo.get_symbol_price(botClass.symbol)
             if abs(botClass.wallet_base*price) < 2: #Si el total de qty representa menos de 2 dolares, se toma como 0
                 botClass.wallet_base = 0.0
 
@@ -124,8 +126,8 @@ def run():
             botClass.exchange_wallet = exchange_wallet
             execRes = botClass.live_execute()
 
-            if len(execRes) > 0:
-                log.info(f'Execute: {execRes}')
+            #if len(execRes) > 0:
+            #    log.info(f'Execute: {execRes}')
 
             bot.make_operaciones()
 
@@ -138,7 +140,19 @@ def run():
             log.error(f'bot.id: {bot.id} {e}')
             json_rsp['error'].append(f'bot.id: {bot.id} {e}')
             
-            
+
+    """
+    ### Actualizar velas de los Symbols
+    try:
+        update_klines = exchInfo.update_klines()
+        json_rsp['klines'] = update_klines
+                
+    except Exception as err:
+        err = str(err)
+        msg_text = f'No fue posible encontrar velas\n{err}'
+        json_rsp['error'].append(msg_text)
+    """
+
     #Buscar ordenes incompletas, agrupadas por usuario
     #Si existen, reconectar con el Exchange para cada usuario 
     # Repetir la busqueda de ordenes incompletas en un bucle para todos los usuarios  
@@ -168,25 +182,8 @@ def run():
 
     #print('Ready')
 
-    endDt = datetime.now()
+    #endDt = datetime.now()
     #log.info(f'END {endDt}')
-    durationDt = endDt-startDt
+    #durationDt = endDt-startDt
     #print('Duracion del proceso: ',durationDt)
 
-    """
-    ### Actualizar velas de los Symbols
-    try:
-        update_klines = exchInfo.update_klines()
-        json_rsp['klines'] = update_klines
-                
-    except Exception as err:
-        err = str(err)
-        msg_text = f'No fue posible encontrar velas\n{err}'
-        json_rsp['error'].append(msg_text)
-    
-    ### Valida que los symbols de las estrategias se encuentren actualizados
-    actSymOk = True
-    for actSym in active_symbols:
-        if not json_rsp['klines'][actSym]['updated']:
-            actSymOk = False
-    """

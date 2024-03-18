@@ -90,7 +90,7 @@ class Estrategia(models.Model):
         for prm in pe:
             for v in prm:
                 parametros[v]['v'] = prm[v]
-                parametros[v]['str'] = prm[v]
+                parametros[v]['str'] = str(prm[v])
 
                 if parametros[v]['t'] == 'perc':
                     val = float(parametros[v]['v'])
@@ -116,7 +116,7 @@ class Estrategia(models.Model):
         for p in prm:
             if str != '':
                 str += ', '
-            str += prm[p]['str']
+            str += prm[p]['sn']+': '+prm[p]['str']
         return f"{str}"
 
     def get_estrategias_to_run(intervals):
@@ -672,6 +672,25 @@ class Bot(models.Model):
         self.status = str(actual_status)
         self.save()
 
+        #Analizando si aplica registrar el PNL de acuerdo al timeframe del bot
+        apply_intervals = fn.get_apply_intervals(timezone.now())
+        print('.',end='')
+        if self.estrategia.interval_id in apply_intervals:
+            print(timezone.now(),' - Actualizando PNL')
+            self.add_pnl(actual_status['wallet_tot']['r'],actual_status['price']['r'])
+    
+    def add_pnl(self,pnl,price):
+        botpnl = BotPnl()
+        botpnl.bot = self
+        botpnl.pnl = pnl
+        botpnl.price = price
+        botpnl.save()
+
+    def get_pnl(self):
+        pnl = BotPnl.objects.filter(bot_id=self.id).order_by('datetime')
+        pnl_df = pd.DataFrame.from_records(pnl.values())
+        return pnl_df
+
 class Order(models.Model):
     bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
     datetime = models.DateTimeField(default=timezone.now)
@@ -766,5 +785,14 @@ class BotLog(models.Model):
             return 'red'
         return ''
         
-        
+class BotPnl(models.Model):
+
+    bot = models.ForeignKey(Bot, on_delete = models.CASCADE)
+    datetime = models.DateTimeField(default=timezone.now)
+    pnl = models.FloatField(null=False, blank=False, default=0.0)
+    price = models.FloatField(null=False, blank=False, default=0.0)
     
+    class Meta:
+        verbose_name = "Bot PNL"
+        verbose_name_plural='Bot PNL'
+        

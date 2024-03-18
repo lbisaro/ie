@@ -58,8 +58,10 @@ class Exchange():
             symbol_info['qty_decs_qty'] = qty_decs_qty
             symbol_info['quote_asset'] = symbol_info['quoteAsset']
             symbol_info['base_asset'] = symbol_info['baseAsset']
-            if symbol_info['quote_asset'] == 'USDT' or symbol_info['quote_asset'] == 'BUSD' or symbol_info['quote_asset'] == 'USDC':
+            if symbol_info['quote_asset'] == 'USDT' or symbol_info['quote_asset'] == 'FDUSD' or symbol_info['quote_asset'] == 'USDC':
                 symbol_info['qty_decs_quote'] = 2
+            else:
+                symbol_info['qty_decs_quote'] = 8
 
         else:
             symbol_info = {}
@@ -112,7 +114,6 @@ class Exchange():
             symbols = Symbol.objects.filter(activo__gt=0)
         else:
             symbols = Symbol.objects.filter(symbol=symbol)
-        
         for s in symbols:
             valid_last_minute = (datetime.now() - timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M')
             last_kline = Kline.objects.filter(symbol_id=s.id).order_by('-datetime').first()
@@ -122,12 +123,9 @@ class Exchange():
 
                 next_datetime = ( last_kline.datetime + timedelta(minutes=1) ).strftime('%Y-%m-%d %H:%M:%S') 
             else:
-                if s.symbol == 'BTCUSDT':
-                    next_datetime = '2021-01-01 00:00:00'
-                    last_minute = '2021-01-01 00:00'
-                else:
-                    next_datetime = '2022-08-01 00:00:00'
-                    last_minute = '2022-08-01 00:00'
+                ref_date = datetime.now()-timedelta(days=210)
+                next_datetime = ref_date.strftime('%Y-%m-%d %H:%M:%S')
+                last_minute = ref_date.strftime('%Y-%m-%d %H:%M')
             
             end_datetime = ( datetime.strptime(next_datetime, '%Y-%m-%d %H:%M:%S') + timedelta(minutes=MINUTES_TO_GET) ).strftime('%Y-%m-%d %H:%M:%S')
             
@@ -156,7 +154,7 @@ class Exchange():
                     #Por lo tanto, se elimina el ultimo registro para no almacenar velas que estan en formacion
                     if qty_records < MINUTES_TO_GET: 
                         df = df[:-1]   
-                         
+                            
                     updated = False
                     qty_records =  int(df['datetime'].count())
                     if qty_records > 0:
@@ -183,7 +181,7 @@ class Exchange():
                     if updated:
                         s.activate()
                 except Exception as e:
-                    print(str(e))
+                    #print('Exchange::update_klines()',str(e))
                     pass 
             else:
                 res[s.symbol] = {'qty':0, 'updated': True, 'datetime': valid_last_minute}

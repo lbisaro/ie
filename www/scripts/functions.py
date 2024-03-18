@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 from math import floor
 from datetime import datetime, timedelta
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly
+import json
 
 def get_intervals(i='ALL',c='ALL'):
     columns=['id','interval_id','name','binance','pandas_resample','minutes']
@@ -106,7 +110,7 @@ def ohlc_mirror_h(df):
     df_i = df.iloc[::-1].copy()
     df_i.reset_index(inplace = True)
     df_i.drop(columns=['index'],inplace=True)
-    
+ 
     df['close']  = df_i['open']
     df['open']   = df_i['close']
     df['high']   = df_i['high']
@@ -114,3 +118,228 @@ def ohlc_mirror_h(df):
     df['volume'] = df_i['volume']
 
     return df
+
+def ohlc_chart(klines,**kwargs):
+
+    """ 
+    klines -> dataframe with columns [datetime,open,close,high,low,volume,pnl]
+           -> dataframe with columns [datetime,price,pnl]
+    show_pnl = True
+    indicators = [
+         {'col': 'MA_F',
+          'name': 'MA Fast',
+          'color': 'yellow',
+          },
+         {'col': 'MA_S',
+          'name': 'MA Slow',
+          'color': 'green',
+          },
+     ]
+     open_orders = [
+         {'col': 'ORD_1',
+          'color': 'red',
+          },
+         {'col': 'ORD_n',
+          'color': 'green',
+          },
+     ]
+     events = [
+         {'df':Dataframe con una columna ['datetime'] y otra con el nombre indicado en el parametro 'col'
+          'col':'MA_cross',
+          'name': 'MA Cross',
+          'color': 'yellow',
+          'symbol': 'circle-open' #https://plotly.com/python/reference/scatter/#scatter-marker-symbol
+         }
+     ]
+     """
+   
+    show_pnl   = kwargs.get('show_pnl', True )
+    indicators = kwargs.get('indicators', None )
+    open_orders = kwargs.get('open_orders', None )
+    events    = kwargs.get('events', None )
+    
+    chart_rows = 1
+    domain_0 = 0.15
+
+    if show_pnl:
+        chart_rows += 1
+        domain_0 += 0.15
+    
+    if 'volume' in klines:
+        chart_rows += 1
+
+    fig = make_subplots(rows=chart_rows, shared_xaxes=True)
+
+    # Create subplot for candlesticks o price
+    if 'price' in klines:
+        fig.add_trace(
+            go.Scatter(
+                x=klines["datetime"], y=klines["price"], name="Price", mode="lines", showlegend=False, 
+                line={'width': 0.5},  
+                marker=dict(color='#f8b935'),
+            ),
+            row=1,
+            col=1,
+        )    
+    else:
+        fig.add_trace(
+            go.Candlestick(
+                x=klines["datetime"],
+                open=klines["open"],
+                high=klines["high"],
+                low=klines["low"],
+                close=klines["close"],
+                increasing_line_color= 'rgba(242,54,69,0.5)', 
+                decreasing_line_color= 'rgba(8,153,129,0.5)',
+                name="BTCUDST", 
+                line=dict(width=0.75,),
+                showlegend=False, 
+                
+            ),
+            row=1,
+            col=1,
+        )
+
+    # Create subplot for volume
+    if 'volume' in klines:
+        fig.add_trace(
+            go.Bar(
+                x=klines["datetime"],
+                y=klines["volume"],
+                name="Volumen",  
+                marker=dict(color="rgba(126,198,222,0.2)"),
+                marker_line_width=0,
+            ),
+            row=2,
+            col=1,
+        )
+
+    if indicators:
+        for ind in indicators:
+
+            fig.add_trace(
+                go.Scatter(
+                    x=klines["datetime"], y=klines[ind['col']], name=ind['name'], mode="lines", 
+                    line={'width': 0.5},  
+                    marker=dict(color=ind['color']),
+                ),
+                row=1,
+                col=1,
+            )
+            
+    if open_orders:
+        for oo in open_orders:
+
+            fig.add_trace(
+                go.Scatter(
+                    x=klines["datetime"], y=klines[oo['col']], name=oo['col'], showlegend=False,
+                    line=dict(width= 1.5,color=oo['color'],dash="dot" ), 
+                    ),
+                row=1,
+                col=1,
+            )
+
+    if events:
+        for event in events:
+            fig.add_trace(
+                go.Scatter(x=event['df']["datetime"], y=event['df'][event['col']], name=event['name'], mode='markers', 
+                        marker=dict(symbol=event['symbol'],
+                                    size=8,
+                                    color=event['color'],
+                                    line=dict(width=0.75, color="black"),
+                                    ),
+                        ),
+                row=1,
+                col=1,
+            )
+            
+    if show_pnl:
+        fig.add_trace(
+            go.Scatter(
+                x=klines["datetime"], y=klines['pnl'], name="PNL", mode="lines", showlegend=False, 
+                line={'width': 1.25},  
+                marker=dict(color="#00c6d5"),
+            ),
+            row=chart_rows,
+            col=1,
+        )
+
+    # Adjust layout for subplots
+    fig.update_layout(
+        font=dict(color="#ffffff", family="Helvetica"),
+        paper_bgcolor="rgba(0,0,0,0)",  # Transparent background
+        plot_bgcolor="rgba(0,0,0,0)",  # Transparent plot area 
+        height=600,
+        
+        #title="",
+        #xaxis_title="",
+        #yaxis_title="",
+
+        xaxis=dict(domain=[0, 1]),
+        xaxis_rangeslider_visible=False,
+ 
+        modebar_bgcolor="rgba(0,0,0,0)",
+        legend=dict(
+            orientation = 'h',
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+        ),
+    )
+
+    #Ajustar el tamaño de cada sub_plot
+    fig.update_layout(
+        yaxis1=dict(
+            title="Precio",
+            domain=[domain_0, 1],
+            showticklabels=True,
+        ),
+    )
+    if 'volume' in klines: 
+        fig.update_layout(
+            yaxis2=dict(
+                domain=[domain_0, domain_0+0.2],
+                showticklabels=False,
+            ),
+            yaxis3=dict(
+                title="PNL",
+                domain=[0, domain_0],
+                showticklabels=True,
+            ),
+            
+        ) 
+    else:
+        fig.update_layout(
+            yaxis2=dict(
+                title="PNL",
+                domain=[0, domain_0],
+                showticklabels=True,
+            ),
+            
+        ) 
+    
+    fig.update_xaxes(showline=True, linewidth=0.5,linecolor='#40444e', gridcolor='#40444e')
+    fig.update_yaxes(showline=False, linewidth=0.5,zeroline= False, linecolor='#40444e', gridcolor='rgba(0,0,0,0)') 
+
+    return fig
+
+def plotly_to_json(fig):
+        # Serializar fig a JSON
+    # Obtener los datos y el layout del objeto Figure
+    data = fig.data
+    layout = fig.layout
+    
+    # Convertir los datos a una lista serializable
+    serialized_data = [trace.to_plotly_json() for trace in data]
+
+    
+    # Convertir el layout a un diccionario serializable
+    serialized_layout = layout.to_plotly_json()
+    
+    # Crear un diccionario que contenga los datos serializados y el layout
+    serialized_fig = {'data': serialized_data, 'layout': serialized_layout}
+
+    fig_json = json.dumps(serialized_fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+    return fig_json

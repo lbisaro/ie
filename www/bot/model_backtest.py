@@ -319,7 +319,7 @@ class Backtest(models.Model):
         file = f'{self.results_folder}/id_{self.id}.json'
         return file
 
-    def get_periodos(self,interval_id):
+    def get_periodos(self,interval_id,all_tendencias=False):
         
         periodos = [] 
         folders = glob.glob(self.klines_folder+os.sep+'*')
@@ -329,10 +329,11 @@ class Backtest(models.Model):
             interval = fn.get_intervals(folder,'binance')
             if interval:
                 if interval_id == 'ALL' or folder == interval_id:
-                    mask = os.path.join(self.klines_folder,folder,'*.DataFrame')
+                    mask = os.path.join(self.klines_folder,folder,'*.DataFrame*')
                     files = glob.glob(mask)
                     
                     for f in files:
+                        
                         file = f
                         f = f.replace('.DataFrame', '')
                         f = f.replace(fld, '')
@@ -340,10 +341,11 @@ class Backtest(models.Model):
                         parts = f.split('_')
                         tendencia = parts[0]
                         symbol = parts[1]
+                        tendencia = parts[0]
                         start = parts[3]
                         end = parts[4]
                         key = len(periodos)
-                        if tendencia in self.tendencias:
+                        if all_tendencias or tendencia in self.tendencias:
                             periodos.append({
                                         'key': key,
                                         'tendencia':tendencia,

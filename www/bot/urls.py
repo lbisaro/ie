@@ -5,8 +5,8 @@ from bot import views_estrategia as ve
 from bot import views_bot as vb
 from bot import views_backtesting as vbt_old
 from bot import views_backtest as vbt
-
 from bot import views_symbols as vs
+from bot import views_graph_test as vgt
 
 urlpatterns = [
     path('estrategias/',ve.estrategias,name='estrategias'),
@@ -45,5 +45,8 @@ urlpatterns = [
     path('backtesting/',vbt_old.backtesting,name='backtesting'),
     path('backtesting/config/<str:bot_class_name>/',vbt_old.config,name='backtesting_config'),
     path('backtesting/run/',vbt_old.run,name='backtesting_run'),
+
+    path('chart/get/<str:symbol>',vgt.chart_get,name='chart_get'),
+    path('chart/',vgt.chart,name='chart'),
     
 ]
