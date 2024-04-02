@@ -151,10 +151,9 @@ USE_TZ = True
 DATE_FORMAT = 'd-m-Y'
 DATE_INPUT_FORMATS = 'd-m-Y'
 
-DATETIME_FORMAT = 'd-m-Y H:i'
-DATETIME_INPUT_FORMATS = 'd-m-Y H:i'
-
-USE_L10N = False
+TIME_ZONE = 'America/Argentina/Buenos_Aires'
+#TIME_ZONE = 'UTC'
+USE_TZ = False
 
 
 
